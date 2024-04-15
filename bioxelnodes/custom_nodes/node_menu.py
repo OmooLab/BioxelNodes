@@ -9,7 +9,7 @@ class CustomNodes():
         menu_items,
         nodes_file,
         root_label='CustomNodes',
-        root_icon=88
+        root_icon='NONE'
     ) -> None:
         if not Path(nodes_file).is_file():
             raise FileNotFoundError(Path(nodes_file).resolve().as_posix())
@@ -34,7 +34,7 @@ class CustomNodes():
             if ('GeometryNodeTree' == bpy.context.area.spaces[0].tree_type):
                 layout = self.layout
                 layout.separator()
-                layout.menu(idname, icon_value=root_icon)
+                layout.menu(idname, icon=root_icon)
 
         self.add_node_menu = add_node_menu
 
@@ -71,17 +71,20 @@ class CustomNodes():
                     elif item.get('menu_class'):
                         layout.menu(
                             item.get('menu_class').bl_idname,
-                            icon_value=item.get('icon') or 0
+                            icon=item.get('icon') or 'NONE'
                         )
                     else:
                         op = layout.operator(
-                            'customnodes.add_custom_node', text=item.get('label'))
+                            'customnodes.add_custom_node',
+                            text=item.get('label'),
+                            icon=item.get('icon') or 'NONE'
+                        )
                         op.nodes_file = nodes_file
                         op.node_type = item['node_type']
                         op.node_label = item.get('label') or ""
                         op.node_description = item.get(
                             'node_description') or "Add Custom Node."
-                        op.node_driver = item.get('node_driver') or ""
+                        op.node_callback = item.get('node_callback') or ""
 
         menu_classes.append(Menu)
         return Menu
@@ -108,9 +111,7 @@ class CustomNodes():
             op.nodes_file = self.nodes_file
             op.node_type = item['node_type']
             op.node_label = item.get('label') or ""
-            op.node_description = item.get(
-                'node_description') or "Add Custom Node."
-            op.node_driver = item.get('node_driver') or ""
+            op.node_callback = item.get('node_callback') or ""
             return op.add_node(node_tree)
         else:
             raise RuntimeError("No custom node type found.")

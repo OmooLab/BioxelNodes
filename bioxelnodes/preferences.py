@@ -3,13 +3,13 @@ from pathlib import Path
 from .external_package import ExternalPackagePreferences
 
 
-class MedNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferences):
+class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferences):
     bl_idname = __package__
     
     cache_dir: bpy.props.StringProperty(
         name="Python Log Directory",
         subtype='DIR_PATH',
-        default=Path(Path.home(), '.mednodes').as_posix()
+        default=Path(Path.home(), '.bioxelnodes').as_posix()
     )  # type: ignore
     
 

@@ -1,0 +1,72 @@
+name: Upload Assets to Release
+
+on:
+  push:
+    branches:
+      - "release/*"
+
+jobs:
+  # draft_release:
+  #   name: Draft Release
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     upload_url: ${{ steps.draft_release.outputs.upload_url }}
+  #     version: ${{ steps.set_env.outputs.version }}
+  #   steps:
+  #     - name: Set Version Env
+  #       id: set_env
+  #       run: |
+  #         ref_name=${{ github.ref_name }}
+  #         echo "version=${ref_name#release/}" >> "$GITHUB_OUTPUT"
+  #     - name: Get release
+  #       id: draft_release
+  #       uses: cardinalby/git-get-release-action@1.2.4
+  #       with:
+  #         releaseName: Draft
+  #       env:
+  #         GITHUB_TOKEN: ${{ github.token }}
+
+  draft_release:
+    name: Draft Release
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.draft_release.outputs.upload_url }}
+      version: ${{ steps.set_env.outputs.version }}
+    steps:
+      - name: Set Version Env
+        id: set_env
+        run: |
+          ref_name=${{ github.ref_name }}
+          echo "version=${ref_name#release/}" >> "$GITHUB_OUTPUT"
+      - name: Draft Release ${{ steps.set_env.outputs.version }}
+        uses: release-drafter/release-drafter@v5
+        id: draft_release
+        with:
+          name: ${{ steps.set_env.outputs.version }}
+          tag: ${{ steps.set_env.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload_blender_addon:
+    name: Upload Blender Add-on
+    needs: draft_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Zip Add-on
+        run: |
+          zip -r package.zip bioxelnodes
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.draft_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./package.zip
+          asset_name: BioxelNodes_${{ needs.draft_release.outputs.version }}.zip
+          asset_content_type: application/zip

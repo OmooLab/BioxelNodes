@@ -1,0 +1,57 @@
+# release title (appears, for example, in repo's sidebar)
+# NOTE: $RESOLVED_VERSION == $MAJOR.$MINOR.$PATCH
+name-template: "v$RESOLVED_VERSION"
+
+# git tag to be used for the release
+tag-template: "v$RESOLVED_VERSION"
+
+# Release Notes template (keep it as is)
+template: |
+  ## What’s Changed
+
+  $CHANGES
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+
+# Define which PR label will cause which kind of
+# version bump (following semantic versioning).
+# If no labels match, the default "patch".
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+
+# Define which PR label will be listed in which
+# category of changes in the Release Notes.
+# If no labels match, the default is to be
+# listed on the top, before the sections.
+categories:
+  - title: "🚨 BREAKING CHANGES 🚨"
+    labels:
+      - "BREAKING CHANGE"
+  - title: "🚀 New Features"
+    labels:
+      - "feature"
+      - "enhancement"
+  - title: "🐛 Bug Fixes"
+    labels:
+      - "fix"
+      - "bug"
+  - title: "🛠️ Other Changes"
+    labels:
+      - "chore"
+      - "refactor"
+      - "documentation"
+      - "style"
+      - "test"
+      - "revert"
+      - "dependencies"
+      - "ci"

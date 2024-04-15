@@ -1,41 +1,6 @@
 import bpy
 
 
-def add_driver(target_prop, var_sources, expression):
-
-    driver = target_prop.driver_add("default_value")
-    is_vector = isinstance(driver, list)
-    drivers = driver if is_vector else [driver]
-
-    for i, driver in enumerate(drivers):
-        for j, var_source in enumerate(var_sources):
-
-            source = var_source['source']
-            prop = var_source['prop']
-
-            var = driver.driver.variables.new()
-            var.name = f"var{j}"
-
-            var.targets[0].id_type = source.id_type
-            var.targets[0].id = source
-            var.targets[0].data_path = f'["{prop}"][{i}]'\
-                if is_vector else f'["{prop}"]'
-
-        driver.driver.expression = expression
-
-
-def add_direct_driver(target, target_prop, source, source_prop):
-    target_prop = target.inputs.get(target_prop)
-    drivers = [
-        {
-            "source": source,
-            "prop": source_prop
-        }
-    ]
-    expression = "var0"
-    add_driver(target_prop, drivers, expression)
-
-
 class AddCustomNode():
 
     nodes_file: bpy.props.StringProperty(
@@ -57,11 +22,6 @@ class AddCustomNode():
         default=''
     )  # type: ignore
 
-    node_driver: bpy.props.StringProperty(
-        name='node_driver',
-        default=''
-    )  # type: ignore
-
     node_description: bpy.props.StringProperty(
         name="node_description",
         description="",
@@ -69,9 +29,9 @@ class AddCustomNode():
         subtype="NONE"
     )  # type: ignore
 
-    node_link: bpy.props.BoolProperty(
-        name='node_link',
-        default=True
+    node_callback: bpy.props.StringProperty(
+        name='node_callback',
+        default=''
     )  # type: ignore
 
     @classmethod
@@ -85,19 +45,12 @@ class AddCustomNode():
         node.label = self.node_label or self.node_type
         node.name = self.node_type
 
-        if self.node_driver:
-            source_prop = self.node_driver.split(":")[0]
-            target_prop = self.node_driver.split(":")[1]
-            add_direct_driver(
-                target=node,
-                target_prop=target_prop,
-                source=bpy.context.active_object,
-                source_prop=source_prop
-            )
+        if self.node_callback:
+            exec(self.node_callback)
 
         return node
 
-    def append_node_tree(self, node_type):
+    def get_node_tree(self, node_type):
         # try to get node from current file if exists
         node_tree = bpy.data.node_groups.get(node_type)
         # if not exists, get it from asset file.
@@ -128,7 +81,7 @@ class AddCustomNode():
                 ...
 
     def add_node(self, node_tree):
-        self.append_node_tree(self.node_type)
+        self.get_node_tree(self.node_type)
 
         node = node_tree.new("GeometryNodeGroup")
 
@@ -143,7 +96,7 @@ class CUSTOMNODES_OT_Add_Custom_Node(bpy.types.Operator, AddCustomNode):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        self.append_node_tree(self.node_type)
+        self.get_node_tree(self.node_type)
 
         # intended to be called upon button press in the node tree
         prev_context = bpy.context.area.type
