@@ -1,4 +1,5 @@
 
+from pathlib import Path
 from .custom_nodes import CustomNodes
 import bpy
 
@@ -83,7 +84,7 @@ MENU_ITEMS = [
                 'icon': 'EMPTY_DATA',
                 'node_type': 'BioxelNodes_LPS-Slicer',
                 'node_description': '',
-                'node_callback': add_driver_to_node_factory("origin", "Origin")
+                'node_callback': add_driver_to_node_factory("image_origin", "Origin")
             },
             {
                 'label': 'Axis Slicer',
@@ -103,7 +104,7 @@ MENU_ITEMS = [
 
 custom_nodes = CustomNodes(
     menu_items=MENU_ITEMS,
-    nodes_file="assets/Nodes.blend",
+    nodes_file=Path(__file__).parent/"assets/Nodes.blend",
     root_label='BioxelNodes',
     root_icon="FILE_VOLUME",
 )

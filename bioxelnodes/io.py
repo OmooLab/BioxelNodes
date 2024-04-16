@@ -6,10 +6,25 @@ import numpy as np
 from pathlib import Path
 from uuid import uuid4
 import mathutils
-from .utils import calc_bbox_verts, get_bioxels_obj, show_message
+from .utils import calc_bbox_verts, extract_last_number, get_bioxels_obj, show_message
 from .nodes import custom_nodes
 
 SUPPORT_EXTS = ['.dcm', '.tif', '.tiff', '.png', '.bmp']
+
+
+def get_data_files(filepath: str):
+    file_path = Path(filepath).resolve()
+    suffix = file_path.suffix
+
+    files = list(file_path.parent.iterdir())
+    files = [f for f in files if f.is_file() and f.suffix == suffix]
+
+    def last_number(file: Path):
+        return extract_last_number(file.stem)
+
+    files.sort(key=last_number)
+    files = [f.as_posix() for f in files]
+    return files
 
 
 def on_orig_spacing_changed(self, context):
@@ -122,12 +137,8 @@ class ImportDICOMDialog(bpy.types.Operator):
             return {'CANCELLED'}
 
         file_path = Path(self.filepath).resolve()
-        name = file_path.parent.stem
-        suffix = file_path.suffix
-
-        files = list(file_path.parent.iterdir())
-        files = [f.as_posix()
-                 for f in files if f.is_file() and f.suffix == suffix]
+        name = file_path.parent.name
+        files = get_data_files(self.filepath)
 
         import SimpleITK as sitk
         image = sitk.ReadImage(files)
@@ -174,7 +185,7 @@ class ImportDICOMDialog(bpy.types.Operator):
         image_origin = image.GetOrigin()
         bioxels_scale = float(self.bioxels_scale)
         bioxel_size *= bioxels_scale
-        bioxel_origin = (
+        bioxels_origin = (
             image_origin[0] * bioxels_scale,
             image_origin[1] * bioxels_scale,
             image_origin[2] * bioxels_scale,
@@ -248,7 +259,7 @@ class ImportDICOMDialog(bpy.types.Operator):
         ).to_4x4()
 
         mat_loc = mathutils.Matrix.Translation(
-            mathutils.Vector(bioxel_origin))
+            mathutils.Vector(bioxels_origin))
         mat_sca = mathutils.Matrix.Scale(bioxel_size, 4)
         mat_rot = mathutils.Matrix(
             np.array(direction).reshape((3, 3))
@@ -269,10 +280,12 @@ class ImportDICOMDialog(bpy.types.Operator):
         bioxels_obj['value_max'] = value_max
         bioxels_obj['value_min'] = value_min
         bioxels_obj['value_offset'] = value_offset
+        bioxels_obj['image_origin'] = mathutils.Vector(
+            bioxels_origin) / bioxel_size
+        bioxels_obj['bioxel_size'] = bioxel_size
         bioxels_obj['bioxels_shape'] = bioxels_shape
         bioxels_obj['bioxels_size'] = bioxels_size
-        bioxels_obj['bioxel_size'] = bioxel_size
-        bioxels_obj['bioxel_origin'] = bioxel_origin
+        bioxels_obj['bioxels_origin'] = bioxels_origin
         bioxels_obj['bioxels_values'] = True
 
         bpy.ops.node.new_geometry_nodes_modifier()
@@ -284,7 +297,7 @@ class ImportDICOMDialog(bpy.types.Operator):
         )
         container_obj = bpy.context.active_object
 
-        bbox_verts = calc_bbox_verts(bioxel_origin, bioxels_size)
+        bbox_verts = calc_bbox_verts(bioxels_origin, bioxels_size)
         for index, vert in enumerate(container_obj.data.vertices):
             vert.co = bbox_verts[index]
 
@@ -353,13 +366,7 @@ class ReadDICOM(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
-
-        file_path = Path(self.filepath).resolve()
-        suffix = file_path.suffix
-
-        files = list(file_path.parent.iterdir())
-        files = [f.as_posix()
-                 for f in files if f.is_file() and f.suffix == suffix]
+        files = get_data_files(self.filepath)
 
         import SimpleITK as sitk
         image = sitk.ReadImage(files)

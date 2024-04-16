@@ -1,13 +1,15 @@
 import bpy
 import mathutils
 
-def show_message(message = "", title = "Message Box", icon = 'INFO'):
+
+def show_message(message="", title="Message Box", icon='INFO'):
 
     def draw(self, context):
         self.layout.label(text=message)
 
-    bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
-    
+    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
+
+
 def calc_bbox_verts(origin, size):
     bbox_origin = mathutils.Vector(
         (-origin[0], -origin[2], -origin[1]))
@@ -74,6 +76,28 @@ def get_bioxels_obj(current_obj):
             bioxels_obj = current_obj
 
     return bioxels_obj
+
+
+def extract_last_number(text):
+    # Initialize an empty string to store the digits
+    digits = ""
+
+    # Iterate through the characters in reverse order
+    started = False
+    for char in text[::-1]:
+        if char.isdigit():
+            started = True
+            # If the character is a digit, add it to the digits string
+            digits += char
+        else:
+            if started:
+                # If a non-digit character is encountered, stop the loop
+                break
+
+    # Reverse the digits string to get the correct order
+    last_number = digits[::-1]
+
+    return int(last_number)
 
 
 def add_driver(target_prop, var_sources, expression):

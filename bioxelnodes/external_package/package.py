@@ -42,15 +42,13 @@ class InstallationError(Exception):
 class PackageInstaller():
     def __init__(
         self,
+        log_dir: str,
+        requirements_dir: str,
         pypi_mirror_provider='Default',
-        log_dir: str = None,
-        requirements_dir: str = None
     ) -> None:
         self.pypi_mirror_provider = pypi_mirror_provider
-        self.log_path: Path = Path(log_dir) if log_dir else \
-            Path(Path.home(), '.externalpackage', 'logs')
-        self.requirements_path: Path = Path(requirements_dir) if requirements_dir else \
-            Path(__file__).parent
+        self.log_path: Path = Path(log_dir)
+        self.requirements_path: Path = Path(requirements_dir)
 
     def start_logging(self, logfile_name: str = 'side-packages-install') -> logging.Logger:
         """
@@ -233,7 +231,7 @@ class PackageInstaller():
         """
 
         # path to python.exe
-        python_exe = Path(sys.executable).resolve()
+        python_exe = Path(sys.executable).resolve().as_posix()
 
         # build the command list
         cmd_list = [python_exe] + cmd_list
@@ -293,12 +291,11 @@ class PackageInstaller():
             raise ValueError("Package name must be provided.")
 
         print(f"Installing {package}...")
-        print(f"Using PyPI mirror:\
-            {self.pypi_mirror_provider} {self.pypi_mirror_url}")
+        print(f"Using PyPI mirror: {self.pypi_mirror_provider}")
 
         self.run_python(["-m", "ensurepip"]),
         self.run_python(["-m", "pip", "install", "--upgrade", "pip"])
-        result = self.run_python(["-m", "pip", "install", package])
+        result = self.run_python(["-m", "pip", "install", package, "--user"])
 
         return result
 
@@ -348,7 +345,7 @@ class EXTERNALPACKAGE_OT_Install_Package(bpy.types.Operator):
     bl_idname = 'externalpackage.install_package'
     bl_label = 'Install Given Python Package'
     bl_options = {'REGISTER', 'INTERNAL'}
-    
+
     package: bpy.props.StringProperty(
         name='Python Package',
         description='Python Package to Install'
@@ -384,7 +381,9 @@ class EXTERNALPACKAGE_OT_Install_Package(bpy.types.Operator):
         else:
             self.report(
                 {'ERROR'},
-                f"Error installing package. Please check the log files in \
-                    '{preferences.log_dir}'."
+                f"""
+Error installing package. Please check the log files
+in {preferences.log_dir}.
+                """
             )
         return {'FINISHED'}

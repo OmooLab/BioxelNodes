@@ -10,6 +10,7 @@ class ConvertToMesh(bpy.types.Operator):
 
     def execute(self, context):
         bioxels_objs = []
+
         for obj in bpy.context.selected_objects:
             bioxels_obj = get_bioxels_obj(obj)
             if bioxels_obj:

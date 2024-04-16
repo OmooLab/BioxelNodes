@@ -130,3 +130,5 @@ pythonlib*
 blendcache_*
 
 *.ipynb
+
+.secrets
