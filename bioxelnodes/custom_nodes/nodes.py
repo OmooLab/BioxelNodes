@@ -29,6 +29,11 @@ class AddCustomNode():
         subtype="NONE"
     )  # type: ignore
 
+    node_link: bpy.props.BoolProperty(
+        name='node_link',
+        default=True
+    )  # type: ignore
+
     node_callback: bpy.props.StringProperty(
         name='node_callback',
         default=''
@@ -50,7 +55,7 @@ class AddCustomNode():
 
         return node
 
-    def get_node_tree(self, node_type):
+    def get_node_tree(self, node_type, node_link):
         # try to get node from current file if exists
         node_tree = bpy.data.node_groups.get(node_type)
         # if not exists, get it from asset file.
@@ -59,7 +64,7 @@ class AddCustomNode():
                 'EXEC_DEFAULT',
                 directory=f"{self.nodes_file}/NodeTree",
                 filename=node_type,
-                link=False,
+                link=node_link,
                 use_recursive=True
             )
 
@@ -81,10 +86,8 @@ class AddCustomNode():
                 ...
 
     def add_node(self, node_tree):
-        self.get_node_tree(self.node_type)
-
+        self.get_node_tree(self.node_type, self.node_link)
         node = node_tree.new("GeometryNodeGroup")
-
         self.assign_node_tree(node)
 
         return node
@@ -96,7 +99,7 @@ class CUSTOMNODES_OT_Add_Custom_Node(bpy.types.Operator, AddCustomNode):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        self.get_node_tree(self.node_type)
+        self.get_node_tree(self.node_type, self.node_link)
 
         # intended to be called upon button press in the node tree
         prev_context = bpy.context.area.type

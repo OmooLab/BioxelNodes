@@ -9,13 +9,28 @@ def add_driver_to_node_factory(source_prop, target_prop):
 import bpy
 from bioxelnodes.utils import add_direct_driver, get_bioxels_obj
 bioxels_obj = get_bioxels_obj(bpy.context.active_object)
+container_obj = bioxels_obj.parent
 if bioxels_obj:
     add_direct_driver(
         target=node,
         target_prop='{target_prop}',
-        source=bioxels_obj,
+        source=container_obj,
         source_prop='{source_prop}'
     )
+else:
+    print('Cannot find any bioxels.')
+    """
+    return callback_str
+
+
+def set_prop_to_node_factory(source_prop, target_prop):
+    callback_str = f"""
+import bpy
+from bioxelnodes.utils import get_bioxels_obj
+bioxels_obj = get_bioxels_obj(bpy.context.active_object)
+container_obj = bioxels_obj.parent
+if bioxels_obj:
+    node.inputs.get('{target_prop}').default_value = container_obj.get('{source_prop}')
 else:
     print('Cannot find any bioxels.')
     """
@@ -32,7 +47,20 @@ MENU_ITEMS = [
                 'icon': 'OUTLINER_OB_META',
                 'node_type': 'BioxelNodes_Segment',
                 'node_description': '',
-                'node_callback': add_driver_to_node_factory("value_offset", "Offset")
+                'node_callback': "\n".join([
+                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
+                    set_prop_to_node_factory("bioxels_offset", "Offset"),
+                ])
+            },
+            {
+                'label': 'Anatomy',
+                'icon': 'OUTLINER_OB_META',
+                'node_type': 'BioxelNodes_Anatomy',
+                'node_description': '',
+                'node_callback': "\n".join([
+                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
+                    set_prop_to_node_factory("bioxels_offset", "Offset"),
+                ])
             }
         ]
     },
@@ -45,21 +73,30 @@ MENU_ITEMS = [
                 'icon': 'AREA_JOIN',
                 'node_type': 'BioxelNodes_SegmentByLevel',
                 'node_description': '',
-                'node_callback': add_driver_to_node_factory("value_offset", "Offset")
+                'node_callback': "\n".join([
+                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
+                    set_prop_to_node_factory("bioxels_offset", "Offset"),
+                ])
             },
             {
                 'label': 'Segment by Range',
                 'icon': 'AREA_SWAP',
                 'node_type': 'BioxelNodes_SegmentByRange',
                 'node_description': '',
-                'node_callback': add_driver_to_node_factory("value_offset", "Offset")
+                'node_callback': "\n".join([
+                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
+                    set_prop_to_node_factory("bioxels_offset", "Offset"),
+                ])
             },
             {
                 'label': 'Segment by Layers',
                 'icon': 'OUTLINER_OB_FORCE_FIELD',
                 'node_type': 'BioxelNodes_SegmentsByLayers',
                 'node_description': '',
-                'node_callback': add_driver_to_node_factory("value_offset", "Offset")
+                'node_callback': "\n".join([
+                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
+                    set_prop_to_node_factory("bioxels_offset", "Offset"),
+                ])
             }
         ]
     },
@@ -80,11 +117,10 @@ MENU_ITEMS = [
         'icon': 'CLIPUV_DEHLT',
         'items': [
             {
-                'label': 'LPS Slicer',
+                'label': 'RAS Slicer',
                 'icon': 'EMPTY_DATA',
-                'node_type': 'BioxelNodes_LPS-Slicer',
-                'node_description': '',
-                'node_callback': add_driver_to_node_factory("image_origin", "Origin")
+                'node_type': 'BioxelNodes_RAS-Slicer',
+                'node_description': ''
             },
             {
                 'label': 'Axis Slicer',

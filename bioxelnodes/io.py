@@ -9,7 +9,7 @@ import mathutils
 from .utils import calc_bbox_verts, extract_last_number, get_bioxels_obj, show_message
 from .nodes import custom_nodes
 
-SUPPORT_EXTS = ['.dcm', '.tif', '.tiff', '.png', '.bmp']
+SUPPORT_EXTS = ['.dcm', '.tif', '.tiff', '.png', '.bmp', '', '.jpg']
 
 
 def get_data_files(filepath: str):
@@ -84,13 +84,6 @@ class ImportDICOMDialog(bpy.types.Operator):
         default=(100, 100, 100)
     )  # type: ignore
 
-    bioxels_scale: bpy.props.FloatProperty(
-        name="Bioxel Size Scale",
-        soft_min=0.001, soft_max=100.0,
-        min=1e-6, max=1e6,
-        default=0.01,
-    )  # type: ignore
-
     bioxel_size: bpy.props.FloatProperty(
         name="Bioxel Size",
         soft_min=0.1, soft_max=10.0,
@@ -115,6 +108,13 @@ class ImportDICOMDialog(bpy.types.Operator):
         name="Auto Setting",
         default=False,
         options={'HIDDEN'}
+    )  # type: ignore
+
+    scene_scale: bpy.props.FloatProperty(
+        name="Scene Scale",
+        soft_min=0.001, soft_max=100.0,
+        min=1e-6, max=1e6,
+        default=0.01,
     )  # type: ignore
 
     do_add_segmentnode: bpy.props.BoolProperty(
@@ -178,24 +178,9 @@ class ImportDICOMDialog(bpy.types.Operator):
         )
 
         try:
-            image = sitk.DICOMOrient(image, 'LPS')
+            image = sitk.DICOMOrient(image, 'RAS')
         except:
             ...
-
-        image_origin = image.GetOrigin()
-        bioxels_scale = float(self.bioxels_scale)
-        bioxel_size *= bioxels_scale
-        bioxels_origin = (
-            image_origin[0] * bioxels_scale,
-            image_origin[1] * bioxels_scale,
-            image_origin[2] * bioxels_scale,
-        )
-        bioxels_size = (
-            bioxels_shape[0] * bioxel_size,
-            bioxels_shape[1] * bioxel_size,
-            bioxels_shape[2] * bioxel_size,
-        )
-        direction = image.GetDirection()
 
         array = sitk.GetArrayFromImage(image)
         orig_dtype = str(array.dtype)
@@ -206,26 +191,51 @@ class ImportDICOMDialog(bpy.types.Operator):
         # https://www.slicer.org/wiki/Coordinate_systems
 
         # ITK                  Numpy      3D
-        # L (eft)      i   ->    k   ->   x
-        # P (osterior) j   ->    j   ->   y
+        # R (ight)     i   ->    k   ->   x
+        # A (nterior)  j   ->    j   ->   y
         # S (uperior)  k   ->    i   ->   z
 
         array = np.transpose(array)
-        value_max = float(np.max(array))
-        value_min = float(np.min(array))
+        bioxels_max = float(np.max(array))
+        bioxels_min = float(np.min(array))
 
-        value_offset = 0.0
-        if value_min < 0 and orig_dtype[0] != "u":
-            value_offset = -value_min
-            array = array + np.full_like(array, value_offset)
-            value_max = float(np.max(array))
-            value_min = float(np.min(array))
-            print("Offseted Max:", value_max)
-            print("Offseted Min:", value_min)
+        bioxels_offset = 0.0
+        if bioxels_min < 0 and orig_dtype[0] != "u":
+            bioxels_offset = -bioxels_min
+            array = array + np.full_like(array, bioxels_offset)
+            bioxels_max = float(np.max(array))
+            bioxels_min = float(np.min(array))
+            print("Offseted Max:", bioxels_max)
+            print("Offseted Min:", bioxels_min)
 
         # Build VDB
         grid = vdb.FloatGrid()
         grid.copyFromArray(array.copy())
+
+        # After sitk.DICOMOrient(), origin and direction will also orient base on LPS
+        # so we need to convert them into RAS
+        mat_lps2ras = axis_conversion(
+            from_forward='-Z',
+            from_up='-Y',
+            to_forward='-Z',
+            to_up='Y'
+        ).to_4x4()
+
+        mat_location = mathutils.Matrix.Translation(
+            mathutils.Vector(image.GetOrigin())
+        )
+
+        mat_rotation = mathutils.Matrix(
+            np.array(image.GetDirection()).reshape((3, 3))
+        ).to_4x4()
+
+        mat_scale = mathutils.Matrix.Scale(
+            bioxel_size, 4
+        )
+
+        transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale
+
+        grid.transform = vdb.createLinearTransform(transfrom.transposed())
         grid.name = "value"
 
         preferences = context.preferences.addons[__package__].preferences
@@ -244,28 +254,26 @@ class ImportDICOMDialog(bpy.types.Operator):
         bioxels_obj = bpy.context.active_object
 
         # Set props to VDB object
-        bioxels_obj.name = f"{name}_Values"
-        bioxels_obj.data.name = f"{name}_Values"
+        bioxels_obj.name = f"{name}_Bioxels"
+        bioxels_obj.data.name = f"{name}_Bioxels"
 
         # Make transformation
+        scene_scale = float(self.scene_scale)
 
         # (S)uperior  -Z -> Y
-        # (P)osterior -Y -> Z
-        axis_rot = axis_conversion(
+        # (A)osterior  Y -> Z
+        mat_ras2blender = axis_conversion(
             from_forward='-Z',
-            from_up='-Y',
+            from_up='Y',
             to_forward='Y',
             to_up='Z'
         ).to_4x4()
 
-        mat_loc = mathutils.Matrix.Translation(
-            mathutils.Vector(bioxels_origin))
-        mat_sca = mathutils.Matrix.Scale(bioxel_size, 4)
-        mat_rot = mathutils.Matrix(
-            np.array(direction).reshape((3, 3))
-        ).to_4x4()
+        mat_scene_scale = mathutils.Matrix.Scale(
+            scene_scale, 4
+        )
 
-        bioxels_obj.matrix_world = axis_rot @ mat_loc @ mat_rot @ mat_sca
+        bioxels_obj.matrix_world = mat_ras2blender @ mat_scene_scale
 
         bioxels_obj.lock_location[0] = True
         bioxels_obj.lock_location[1] = True
@@ -277,16 +285,7 @@ class ImportDICOMDialog(bpy.types.Operator):
         bioxels_obj.lock_scale[1] = True
         bioxels_obj.lock_scale[2] = True
         bioxels_obj.hide_select = True
-        bioxels_obj['value_max'] = value_max
-        bioxels_obj['value_min'] = value_min
-        bioxels_obj['value_offset'] = value_offset
-        bioxels_obj['image_origin'] = mathutils.Vector(
-            bioxels_origin) / bioxel_size
-        bioxels_obj['bioxel_size'] = bioxel_size
-        bioxels_obj['bioxels_shape'] = bioxels_shape
-        bioxels_obj['bioxels_size'] = bioxels_size
-        bioxels_obj['bioxels_origin'] = bioxels_origin
-        bioxels_obj['bioxels_values'] = True
+        bioxels_obj['bioxels'] = True
 
         bpy.ops.node.new_geometry_nodes_modifier()
         node_tree = bioxels_obj.modifiers[0].node_group
@@ -296,14 +295,16 @@ class ImportDICOMDialog(bpy.types.Operator):
             enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1)
         )
         container_obj = bpy.context.active_object
-
-        bbox_verts = calc_bbox_verts(bioxels_origin, bioxels_size)
+        bbox_verts = calc_bbox_verts((0, 0, 0), bioxels_shape)
         for index, vert in enumerate(container_obj.data.vertices):
-            vert.co = bbox_verts[index]
+            co = transfrom @ mathutils.Vector(bbox_verts[index])
+            co = mat_ras2blender @ co
+            co = mat_scene_scale @ co
+            vert.co = co
 
         bioxels_obj.parent = container_obj
         container_obj.name = name
-        container_obj.data.name = f"{name}_Container"
+        container_obj.data.name = name
         container_obj.visible_camera = False
         container_obj.visible_diffuse = False
         container_obj.visible_glossy = False
@@ -311,7 +312,13 @@ class ImportDICOMDialog(bpy.types.Operator):
         container_obj.visible_volume_scatter = False
         container_obj.visible_shadow = False
         container_obj.display_type = 'WIRE'
-        container_obj['bioxels'] = True
+        container_obj['bioxels_container'] = True
+        container_obj['scene_scale'] = scene_scale
+        container_obj['bioxel_size'] = bioxel_size
+        container_obj['bioxels_max'] = bioxels_max
+        container_obj['bioxels_min'] = bioxels_min
+        container_obj['bioxels_offset'] = bioxels_offset
+        container_obj['bioxels_shape'] = bioxels_shape
 
         bpy.ops.object.modifier_add(type='NODES')
         container_obj.modifiers[0].node_group = node_tree
@@ -440,8 +447,8 @@ class BIOXELNODES_FH_ImportDicom(bpy.types.FileHandler):
 
 class ExportVDB(bpy.types.Operator):
     bl_idname = "bioxelnodes.export_vdb"
-    bl_label = "Biovels as VDB"
-    bl_description = "Export Biovels original VDB data."
+    bl_label = "Bioxels as VDB"
+    bl_description = "Export Bioxels original VDB data."
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(
@@ -451,13 +458,12 @@ class ExportVDB(bpy.types.Operator):
     filename_ext = ".vdb"
 
     def invoke(self, context, event):
-        bioxels_objs = []
+        bioxels_obj = None
         for obj in bpy.context.selected_objects:
             bioxels_obj = get_bioxels_obj(obj)
-            if bioxels_obj:
-                bioxels_objs.append(bioxels_obj)
+            break
 
-        if len(bioxels_objs) > 0:
+        if bioxels_obj:
             context.window_manager.fileselect_add(self)
             return {'RUNNING_MODAL'}
         else:
@@ -465,14 +471,13 @@ class ExportVDB(bpy.types.Operator):
             return {'CANCELLED'}
 
     def execute(self, context):
-        bioxels_objs = []
+        bioxels_obj = None
         for obj in bpy.context.selected_objects:
             bioxels_obj = get_bioxels_obj(obj)
-            if bioxels_obj:
-                bioxels_objs.append(bioxels_obj)
+            break
 
-        bioxels_obj = bioxels_objs[0]
-        output_path: Path = Path(self.filepath).resolve()
+        filepath = f"{self.filepath.split('.')[0]}.vdb"
+        output_path: Path = Path(filepath).resolve()
         source_path: Path = Path(bioxels_obj.data.filepath).resolve()
         # print('output_path', output_path)
         # print('source_path', source_path)
