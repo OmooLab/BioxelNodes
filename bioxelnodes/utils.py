@@ -12,9 +12,9 @@ def show_message(message="", title="Message Box", icon='INFO'):
 
 def calc_bbox_verts(origin, size):
     bbox_origin = mathutils.Vector(
-        (-origin[0], -origin[2], -origin[1]))
+        (origin[0], origin[1], origin[2]))
     bbox_size = mathutils.Vector(
-        (-size[0], -size[2], -size[1]))
+        (size[0], size[1], size[2]))
     bbox_verts = [
         (
             bbox_origin[0] + 0,
@@ -62,17 +62,17 @@ def calc_bbox_verts(origin, size):
 
 def get_bioxels_obj(current_obj):
     bioxels_obj = None
-    if current_obj.get('bioxels'):
+    if current_obj.get('bioxels_container'):
         bioxels_values = []
         for obj in bpy.data.objects:
-            if obj.parent == current_obj and obj.get('bioxels_values'):
+            if obj.parent == current_obj and obj.get('bioxels'):
                 bioxels_values.append(obj)
 
         if len(bioxels_values) > 0:
             bioxels_obj = bioxels_values[0]
 
-    elif current_obj.get('bioxels_values') and current_obj.parent:
-        if current_obj.parent.get('bioxels'):
+    elif current_obj.get('bioxels') and current_obj.parent:
+        if current_obj.parent.get('bioxels_container'):
             bioxels_obj = current_obj
 
     return bioxels_obj

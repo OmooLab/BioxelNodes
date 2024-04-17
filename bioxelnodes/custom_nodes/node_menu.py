@@ -84,6 +84,7 @@ class CustomNodes():
                         op.node_label = item.get('label') or ""
                         op.node_description = item.get(
                             'node_description') or "Add Custom Node."
+                        op.node_link = item.get('link') or True
                         op.node_callback = item.get('node_callback') or ""
 
         menu_classes.append(Menu)
@@ -111,6 +112,7 @@ class CustomNodes():
             op.nodes_file = self.nodes_file
             op.node_type = item['node_type']
             op.node_label = item.get('label') or ""
+            op.node_link = item.get('link') or True
             op.node_callback = item.get('node_callback') or ""
             return op.add_node(node_tree)
         else:
