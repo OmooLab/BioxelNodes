@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from .custom_nodes import CustomNodes
+from .customnodes import CustomNodes
 import bpy
 
 
