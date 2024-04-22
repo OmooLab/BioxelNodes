@@ -21,7 +21,7 @@ In Blender, `Edit - Preferences - Add-ons - Install`, select the `BioxelNodes_{v
 
 ### Dependency Installation
 
-The add-on requires a third-party python dependency called SimpleITK, click the Install SimpleITK button below to install the dependency. After clicking, Blender may get stuck, it is downloading and installing, just wait for a moment.
+The add-on requires a third-party python dependency called SimpleITK, click the Install SimpleITK button below to install the dependency. After clicking, blender may get stuck, it is downloading and installing, just wait for a moment. After the Installation, **restart blender once**.
 
 ![dependency](docs/images/dependency.png)
 
