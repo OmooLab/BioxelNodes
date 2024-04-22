@@ -6,14 +6,14 @@ import bpy
 
 
 bl_info = {
-    "name": "BiovelNodes",
+    "name": "Biovel Nodes",
     "author": "Ma Nan",
     "description": "",
-    "blender": (4, 0, 0),
+    "blender": (4, 1, 0),
     "version": (0, 1, 0),
     "location": "File -> Import",
     "warning": "",
-    "category": "Import-Export"
+    "category": "Node"
 }
 
 auto_load.init()

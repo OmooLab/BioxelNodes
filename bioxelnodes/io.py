@@ -23,7 +23,7 @@ def get_data_files(filepath: str):
         return extract_last_number(file.stem)
 
     files.sort(key=last_number)
-    files = [f.as_posix() for f in files]
+    files = [str(f) for f in files]
     return files
 
 
@@ -136,15 +136,14 @@ class ImportDICOMDialog(bpy.types.Operator):
             self.report({"WARNING"}, "Not Supported extension.")
             return {'CANCELLED'}
 
-        file_path = Path(self.filepath).resolve()
-        name = file_path.parent.name
+        
         files = get_data_files(self.filepath)
+        name = Path(self.filepath).parent.name
 
         import SimpleITK as sitk
         image = sitk.ReadImage(files)
 
         bioxel_size = float(self.bioxel_size)
-
         orig_spacing = tuple(self.orig_spacing)
         image_spacing = image.GetSpacing()
         image_shape = image.GetSize()
@@ -243,13 +242,13 @@ class ImportDICOMDialog(bpy.types.Operator):
         vdb_dirpath.mkdir(parents=True, exist_ok=True)
         vdb_path = Path(vdb_dirpath, f"{uuid4()}.vdb")
 
-        print(f"Storing the VDB file ({vdb_path.as_posix()})...")
-        vdb.write(vdb_path.as_posix(), grids=[grid])
+        print(f"Storing the VDB file ({str(vdb_path)})...")
+        vdb.write(str(vdb_path), grids=[grid])
 
         # Read VDB
         print(f"Importing the VDB file to Blender scene...")
         bpy.ops.object.volume_import(
-            filepath=vdb_path.as_posix(), align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+            filepath=str(vdb_path), align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
 
         bioxels_obj = bpy.context.active_object
 
@@ -482,5 +481,7 @@ class ExportVDB(bpy.types.Operator):
         # print('output_path', output_path)
         # print('source_path', source_path)
         shutil.copy(source_path, output_path)
+        
+        self.report({"INFO"}, "Successfully Exported")
 
         return {'FINISHED'}

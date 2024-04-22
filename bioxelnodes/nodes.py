@@ -9,8 +9,8 @@ def add_driver_to_node_factory(source_prop, target_prop):
 import bpy
 from bioxelnodes.utils import add_direct_driver, get_bioxels_obj
 bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-container_obj = bioxels_obj.parent
 if bioxels_obj:
+    container_obj = bioxels_obj.parent
     add_direct_driver(
         target=node,
         target_prop='{target_prop}',
@@ -28,9 +28,10 @@ def set_prop_to_node_factory(source_prop, target_prop):
 import bpy
 from bioxelnodes.utils import get_bioxels_obj
 bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-container_obj = bioxels_obj.parent
 if bioxels_obj:
-    node.inputs.get('{target_prop}').default_value = container_obj.get('{source_prop}')
+    container_obj = bioxels_obj.parent
+    node.inputs.get('{target_prop}').default_value = container_obj.get(
+        '{source_prop}')
 else:
     print('Cannot find any bioxels.')
     """
@@ -44,7 +45,7 @@ MENU_ITEMS = [
         'items': [
             {
                 'label': 'Segment',
-                'icon': 'OUTLINER_OB_META',
+                'icon': 'BONE_DATA',
                 'node_type': 'BioxelNodes_Segment',
                 'node_description': '',
                 'node_callback': "\n".join([
@@ -54,7 +55,7 @@ MENU_ITEMS = [
             },
             {
                 'label': 'Anatomy',
-                'icon': 'OUTLINER_OB_META',
+                'icon': 'CONSTRAINT_BONE',
                 'node_type': 'BioxelNodes_Anatomy',
                 'node_description': '',
                 'node_callback': "\n".join([
@@ -141,6 +142,6 @@ MENU_ITEMS = [
 custom_nodes = CustomNodes(
     menu_items=MENU_ITEMS,
     nodes_file=Path(__file__).parent/"assets/Nodes.blend",
-    root_label='BioxelNodes',
+    root_label='Bioxel Nodes',
     root_icon="FILE_VOLUME",
 )
