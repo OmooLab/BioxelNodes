@@ -373,7 +373,7 @@ class EXTERNALPACKAGE_OT_Install_Package(bpy.types.Operator):
         )
 
         result = installer.install_package(f"{self.package}=={self.version}")
-        if result.returncode == 0 and installer.is_installed(self.package):
+        if result.returncode == 0 or installer.is_installed(self.package):
             self.report(
                 {'INFO'},
                 f"Successfully installed {self.package} v{self.version}"
@@ -381,9 +381,7 @@ class EXTERNALPACKAGE_OT_Install_Package(bpy.types.Operator):
         else:
             self.report(
                 {'ERROR'},
-                f"""
-Error installing package. Please check the log files
-in {preferences.log_dir}.
-                """
+                f"""Error installing package. Please check the log files
+in {preferences.log_dir}."""
             )
         return {'FINISHED'}
