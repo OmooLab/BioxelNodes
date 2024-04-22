@@ -1,6 +1,6 @@
 [中文文档](https://uj6xfhbzp0.feishu.cn/wiki/Qx3VwHuNPimeI8kr6nDcvl1DnHf?from=from_copylink)
 
-# Bioxel Nodes (Blender Add-on)
+# Bioxel Nodes
 
 ![Static Badge](https://img.shields.io/badge/Blender-orange?style=for-the-badge&logo=blender&logoColor=white)
 ![GitHub License](https://img.shields.io/github/license/OmooLab/BioxelNodes?style=for-the-badge)
