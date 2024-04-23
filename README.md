@@ -91,8 +91,7 @@ You can add a "Bake" node between segmentation node and shader node, if the reco
 
 # Technical Notes
 
-The "Bioxel" in "BioxelNodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data, so maybe its chinese name should be "生素" 😂? The volumetric data made up of Bioxel is called Bioxels. We are developing a toolkit around Bioxels for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. Because we have been pursuing one thing:
-**Science that can be beautiful at the same time.**
+The "Bioxel" in "BioxelNodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data, so maybe its chinese name should be "生素" 😂? The volumetric data made up of Bioxel is called Bioxels. We are developing a toolkit around Bioxels for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. 
 
 ### Bioxels
 
