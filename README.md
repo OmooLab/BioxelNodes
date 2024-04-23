@@ -78,7 +78,7 @@ You can add a "Bake" node between segmentation node and shader node, if the reco
 
 # Known limitations
 
-- Cannot read DICOM with multiple sequences.
+- Cannot read DICOM with multiple series.
 - Sections cannot be generated
 - Only sequence files are supported, packed volume data formats are not supported yet (will be supported soon)
 

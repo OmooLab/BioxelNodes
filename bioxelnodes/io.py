@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from uuid import uuid4
 import mathutils
-from .utils import calc_bbox_verts, extract_last_number, get_bioxels_obj, show_message
+from .utils import calc_bbox_verts, extract_last_number, get_bioxels_obj, get_node_by_type, show_message
 from .nodes import custom_nodes
 
 SUPPORT_EXTS = ['.dcm', '.tif', '.tiff', '.png', '.bmp', '', '.jpg']
@@ -79,7 +79,7 @@ class ImportDICOMDialog(bpy.types.Operator):
     )  # type: ignore
 
     bioxels_shape: bpy.props.IntVectorProperty(
-        name="Bioxels Shape",
+        name="Bioxels Shape (ReadOnly)",
         min=0,
         default=(100, 100, 100)
     )  # type: ignore
@@ -128,15 +128,6 @@ class ImportDICOMDialog(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
-        if not self.filepath:
-            self.report({"WARNING"}, "Get no file path.")
-            return {'CANCELLED'}
-
-        if Path(self.filepath).suffix not in SUPPORT_EXTS:
-            self.report({"WARNING"}, "Not Supported extension.")
-            return {'CANCELLED'}
-
-        
         files = get_data_files(self.filepath)
         name = Path(self.filepath).parent.name
 
@@ -160,9 +151,6 @@ class ImportDICOMDialog(bpy.types.Operator):
             int(image_shape[2] / bioxel_size * orig_spacing[2]),
         )
 
-        print("Bioxel Size:", bioxel_size)
-        print("Bioxels Shape:", bioxels_shape)
-
         print("Resampling...")
         image = sitk.Resample(
             image1=image,
@@ -176,14 +164,12 @@ class ImportDICOMDialog(bpy.types.Operator):
             outputPixelType=image.GetPixelID(),
         )
 
-        try:
-            image = sitk.DICOMOrient(image, 'RAS')
-        except:
-            ...
+        print("Orienting to RAS...")
+        image = sitk.DICOMOrient(image, 'RAS')
 
         array = sitk.GetArrayFromImage(image)
         orig_dtype = str(array.dtype)
-        print(f"Coverting Dtype {orig_dtype} -> float")
+        print(f"Coverting Dtype from {orig_dtype} to float...")
         array = array.astype(float)
 
         # ITK indices, by convention, are [i,j,k] while NumPy indices are [k,j,i]
@@ -197,6 +183,10 @@ class ImportDICOMDialog(bpy.types.Operator):
         array = np.transpose(array)
         bioxels_max = float(np.max(array))
         bioxels_min = float(np.min(array))
+        bioxels_shape = array.shape
+
+        print("Bioxel Size:", bioxel_size)
+        print("Bioxels Shape:", bioxels_shape)
 
         bioxels_offset = 0.0
         if bioxels_min < 0 and orig_dtype[0] != "u":
@@ -273,7 +263,6 @@ class ImportDICOMDialog(bpy.types.Operator):
         )
 
         bioxels_obj.matrix_world = mat_ras2blender @ mat_scene_scale
-
         bioxels_obj.lock_location[0] = True
         bioxels_obj.lock_location[1] = True
         bioxels_obj.lock_location[2] = True
@@ -296,10 +285,8 @@ class ImportDICOMDialog(bpy.types.Operator):
         container_obj = bpy.context.active_object
         bbox_verts = calc_bbox_verts((0, 0, 0), bioxels_shape)
         for index, vert in enumerate(container_obj.data.vertices):
-            co = transfrom @ mathutils.Vector(bbox_verts[index])
-            co = mat_ras2blender @ co
-            co = mat_scene_scale @ co
-            vert.co = co
+            bbox_transform = mat_ras2blender @ mat_scene_scale @ transfrom
+            vert.co = bbox_transform @ mathutils.Vector(bbox_verts[index])
 
         bioxels_obj.parent = container_obj
         container_obj.name = name
@@ -332,10 +319,11 @@ class ImportDICOMDialog(bpy.types.Operator):
             nodes = node_tree.nodes
             links = node_tree.links
 
-            input_node = nodes.get("Group Input")
-            output_node = nodes.get("Group Output")
-            segment_node = custom_nodes.add_node(nodes, 'BioxelNodes_Segment')
+            input_node = get_node_by_type(nodes, 'NodeGroupInput')[0]
+            output_node = get_node_by_type(nodes, 'NodeGroupOutput')[0]
 
+            segment_node = custom_nodes.add_node(
+                nodes, 'BioxelNodes_Segment')
             links.new(input_node.outputs[0], segment_node.inputs[0])
             links.new(segment_node.outputs[0], output_node.inputs[0])
 
@@ -372,9 +360,14 @@ class ReadDICOM(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
+        if Path(self.filepath).suffix not in SUPPORT_EXTS:
+            self.report({"WARNING"}, "Not Supported extension.")
+            return {'CANCELLED'}
+
         files = get_data_files(self.filepath)
 
         import SimpleITK as sitk
+
         image = sitk.ReadImage(files)
 
         print("Collecting Meta Data...")
@@ -400,9 +393,6 @@ class ReadDICOM(bpy.types.Operator):
 
     def invoke(self, context, event):
         if not self.filepath:
-            return {'CANCELLED'}
-
-        if Path(self.filepath).suffix not in SUPPORT_EXTS:
             return {'CANCELLED'}
 
         show_message('Reading image data, it may take a while',
@@ -481,7 +471,7 @@ class ExportVDB(bpy.types.Operator):
         # print('output_path', output_path)
         # print('source_path', source_path)
         shutil.copy(source_path, output_path)
-        
+
         self.report({"INFO"}, "Successfully Exported")
 
         return {'FINISHED'}
