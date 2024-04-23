@@ -2,6 +2,10 @@ import bpy
 import mathutils
 
 
+def get_node_by_type(nodes, type_name: str):
+    return [node for node in nodes if type(node).__name__ == type_name]
+
+
 def show_message(message="", title="Message Box", icon='INFO'):
 
     def draw(self, context):
