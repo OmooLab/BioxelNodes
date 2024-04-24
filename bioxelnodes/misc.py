@@ -1,20 +1,7 @@
 from pathlib import Path
 import shutil
-from bioxelnodes.utils import get_bioxels_obj
+from bioxelnodes.utils import get_all_bioxels_objs, get_bioxels_obj
 import bpy
-
-
-class BIOXELNODES_PT_Bioxels(bpy.types.Panel):
-    bl_idname = "BIOXELNODES_PT_Bioxels"
-    bl_label = "Bioxels"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "scene"
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        layout.prop(scene, 'bioxels_dir')
 
 
 class SaveBioxels(bpy.types.Operator):
@@ -60,6 +47,57 @@ class SaveBioxels(bpy.types.Operator):
             blend_path = Path(bpy.path.abspath("//")).resolve()
             bioxels_obj.data.filepath = bpy.path.relpath(
                 str(output_path), start=str(blend_path))
-            self.report({"INFO"}, f"Successfully saved to {output_path}")
+
+        self.report({"INFO"}, f"Successfully saved bioxels")
 
         return {'FINISHED'}
+
+
+class SaveAllBioxels(bpy.types.Operator):
+    bl_idname = "bioxelnodes.save_all_bioxels"
+    bl_label = "Save All Bioxels"
+    bl_description = "Save All Bioxels to Directory."
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+
+        bioxels_objs = get_all_bioxels_objs()
+
+        if len(bioxels_objs) == 0:
+            self.report({"WARNING"}, "Cannot find any bioxels.")
+            return {'FINISHED'}
+
+        for bioxels_obj in bioxels_objs:
+            name = bioxels_obj.parent.name
+
+            # "//"
+            bioxels_dir = bpy.path.abspath(context.scene.bioxels_dir)
+            source_dir = bpy.path.abspath(bioxels_obj.data.filepath)
+
+            output_path: Path = Path(bioxels_dir, f"{name}.vdb").resolve()
+            source_path: Path = Path(source_dir).resolve()
+
+            if output_path != source_path:
+                shutil.copy(source_path, output_path)
+
+            blend_path = Path(bpy.path.abspath("//")).resolve()
+            bioxels_obj.data.filepath = bpy.path.relpath(
+                str(output_path), start=str(blend_path))
+
+        self.report({"INFO"}, f"Successfully saved bioxels")
+
+        return {'FINISHED'}
+
+
+class BIOXELNODES_PT_Bioxels(bpy.types.Panel):
+    bl_idname = "BIOXELNODES_PT_Bioxels"
+    bl_label = "Bioxels"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        layout.prop(scene, 'bioxels_dir')
+        layout.operator(SaveAllBioxels.bl_idname)
