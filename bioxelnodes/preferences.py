@@ -7,9 +7,9 @@ class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferen
     bl_idname = __package__
 
     cache_dir: bpy.props.StringProperty(
-        name="Python Log Directory",
+        name="VDB Cache Directory",
         subtype='DIR_PATH',
-        default=Path(Path.home(), '.bioxelnodes').as_posix()
+        default=str(Path(Path.home(), '.bioxelnodes'))
     )  # type: ignore
 
     def draw(self, context):
@@ -18,5 +18,5 @@ class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferen
         layout.prop(self, 'cache_dir', text='Set Cache Directory')
 
         # ExternalPackagePreferences Config
-        self.requirements_dir = Path(__file__).parent.as_posix()
+        self.requirements_dir = str(Path(__file__).parent)
         super().draw(context)

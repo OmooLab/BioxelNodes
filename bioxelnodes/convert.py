@@ -1,5 +1,5 @@
 import bpy
-from .utils import get_bioxels_obj
+from .utils import get_bioxels_obj, get_node_by_type
 
 
 class ConvertToMesh(bpy.types.Operator):
@@ -7,6 +7,15 @@ class ConvertToMesh(bpy.types.Operator):
     bl_label = "Bioxels To Mesh"
     bl_description = "Convert Bioxels To Mesh."
     bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        bioxels_obj = None
+        for obj in bpy.context.selected_objects:
+            bioxels_obj = get_bioxels_obj(obj)
+            break
+
+        return True if bioxels_obj else False
 
     def execute(self, context):
         bioxels_objs = []
@@ -16,7 +25,7 @@ class ConvertToMesh(bpy.types.Operator):
             if bioxels_obj:
                 bioxels_objs.append(bioxels_obj)
 
-        if len(bioxels_objs)==0:
+        if len(bioxels_objs) == 0:
             self.report({"WARNING"}, "Cannot find any bioxels.")
             return {'FINISHED'}
 
@@ -31,7 +40,7 @@ class ConvertToMesh(bpy.types.Operator):
             nodes = modifier.node_group.nodes
             links = modifier.node_group.links
 
-            output_node = nodes.get("Group Output")
+            output_node = get_node_by_type(nodes, 'NodeGroupOutput')[0]
             object_node = nodes.new("GeometryNodeObjectInfo")
             realize_nodes = nodes.new("GeometryNodeRealizeInstances")
             object_node.inputs[0].default_value = bioxels_obj
@@ -42,5 +51,7 @@ class ConvertToMesh(bpy.types.Operator):
             bpy.ops.object.convert(target='MESH')
             bpy.context.object.active_material_index = 1
             bpy.ops.object.material_slot_remove()
+
+            self.report({"INFO"}, f"Successfully convert to mesh")
 
         return {'FINISHED'}

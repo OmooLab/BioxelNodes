@@ -446,18 +446,18 @@ class ExportVDB(bpy.types.Operator):
 
     filename_ext = ".vdb"
 
-    def invoke(self, context, event):
+    @classmethod
+    def poll(cls, context):
         bioxels_obj = None
         for obj in bpy.context.selected_objects:
             bioxels_obj = get_bioxels_obj(obj)
             break
 
-        if bioxels_obj:
-            context.window_manager.fileselect_add(self)
-            return {'RUNNING_MODAL'}
-        else:
-            self.report({"WARNING"}, "Cannot find any bioxels.")
-            return {'CANCELLED'}
+        return True if bioxels_obj else False
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         bioxels_obj = None
@@ -466,12 +466,15 @@ class ExportVDB(bpy.types.Operator):
             break
 
         filepath = f"{self.filepath.split('.')[0]}.vdb"
+        # "//"
+        source_dir = bpy.path.abspath(bioxels_obj.data.filepath)
+
         output_path: Path = Path(filepath).resolve()
-        source_path: Path = Path(bioxels_obj.data.filepath).resolve()
+        source_path: Path = Path(source_dir).resolve()
         # print('output_path', output_path)
         # print('source_path', source_path)
         shutil.copy(source_path, output_path)
 
-        self.report({"INFO"}, "Successfully Exported")
+        self.report({"INFO"}, f"Successfully exported to {output_path}")
 
         return {'FINISHED'}

@@ -18,6 +18,12 @@ bl_info = {
 
 auto_load.init()
 
+bpy.types.Scene.bioxels_dir = bpy.props.StringProperty(
+    name="Bioxels Directory",
+    subtype='DIR_PATH',
+    default="//"
+)
+
 
 def register():
     auto_load.register()
