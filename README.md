@@ -9,11 +9,19 @@
 
 Bioxel Nodes is a Blender add-on for scientific volumetric data visualization. It using Blender's powerful Geometry Nodes | Cycles to process and render volumetric data.
 
+# About
+
 Before us, there have been many tutorials and add-ons for importing volumetric data into Blender. However, we found that there were many details that were not addressed in place, some scientific facts were ignored, and the volume rendering was not pretty enough. With Bioxel Nodes, you can easily import the volumetric data into Blender, and more importantly, it can quickly make a beautiful realistic rendering of it.
 
-Below are some examples with BioxelNodes. Thanks to Cycles Render, the volumetric data can be rendered with great detail:
+Below are some examples with Bioxel Nodes. Thanks to Cycles Render, the volumetric data can be rendered with great detail:
 
 ![gallery](docs/images/gallery.png)
+
+### Known limitations
+
+- Cannot read DICOM with multiple series.
+- Sections cannot be generated
+- Only sequence files are supported, packed volume data formats are not supported yet (will be supported soon)
 
 # Getting Started
 
@@ -76,12 +84,6 @@ You can add a "Bake" node between segmentation node and shader node, if the reco
 
 ![bake node](docs/images/bake_node.png)
 
-# Known limitations
-
-- Cannot read DICOM with multiple series.
-- Sections cannot be generated
-- Only sequence files are supported, packed volume data formats are not supported yet (will be supported soon)
-
 # Future Features
 
 - Support more volumetric data formats (.nii, .map, .txm...)
@@ -91,7 +93,7 @@ You can add a "Bake" node between segmentation node and shader node, if the reco
 
 # Technical Notes
 
-The "Bioxel" in "BioxelNodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data, so maybe its chinese name should be "生素" 😂? The volumetric data made up of Bioxel is called Bioxels. We are developing a toolkit around Bioxels for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. Because we have been pursuing one thing:
+The "Bioxel" in "Bioxel Nodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data, so maybe its chinese name should be "生素" 😂? The volumetric data made up of Bioxel is called Bioxels. We are developing a toolkit around Bioxels for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. Because we have been pursuing one thing:
 **Science that can be beautiful at the same time.**
 
 ### Bioxels
@@ -106,4 +108,4 @@ Bioxels is based entirely on OpenVDB for storage and rendering. The main reason 
 
 ### Based on Geometry Nodes
 
-Bioxel Nodes relies on Blender Geometry Nodes to reconstruct and render volumetric data. Node-based operations ensure that the original data is not permanently altered during reconstruction and rendering operations. The fact that the processing is based on Geometry Nodes without any additional dependencies also ensures that Blender can open files without this plugin installed. Look for more support for OpenVDB in GeometryNodes so that BioxelNodes can do more in the future.
+Bioxel Nodes relies on Blender Geometry Nodes to reconstruct and render volumetric data. Node-based operations ensure that the original data is not permanently altered during reconstruction and rendering operations. The fact that the processing is based on Geometry Nodes without any additional dependencies also ensures that Blender can open files without this plugin installed. Look for more support for OpenVDB in GeometryNodes so that Bioxel Nodes can do more in the future.

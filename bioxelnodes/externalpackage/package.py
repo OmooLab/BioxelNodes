@@ -231,7 +231,7 @@ class PackageInstaller():
         """
 
         # path to python.exe
-        python_exe = Path(sys.executable).resolve().as_posix()
+        python_exe = str(Path(sys.executable).resolve())
 
         # build the command list
         cmd_list = [python_exe] + cmd_list

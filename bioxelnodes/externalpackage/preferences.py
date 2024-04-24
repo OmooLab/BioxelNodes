@@ -14,13 +14,13 @@ class ExternalPackagePreferences():
     requirements_dir: bpy.props.StringProperty(
         name="requirements.txt Directory",
         subtype='DIR_PATH',
-        default=Path(__file__).parent.as_posix()
+        default=str(Path(__file__).parent)
     )  # type: ignore
 
     log_dir: bpy.props.StringProperty(
         name="Python Log Directory",
         subtype='DIR_PATH',
-        default=Path(Path.home(), '.externalpackage', 'logs').as_posix()
+        default=str(Path(Path.home(), '.externalpackage', 'logs'))
     )  # type: ignore
 
     pypi_mirror_provider: bpy.props.StringProperty(
@@ -40,7 +40,6 @@ class ExternalPackagePreferences():
         row_import = col_main.row()
         row_import.prop(self, 'pypi_mirror_provider', text='Set PyPI Mirror')
 
-        
         installer = PackageInstaller(
             pypi_mirror_provider=self.pypi_mirror_provider,
             log_dir=self.log_dir,

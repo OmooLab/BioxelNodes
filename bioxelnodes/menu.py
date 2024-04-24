@@ -1,6 +1,18 @@
+from bioxelnodes.misc import SaveBioxels
 import bpy
 from .convert import ConvertToMesh
 from .io import ExportVDB, ImportDICOM
+
+
+class ObjectMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_OBJECT"
+    bl_label = "Bioxels"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(SaveBioxels.bl_idname)
+        layout.separator()
+        layout.operator(ConvertToMesh.bl_idname)
 
 
 def TOPBAR_FILE_IMPORT(self, context):
@@ -17,7 +29,8 @@ def TOPBAR_FILE_EXPORT(self, context):
 
 def VIEW3D_OBJECT(self, context):
     layout = self.layout
-    layout.operator(ConvertToMesh.bl_idname)
+    layout.menu(ObjectMenu.bl_idname)
+
     layout.separator()
 
 

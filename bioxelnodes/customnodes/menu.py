@@ -12,10 +12,10 @@ class CustomNodes():
         root_icon='NONE'
     ) -> None:
         if not Path(nodes_file).is_file():
-            raise FileNotFoundError(Path(nodes_file).resolve().as_posix())
+            raise FileNotFoundError(str(Path(nodes_file).resolve()))
 
         self.menu_items = menu_items
-        self.nodes_file = Path(nodes_file).resolve().as_posix()
+        self.nodes_file = str(Path(nodes_file).resolve())
 
         self.root_label = root_label
         self.root_icon = root_icon
@@ -28,7 +28,7 @@ class CustomNodes():
         )
         self.menu_classes = menu_classes
 
-        idname = f"CUSTOMNODES_MT_NODES__{root_label.replace(' ', '').upper()}"
+        idname = f"CUSTOMNODES_MT_NODES_{root_label.replace(' ', '').upper()}"
 
         def add_node_menu(self, context):
             if ('GeometryNodeTree' == bpy.context.area.spaces[0].tree_type):
@@ -40,7 +40,7 @@ class CustomNodes():
 
     def _create_menu_class(self, menu_classes, items, label='CustomNodes', icon=0, idname_namespace=None):
         nodes_file = self.nodes_file
-        idname_namespace = idname_namespace or "CUSTOMNODES_MT_NODES_"
+        idname_namespace = idname_namespace or "CUSTOMNODES_MT_NODES"
         idname = f"{idname_namespace}_{label.replace(' ', '').upper()}"
 
         # create submenu class if item is menu.
