@@ -1,6 +1,63 @@
+import shutil
 import bpy
 from pathlib import Path
 from .nodes import AddCustomNode
+
+bpy.types.Scene.custom_nodes_dir = bpy.props.StringProperty(
+    name="Nodes Directory",
+    subtype='DIR_PATH',
+    default="//"
+)
+
+
+class SaveAllNodes(bpy.types.Operator):
+    bl_idname = "customnodes.save_all_nodes"
+    bl_label = "Save All Custom Nodes"
+    bl_description = "Save All Custom Nodes to Directory."
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        files = []
+        for classname in dir(bpy.types):
+            if "CUSTOMNODES_MT_NODES_" in classname:
+                cls = getattr(bpy.types, classname)
+                files.append(cls.nodes_file)
+        files = list(set(files))
+
+        for file in files:
+            file_name = Path(file).name
+            # "//"
+            custom_nodes_dir = bpy.path.abspath(context.scene.custom_nodes_dir)
+
+            output_path: Path = Path(custom_nodes_dir, file_name).resolve()
+            source_path: Path = Path(file).resolve()
+
+            if output_path != source_path:
+                shutil.copy(source_path, output_path)
+
+            for lib in bpy.data.libraries:
+                if lib.filepath == file:
+                    blend_path = Path(bpy.path.abspath("//")).resolve()
+                    lib.filepath = bpy.path.relpath(
+                        str(output_path), start=str(blend_path))
+
+            self.report({"INFO"}, f"Successfully saved to {output_path}")
+
+        return {'FINISHED'}
+
+
+class CUSTOMNODES_PT_CustomNodes(bpy.types.Panel):
+    bl_idname = "CUSTOMNODES_PT_CustomNodes"
+    bl_label = "Custom Nodes"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        layout.prop(scene, 'custom_nodes_dir')
+        layout.operator(SaveAllNodes.bl_idname)
 
 
 class CustomNodes():
@@ -60,6 +117,7 @@ class CustomNodes():
         class Menu(bpy.types.Menu):
             bl_idname = idname
             bl_label = label
+            nodes_file = self.nodes_file
 
             def draw(self, context):
                 layout = self.layout

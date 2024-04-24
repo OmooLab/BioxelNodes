@@ -141,7 +141,7 @@ MENU_ITEMS = [
 
 custom_nodes = CustomNodes(
     menu_items=MENU_ITEMS,
-    nodes_file=Path(__file__).parent/"assets/Nodes.blend",
+    nodes_file=Path(__file__).parent/"assets/Nodes/BioxelNodes.blend",
     root_label='Bioxel Nodes',
     root_icon="FILE_VOLUME",
 )

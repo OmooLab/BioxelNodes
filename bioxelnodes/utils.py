@@ -81,6 +81,15 @@ def get_bioxels_obj(current_obj):
 
     return bioxels_obj
 
+def get_all_bioxels_objs():
+    bioxels_objs = []
+
+    for obj in bpy.data.objects:
+        if obj.parent:
+            if obj.parent.get('bioxels_container') and obj.get('bioxels'):
+                bioxels_objs.append(obj)
+    
+    return list(set(bioxels_objs))
 
 def extract_last_number(text):
     # Initialize an empty string to store the digits
