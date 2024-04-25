@@ -46,7 +46,7 @@ First you need to have your volumetric data ready. If not, you can access open r
 
 Note: Make sure one folder contains only one sequence, multiple sequences need to be manually split into different folders first.
 
-In Blender, `File - Import - Volume Data as Biovels`, select **one** of the .dcm files and click on "Volume Data as Bioxels" (you can also drag one of the .dcm files directly into the 3D viewport to trigger the import, but this is limited to .dcm format files)
+In Blender, `File - Import - Volume Data as Bioxels`, select **one** of the .dcm files and click on "Volume Data as Bioxels" (you can also drag one of the .dcm files directly into the 3D viewport to trigger the import, but this is limited to .dcm format files)
 
 ![importing](docs/images/importing.png)
 
