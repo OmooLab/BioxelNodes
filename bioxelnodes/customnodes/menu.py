@@ -36,7 +36,8 @@ class SaveAllNodes(bpy.types.Operator):
                 shutil.copy(source_path, output_path)
 
             for lib in bpy.data.libraries:
-                if lib.filepath == file:
+                lib_path = str(Path(bpy.path.abspath(lib.filepath)).resolve())
+                if lib_path == file:
                     blend_path = Path(bpy.path.abspath("//")).resolve()
                     lib.filepath = bpy.path.relpath(
                         str(output_path), start=str(blend_path))

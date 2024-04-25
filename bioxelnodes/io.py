@@ -69,8 +69,8 @@ def on_info_changed(self, context):
 
 class ImportDICOMDialog(bpy.types.Operator):
     bl_idname = "bioxelnodes.import_dicom_dialog"
-    bl_label = "Volume Data as Biovels"
-    bl_description = "Import Volume Data as Biovels (VDB)."
+    bl_label = "Volume Data as Bioxels"
+    bl_description = "Import Volume Data as Bioxels (VDB)."
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(
@@ -347,8 +347,8 @@ class ImportDICOMDialog(bpy.types.Operator):
 
 class ReadDICOM(bpy.types.Operator):
     bl_idname = "bioxelnodes.read_dicom"
-    bl_label = "Volume Data as Biovels"
-    bl_description = "Import Volume Data as Biovels (VDB)."
+    bl_label = "Volume Data as Bioxels"
+    bl_description = "Import Volume Data as Bioxels (VDB)."
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(
@@ -403,8 +403,8 @@ class ReadDICOM(bpy.types.Operator):
 
 class ImportDICOM(bpy.types.Operator):
     bl_idname = "bioxelnodes.import_dicom"
-    bl_label = "Volume Data as Biovels"
-    bl_description = "Import Volume Data as Biovels (VDB)."
+    bl_label = "Volume Data as Bioxels"
+    bl_description = "Import Volume Data as Bioxels (VDB)."
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(

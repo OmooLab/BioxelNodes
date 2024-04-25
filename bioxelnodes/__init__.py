@@ -6,7 +6,7 @@ import bpy
 
 
 bl_info = {
-    "name": "Biovel Nodes",
+    "name": "Bioxel Nodes",
     "author": "Ma Nan",
     "description": "",
     "blender": (4, 1, 0),
