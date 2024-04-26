@@ -1,7 +1,7 @@
+import bpy
 from pathlib import Path
 import shutil
 from bioxelnodes.utils import get_all_bioxels_objs, get_bioxels_obj
-import bpy
 
 
 class SaveBioxels(bpy.types.Operator):

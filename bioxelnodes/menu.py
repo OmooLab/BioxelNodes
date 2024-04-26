@@ -1,7 +1,7 @@
-from bioxelnodes.misc import SaveBioxels
 import bpy
 from .convert import ConvertToMesh
 from .io import ExportVDB, ImportDICOM
+from .misc import SaveBioxels
 
 
 class ObjectMenu(bpy.types.Menu):

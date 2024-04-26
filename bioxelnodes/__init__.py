@@ -1,8 +1,8 @@
+import bpy
+
 from .nodes import custom_nodes
 from . import auto_load
 from . import menu
-
-import bpy
 
 
 bl_info = {
