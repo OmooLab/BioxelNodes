@@ -42,12 +42,13 @@ class InstallationError(Exception):
 class PackageInstaller():
     def __init__(
         self,
-        log_dir: str,
         requirements_dir: str,
+        log_dir: str = None,
         pypi_mirror_provider='Default',
     ) -> None:
         self.pypi_mirror_provider = pypi_mirror_provider
-        self.log_path: Path = Path(log_dir)
+        self.log_path: Path = Path(log_dir) if log_dir \
+            else Path.home() / '.externalpackage' / 'logs'
         self.requirements_path: Path = Path(requirements_dir)
 
     def start_logging(self, logfile_name: str = 'side-packages-install') -> logging.Logger:
@@ -250,7 +251,7 @@ class PackageInstaller():
         if result.returncode != 0:
             log.error('Command failed: %s', cmd_list)
             log.error('stdout: %s', result.stdout.decode())
-            log.error('stderr: %s', result.stderr.decode())
+            log.error('stderr: %s', result.stderr.decode(errors='ignore'))
         else:
             log.info('Command succeeded: %s', cmd_list)
             log.info('stdout: %s', result.stdout.decode())
@@ -350,6 +351,7 @@ class EXTERNALPACKAGE_OT_Install_Package(bpy.types.Operator):
         name='Python Package',
         description='Python Package to Install'
     )  # type: ignore
+
     version: bpy.props.StringProperty(
         name='Python Package',
         description='Python Package to Install'

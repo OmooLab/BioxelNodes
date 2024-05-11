@@ -3,12 +3,6 @@ import bpy
 from pathlib import Path
 from .nodes import AddCustomNode
 
-bpy.types.Scene.custom_nodes_dir = bpy.props.StringProperty(
-    name="Nodes Directory",
-    subtype='DIR_PATH',
-    default="//"
-)
-
 
 class SaveAllNodes(bpy.types.Operator):
     bl_idname = "customnodes.save_all_nodes"
@@ -182,12 +176,17 @@ class CustomNodes():
             bpy.utils.register_class(cls)
 
         bpy.types.NODE_MT_add.append(self.add_node_menu)
+        bpy.types.Scene.custom_nodes_dir = bpy.props.StringProperty(
+            name="Nodes Directory",
+            subtype='DIR_PATH',
+            default="//"
+        )
 
     def unregister(self):
+        bpy.types.NODE_MT_add.remove(self.add_node_menu)
         try:
             for cls in reversed(self.menu_classes):
                 bpy.utils.unregister_class(cls)
 
-            bpy.types.NODE_MT_add.remove(self.add_node_menu)
         except RuntimeError:
             pass

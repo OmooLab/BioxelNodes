@@ -5,7 +5,7 @@ from .utils import get_bioxels_obj, get_node_by_type
 class ConvertToMesh(bpy.types.Operator):
     bl_idname = "bioxelnodes.convert_to_mesh"
     bl_label = "Bioxels To Mesh"
-    bl_description = "Convert Bioxels To Mesh."
+    bl_description = "Convert Bioxels To Mesh"
     bl_options = {'UNDO'}
 
     @classmethod

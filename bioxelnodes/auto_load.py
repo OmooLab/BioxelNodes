@@ -134,7 +134,7 @@ def get_register_base_types():
         "Node", "NodeSocket", "NodeTree",
         "UIList", "RenderEngine",
         "Gizmo", "GizmoGroup",
-    ])
+    ] if hasattr(bpy.types, name))
 
 
 # Find order to register to solve dependencies
