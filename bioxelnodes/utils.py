@@ -96,7 +96,7 @@ def get_all_bioxels_objs():
     return list(set(bioxels_objs))
 
 
-def get_text_index(text):
+def get_text_index_str(text):
     # Initialize an empty string to store the digits
     digits = ""
 
@@ -115,7 +115,7 @@ def get_text_index(text):
     # Reverse the digits string to get the correct order
     last_number = digits[::-1]
 
-    return int(last_number) if last_number else None
+    return last_number
 
 
 def add_driver(target_prop, var_sources, expression):

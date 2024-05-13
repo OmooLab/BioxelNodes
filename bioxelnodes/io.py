@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 import mathutils
 import math
-from .utils import calc_bbox_verts, get_text_index, get_bioxels_obj, get_node_by_type, show_message
+from .utils import calc_bbox_verts, get_text_index_str, get_bioxels_obj, get_node_by_type, show_message
 from .nodes import custom_nodes
 from .props import BIOXELNODES_Series
 try:
@@ -52,30 +52,16 @@ FH_EXTS = ['.dcm', '.DICOM',
 
 
 def get_bioxels_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
-    return (
-        math.ceil(orig_shape[0] / bioxel_size * orig_spacing[0]),
-        math.ceil(orig_shape[1] / bioxel_size * orig_spacing[1]),
-        math.ceil(orig_shape[2] / bioxel_size * orig_spacing[2]),
-    )
+    shape = (int(orig_shape[0] / bioxel_size * orig_spacing[0]),
+             int(orig_shape[1] / bioxel_size * orig_spacing[1]),
+             int(orig_shape[2] / bioxel_size * orig_spacing[2]))
+
+    return (shape[0] if shape[0] > 0 else 1,
+            shape[1] if shape[1] > 0 else 1,
+            shape[2] if shape[2] > 0 else 1)
 
 
-def collect_image_sequence(filepath: str):
-    file_path = Path(filepath).resolve()
-
-    files = list(file_path.parent.iterdir())
-    files = [f for f in files if f.is_file()
-             and get_ext(file_path) == get_ext(f)
-             and get_text_index(f.stem)]
-
-    def get_index(f: Path):
-        return get_text_index(f.stem)
-
-    files.sort(key=get_index)
-    sequence = [str(f) for f in files]
-    return sequence
-
-
-def get_ext(filepath: str):
+def get_ext(filepath: str) -> str:
     file_path = Path(filepath)
     if file_path.name.endswith(".nii.gz"):
         return ".nii.gz"
@@ -87,11 +73,38 @@ def get_ext(filepath: str):
         return file_path.suffix
 
 
+def get_sequence_name(filepath: str) -> str:
+    ext = get_ext(filepath)
+    filename = Path(filepath).name.removesuffix(ext)
+    index: str = get_text_index_str(filename)
+    return filename.removesuffix(index)
+
+
+def get_sequence_index(filepath: str) -> int:
+    ext = get_ext(filepath)
+    filename = Path(filepath).name.removesuffix(ext)
+    index: str = get_text_index_str(filename)
+    return int(index) if index else 0
+
+
+def collect_image_sequence(filepath: str):
+    file_path = Path(filepath).resolve()
+
+    files = list(file_path.parent.iterdir())
+    files = [f for f in files if f.is_file()
+             and get_ext(file_path) == get_ext(f)
+             and get_sequence_name(file_path) == get_sequence_name(f)]
+
+    files.sort(key=get_sequence_index)
+    sequence = [str(f) for f in files]
+    return sequence
+
+
 def read_image(filepath: str, series_id=""):
     ext = get_ext(filepath)
-    dir_path = Path(filepath).resolve().parent
-    filename = Path(filepath).resolve().stem
+
     if ext in DICOM_EXTS:
+        dir_path = Path(filepath).resolve().parent
         reader = sitk.ImageSeriesReader()
         reader.MetaDataDictionaryArrayUpdateOn()
         reader.LoadPrivateTagsOn()
@@ -99,19 +112,36 @@ def read_image(filepath: str, series_id=""):
             str(dir_path), series_id)
         reader.SetFileNames(series_files)
         image = reader.Execute()
-    elif ext in SEQUENCE_EXTS and get_text_index(filename):
-        sequence = collect_image_sequence(filepath)
-        image = sitk.ReadImage(sequence)
-    else:
+        name = dir_path.name
+
+    elif ext in SEQUENCE_EXTS:
         image = sitk.ReadImage(filepath)
         if image.GetDimension() == 2:
-            image = sitk.ReadImage([filepath])
+            sequence = collect_image_sequence(filepath)
+            image = sitk.ReadImage(sequence)
+            name = get_sequence_name(filepath)
+        else:
+            image = sitk.ReadImage(filepath)
+            name = Path(filepath).name.removesuffix(ext)
+    else:
+        image = sitk.ReadImage(filepath)
+        name = Path(filepath).name.removesuffix(ext)
 
-    return image
+    return image, name
 
 
-class ImportImageDialog(bpy.types.Operator):
-    bl_idname = "bioxelnodes.import_image_dialog"
+def rgb2gray(image):
+    # Convert sRGB image to gray scale and rescale results to [0,255]
+    channels = [sitk.VectorIndexSelectionCast(
+        image, i, sitk.sitkFloat32) for i in range(image.GetNumberOfComponentsPerPixel())]
+    # linear mapping
+    I = (0.2126*channels[0] + 0.7152*channels[1] + 0.0722*channels[2])
+
+    return sitk.Cast(I, sitk.sitkFloat32)
+
+
+class ImportVolumeDataDialog(bpy.types.Operator):
+    bl_idname = "bioxelnodes.import_volume_data_dialog"
     bl_label = "Volume Data as Bioxels"
     bl_description = "Import Volume Data as Bioxels (VDB)"
     bl_options = {'UNDO'}
@@ -123,10 +153,19 @@ class ImportImageDialog(bpy.types.Operator):
 
     series_id: bpy.props.StringProperty()   # type: ignore
 
+    resample_method: bpy.props.EnumProperty(
+        name="Resample Method",
+        default="linear",
+        items=[("linear", "Linear", ""),
+               ("nearest_neighbor", "Nearest Neighbor", ""),
+               ("gaussian", "Gaussian", "")]
+    )  # type: ignore
+
     read_as: bpy.props.EnumProperty(
         name="Read as",
         default="scalar",
-        items=[("scalar", "Scalar", ""), ("labels", "Labels", "")]
+        items=[("scalar", "Scalar", ""),
+               ("labels", "Labels", "")]
     )  # type: ignore
 
     label_index: bpy.props.IntProperty(
@@ -169,11 +208,7 @@ class ImportImageDialog(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
-        bioxels_name = Path(self.filepath).parent.name \
-            if get_ext(self.filepath) in SEQUENCE_EXTS \
-            else Path(self.filepath).name.removesuffix(get_ext(self.filepath))
-
-        image = read_image(self.filepath, self.series_id)
+        image, bioxels_name = read_image(self.filepath, self.series_id)
 
         bioxel_size = self.bioxel_size
         orig_spacing = self.orig_spacing
@@ -189,16 +224,37 @@ class ImportImageDialog(bpy.types.Operator):
         bioxels_shape = get_bioxels_shape(
             bioxel_size, image_shape, orig_spacing)
 
-        print("Resampling...")
+        if self.read_as == "labels":
+            image = sitk.Cast(image, sitk.sitkUInt16)
+            default_value = 0
+        elif self.read_as == "scalar":
+            if "vector" in image.GetPixelIDTypeAsString():
+                print("Convet to Grayscale...")
+                image = rgb2gray(image)
+            else:
+                image = sitk.Cast(image, sitk.sitkFloat32)
+
+            stats = sitk.StatisticsImageFilter()
+            stats.Execute(image)
+            default_value = stats.GetMaximum() if self.invert_scalar else stats.GetMinimum()
+
+        if self.resample_method == "linear":
+            interpolator = sitk.sitkLinear
+        elif self.resample_method == "nearest_neighbor":
+            interpolator = sitk.sitkNearestNeighbor
+        elif self.resample_method == "gaussian":
+            interpolator = sitk.sitkGaussian
+
+        print(f"Resampling...")
         image = sitk.Resample(
             image1=image,
             size=bioxels_shape,
             transform=sitk.Transform(),
-            interpolator=sitk.sitkLinear,
+            interpolator=interpolator,
             outputOrigin=image.GetOrigin(),
             outputSpacing=bioxels_spacing,
             outputDirection=image.GetDirection(),
-            defaultPixelValue=0,
+            defaultPixelValue=default_value,
             outputPixelType=image.GetPixelID(),
         )
 
@@ -219,17 +275,20 @@ class ImportImageDialog(bpy.types.Operator):
         # A (nterior)  j   ->    j   ->   y
         # S (uperior)  k   ->    i   ->   z
         array = sitk.GetArrayFromImage(image)
-        array = np.transpose(array)
 
         orig_dtype = str(array.dtype)
         # print(f"Coverting Dtype from {orig_dtype} to float...")
         # array = array.astype(float)
+
         if array.ndim == 4:
-            if array.shape[3] == 3 and self.read_as == "scalar":
-                # RGB -> Grayscale
-                array = np.dot(array[..., :3], [0.2989, 0.5870, 0.1140])
-            else:
-                array = array[:, :, :, 0]
+            # if array.shape[0] == 3 and self.read_as == "scalar":
+            #     # RGB -> Grayscale
+            #     array = np.dot(array[..., :3], [0.2989, 0.5870, 0.1140])
+            # else:
+            #     array = array[:, :, :, 0]
+            array = array[:, :, :, 0]
+
+        array = np.transpose(array)
 
         bioxels_shape = array.shape
         bioxels_offset = 0.0
@@ -260,16 +319,14 @@ class ImportImageDialog(bpy.types.Operator):
             bioxels_max = float(np.max(array))
             bioxels_min = float(np.min(array))
 
-            stat_table = [("Max", orig_max),
-                          ("Min", orig_min),
-                          ("Median", orig_median),
-                          ("Percentile 80%", orig_percentile80),
-                          ("Max (Offset)", bioxels_max),
-                          ("Min (Offset)", bioxels_min)]
+            stats_table = [("Max", orig_max),
+                           ("Min", orig_min),
+                           ("Median", orig_median),
+                           ("80%", orig_percentile80)]
 
-            print("Bioxels Value Stat: Max:")
-            for stat in stat_table:
-                print("| {: >20} | {: >20} |".format(*stat))
+            print("Bioxels Value Stats:")
+            for stats in stats_table:
+                print("| {: >10} | {: >40} |".format(*stats))
 
         # # Build VDB
         grid = vdb.BoolGrid() if self.read_as == "labels" else vdb.FloatGrid()
@@ -436,6 +493,7 @@ class ImportImageDialog(bpy.types.Operator):
             text += "**TOO LARGE!**"
 
         panel = layout.box()
+        panel.prop(self, "resample_method")
         panel.prop(self, "bioxel_size")
         row = panel.row()
         row.prop(self, "orig_spacing")
@@ -472,9 +530,8 @@ class ReadDICOM(bpy.types.Operator):
     bl_description = "Import Volume Data as Bioxels (VDB)"
     bl_options = {'UNDO'}
 
-    filepath: bpy.props.StringProperty(
-        subtype="FILE_PATH"
-    )  # type: ignore
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
 
     series_id: bpy.props.EnumProperty(
         name="Select Series",
@@ -490,20 +547,27 @@ class ReadDICOM(bpy.types.Operator):
             self.report({"WARNING"}, "Not supported extension.")
             return {'CANCELLED'}
 
-        image = read_image(self.filepath, self.series_id)
-
         print("Collecting Meta Data...")
-        print("Original Shape:", image.GetSize())
-        print("Original Spacing:", image.GetSpacing())
-        print("Original Origin:", image.GetOrigin())
-        print("Original Direction:", image.GetDirection())
+        image, name = read_image(self.filepath, self.series_id)
+        stats_table = [("Shape", str(image.GetSize())),
+                       ("Spacing", str(image.GetSpacing())),
+                       ("Origin", str(image.GetOrigin())),
+                       ("Direction", str(image.GetDirection())),
+                       ("Data Type", image.GetPixelIDTypeAsString())]
 
-        bpy.ops.bioxelnodes.import_image_dialog(
+        print("Meta Data:")
+        for stats in stats_table:
+            print("| {: >10} | {: >40} |".format(*stats))
+
+        do_orient = ext not in SEQUENCE_EXTS or ext in DICOM_EXTS
+
+        bpy.ops.bioxelnodes.import_volume_data_dialog(
             'INVOKE_DEFAULT',
             filepath=self.filepath,
             orig_shape=image.GetSize(),
             orig_spacing=image.GetSpacing(),
-            series_id=self.series_id or ""
+            series_id=self.series_id or "",
+            do_orient=do_orient
         )
 
         self.report({"INFO"}, "Successfully Readed.")
@@ -515,7 +579,7 @@ class ReadDICOM(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        if not self.filepath:
+        if not self.filepath and not self.directory:
             return {'CANCELLED'}
 
         show_message('Reading image data, it may take a while...',
@@ -551,20 +615,20 @@ class ReadDICOM(bpy.types.Operator):
             text="Please be patient...")
 
 
-class ImportImage(bpy.types.Operator):
-    bl_idname = "bioxelnodes.import_image"
+class ImportVolumeData(bpy.types.Operator):
+    bl_idname = "bioxelnodes.import_volume_data"
     bl_label = "Volume Data as Bioxels"
     bl_description = "Import Volume Data as Bioxels (VDB)"
     bl_options = {'UNDO'}
 
-    filepath: bpy.props.StringProperty(
-        subtype="FILE_PATH"
-    )  # type: ignore
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
 
     def execute(self, context):
         bpy.ops.bioxelnodes.read_dicom(
             'INVOKE_DEFAULT',
-            filepath=self.filepath
+            filepath=self.filepath,
+            directory=self.directory
         )
         return {'FINISHED'}
 
@@ -574,8 +638,8 @@ class ImportImage(bpy.types.Operator):
 
 
 try:
-    class BIOXELNODES_FH_ImportImage(bpy.types.FileHandler):
-        bl_idname = "BIOXELNODES_FH_ImportImage"
+    class BIOXELNODES_FH_ImportVolumeData(bpy.types.FileHandler):
+        bl_idname = "BIOXELNODES_FH_ImportVolumeData"
         bl_label = "File handler for dicom import"
         bl_import_operator = "bioxelnodes.read_dicom"
         bl_file_extensions = ";".join(FH_EXTS)
