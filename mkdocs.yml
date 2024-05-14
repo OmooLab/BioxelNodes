@@ -10,7 +10,7 @@ nav:
   - BioxelNodes:
     - index.md
     - Getting Started: getting-started.md
-    - Features: features.md
+    - Features & Options: features.md
     - Geometry Nodes: nodes.md
     - Future Features: misc.md
 
