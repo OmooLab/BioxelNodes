@@ -26,7 +26,7 @@
     
     
       
-        <title>Features - Bioxel Nodes Docs</title>
+        <title>Features & Options - Bioxel Nodes Docs</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#import-volume-data" class="md-skip">
+        <a href="#features-options" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Features
+              Features & Options
             
           </span>
         </div>
@@ -405,15 +405,147 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Features & Options
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Features
+    Features & Options
   </span>
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#import-volume-data-as-biovels" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import Volume Data as Biovels
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Import Volume Data as Biovels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resample" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read as
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Read as">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#as-scalar" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Scalar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Labels
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-vector-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Vector (Not implemented)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-color-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Color (Not implemented)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#others" class="md-nav__link">
+    <span class="md-ellipsis">
+      Others
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert-bioxels-to-mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert Bioxels to Mesh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export-biovels-as-vdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      Export Biovels as VDB
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -489,6 +621,116 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#import-volume-data-as-biovels" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import Volume Data as Biovels
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Import Volume Data as Biovels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resample" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read as
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Read as">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#as-scalar" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Scalar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Labels
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-vector-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Vector (Not implemented)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#as-color-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      as Color (Not implemented)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#others" class="md-nav__link">
+    <span class="md-ellipsis">
+      Others
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert-bioxels-to-mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Convert Bioxels to Mesh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export-biovels-as-vdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      Export Biovels as VDB
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -505,9 +747,29 @@
   
 
 
-<h1 id="import-volume-data">Import Volume Data</h1>
-<h1 id="convert-to-mesh">Convert to Mesh</h1>
-<h1 id="export-volume-data">Export Volume Data</h1>
+<h1 id="features-options">Features &amp; Options</h1>
+<h2 id="import-volume-data-as-biovels">Import Volume Data as Biovels</h2>
+<p>File &gt; Import &gt; Volume Data as Biovels</p>
+<h3 id="resample">Resample</h3>
+<p><img alt="alt text" src="../assets/resample.png" /></p>
+<p>Sometimes the original data is too big, or the spacing in the original data is not reasonable, you can modify the <code>Bioxel Size</code> and <code>Original Spacing</code> to adjust the Shape of the Bixoels.</p>
+<p>A bioxel is like a pixel, the larger the <code>Bioxel Size</code>, the lower the resolution of the image, Original Spacing will be read from the original data record, but sometimes the image doesn't have original spacing, you may need to input it manually to get the correct shape.</p>
+<h3 id="read-as">Read as</h3>
+<h4 id="as-scalar">as Scalar</h4>
+<p><img alt="alt text" src="../assets/as-scalar.png" /></p>
+<p>In some cases the environment value is higher than the value of the target object, you can check <code>Invert Scalar</code> to adjust the value for better result.</p>
+<h4 id="as-labels">as Labels</h4>
+<p><img alt="alt text" src="../assets/as-labels.png" /></p>
+<p>Many AI segmentation task datasets, provide segmentation data, which are often an integer value representing a layer of segmentation labels. You can set the Label Index to determine exactly which labels to load.</p>
+<h4 id="as-vector-not-implemented">as Vector (Not implemented)</h4>
+<h4 id="as-color-not-implemented">as Color (Not implemented)</h4>
+<h3 id="others">Others</h3>
+<p><img alt="alt text" src="../assets/import-others.png" /></p>
+<h2 id="convert-bioxels-to-mesh">Convert Bioxels to Mesh</h2>
+<p>In 3D view, select bioxels and right-click, Bioxels &gt; Bioxels To Mesh</p>
+<p><img alt="alt text" src="../assets/to-mesh.png" /></p>
+<h2 id="export-biovels-as-vdb">Export Biovels as VDB</h2>
+<p>File &gt; Export &gt; Biovels as VDB</p>
 
 
 
