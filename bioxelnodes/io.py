@@ -139,6 +139,8 @@ def rgb2gray(image):
 
     return sitk.Cast(I, sitk.sitkFloat32)
 
+def x2gray(image):
+    return sitk.VectorIndexSelectionCast(image, 0, sitk.sitkUInt16)
 
 class ImportVolumeDataDialog(bpy.types.Operator):
     bl_idname = "bioxelnodes.import_volume_data_dialog"
@@ -225,7 +227,11 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             bioxel_size, image_shape, orig_spacing)
 
         if self.read_as == "labels":
-            image = sitk.Cast(image, sitk.sitkUInt16)
+            if "vector" in image.GetPixelIDTypeAsString():
+                print("Convet to Grayscale...")
+                image = x2gray(image)
+            else:
+                image = sitk.Cast(image, sitk.sitkUInt16)
             default_value = 0
         elif self.read_as == "scalar":
             if "vector" in image.GetPixelIDTypeAsString():

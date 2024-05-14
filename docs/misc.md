@@ -1,6 +1,6 @@
 # Future Features
 
-- Support more volumetric data formats (.nii, .map, .txm...)
+- Support more volumetric data formats (.map, .txm...)
 - Generate sections
 - More segmentation methods, e.g. AI segmentation.
 - Even better shader for volumetric rendering
