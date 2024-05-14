@@ -1,4 +1,5 @@
 import bpy
+import subprocess
 from pathlib import Path
 from .package import PackageInstaller, PYPI_MIRROR
 
@@ -8,6 +9,25 @@ from .package import PackageInstaller, PYPI_MIRROR
 
 def get_pypi_mirrors(self, context, edit_text):
     return PYPI_MIRROR.keys()
+
+
+class RebootBlender(bpy.types.Operator):
+    bl_idname = "externalpackage.reboot_blender"
+    bl_label = "Reboot Blender"
+    bl_description = "Reboot Blender"
+    bl_options = {'UNDO'}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_confirm(self, event)
+        return {'RUNNING_MODAL'}
+    
+    def execute(self, context):
+        blender_launcher = Path(
+            bpy.app.binary_path).parent / "blender-launcher.exe"
+        subprocess.run([str(blender_launcher), "-con", "--python-expr",
+                       "import bpy; bpy.ops.wm.recover_last_session()"])
+        bpy.ops.wm.quit_blender()
+        return {'FINISHED'}
 
 
 class ExternalPackagePreferences():
@@ -34,11 +54,12 @@ class ExternalPackagePreferences():
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Install the required packages.")
+        layout.label(
+            text='**Install the required packages, then hit "Reboot Blender"**')
 
         col_main = layout.column(heading='', align=False)
         row_import = col_main.row()
-        row_import.prop(self, 'pypi_mirror_provider', text='Set PyPI Mirror')
+        row_import.prop(self, 'pypi_mirror_provider', text='PyPI Mirror')
 
         installer = PackageInstaller(
             pypi_mirror_provider=self.pypi_mirror_provider,
@@ -70,3 +91,5 @@ class ExternalPackagePreferences():
                 op.package = name
                 op.version = version
                 op.description = f'Install required python package: {name}'
+
+        layout.operator(RebootBlender.bl_idname)

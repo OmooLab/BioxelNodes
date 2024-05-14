@@ -1,1 +1,1 @@
-from .menu import CustomNodes
+from .menus import CustomNodes

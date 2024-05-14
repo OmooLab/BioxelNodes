@@ -2,9 +2,12 @@ import bpy
 import mathutils
 
 
-def get_node_by_type(nodes, type_name: str):
-    return [node for node in nodes if type(node).__name__ == type_name]
+def get_type(cls):
+    return type(cls).__name__
 
+
+def get_node_by_type(nodes, type_name: str):
+    return [node for node in nodes if get_type(node) == type_name]
 
 def show_message(message="", title="Message Box", icon='INFO'):
 
@@ -81,6 +84,7 @@ def get_bioxels_obj(current_obj):
 
     return bioxels_obj
 
+
 def get_all_bioxels_objs():
     bioxels_objs = []
 
@@ -88,10 +92,11 @@ def get_all_bioxels_objs():
         if obj.parent:
             if obj.parent.get('bioxels_container') and obj.get('bioxels'):
                 bioxels_objs.append(obj)
-    
+
     return list(set(bioxels_objs))
 
-def extract_last_number(text):
+
+def get_text_index_str(text):
     # Initialize an empty string to store the digits
     digits = ""
 
@@ -110,7 +115,7 @@ def extract_last_number(text):
     # Reverse the digits string to get the correct order
     last_number = digits[::-1]
 
-    return int(last_number)
+    return last_number
 
 
 def add_driver(target_prop, var_sources, expression):
