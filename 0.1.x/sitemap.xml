@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.1.x/</loc>
+         <lastmod>2024-05-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.1.x/features/</loc>
+         <lastmod>2024-05-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.1.x/getting-started/</loc>
+         <lastmod>2024-05-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.1.x/misc/</loc>
+         <lastmod>2024-05-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.1.x/nodes/</loc>
+         <lastmod>2024-05-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+</urlset>
