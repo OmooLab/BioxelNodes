@@ -1,0 +1,82 @@
+site_name: Bioxel Nodes Docs
+site_url: https://omoolab.github.io/BioxelNodes/
+site_author: OmooLab
+site_description: Bioxel Nodes is a Blender add-on for scientific volumetric data visualization.
+
+repo_name: OmooLab/BioxelNodes
+repo_url: https://github.com/OmooLab/BioxelNodes
+
+nav:
+  - BioxelNodes:
+    - index.md
+    - Getting Started: getting-started.md
+    - Features: features.md
+    - Geometry Nodes: nodes.md
+    - Future Features: misc.md
+
+theme:
+  name: material
+  logo: assets/logo.png
+  language: en
+  font:
+    text: Open Sans
+    code: Cascadia Code
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: black
+      toggle:
+        icon: fontawesome/solid/circle-half-stroke
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: fontawesome/regular/moon
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: fontawesome/solid/moon
+        name: Switch to system preference
+  features:
+    - header.autohide
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - content.code.copy
+    - content.code.select
+
+extra:
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2020 - 2024 Omoolab
+
+plugins:
+  - search
+  - mkdocstrings
+
+markdown_extensions:
+  - mkdocs-click
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
