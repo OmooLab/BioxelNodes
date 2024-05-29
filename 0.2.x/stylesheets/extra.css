@@ -1,0 +1,20 @@
+[data-md-color-scheme="slate"] {
+  --md-code-hl-string-color: #8b8b8b;
+  --md-code-hl-keyword-color: white;
+  --md-code-hl-number-color: white;
+  --md-typeset-a-color: white;
+}
+
+[data-md-color-scheme="default"] {
+  --md-code-hl-string-color: #444444;
+  --md-code-hl-keyword-color: black;
+  --md-code-hl-number-color: black;
+}
+
+[data-md-color-scheme=slate][data-md-color-primary=black] {
+  --md-typeset-a-color: white;
+}
+
+[data-md-color-scheme=default][data-md-color-primary=black] {
+  --md-typeset-a-color: black;
+}
