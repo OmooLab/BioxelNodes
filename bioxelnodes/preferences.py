@@ -12,11 +12,6 @@ class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferen
         default=str(Path(Path.home(), '.bioxelnodes'))
     )  # type: ignore
 
-    do_add_segmentnode: bpy.props.BoolProperty(
-        name="Add Segment Node",
-        default=True,
-    )  # type: ignore
-
     do_change_render_setting: bpy.props.BoolProperty(
         name="Change Render Setting",
         default=True,
@@ -33,4 +28,3 @@ class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferen
         layout.prop(self, 'cache_dir')
 
         layout.prop(self, "do_change_render_setting")
-        layout.prop(self, "do_add_segmentnode")

@@ -9,6 +9,7 @@ def get_type(cls):
 def get_node_by_type(nodes, type_name: str):
     return [node for node in nodes if get_type(node) == type_name]
 
+
 def show_message(message="", title="Message Box", icon='INFO'):
 
     def draw(self, context):
@@ -67,33 +68,57 @@ def calc_bbox_verts(origin, size):
     return bbox_verts
 
 
-def get_bioxels_obj(current_obj):
-    bioxels_obj = None
-    if current_obj.get('bioxels_container'):
-        bioxels_values = []
-        for obj in bpy.data.objects:
-            if obj.parent == current_obj and obj.get('bioxels'):
-                bioxels_values.append(obj)
-
-        if len(bioxels_values) > 0:
-            bioxels_obj = bioxels_values[0]
-
-    elif current_obj.get('bioxels') and current_obj.parent:
-        if current_obj.parent.get('bioxels_container'):
-            bioxels_obj = current_obj
-
-    return bioxels_obj
+def lock_transform(obj):
+    obj.lock_location[0] = True
+    obj.lock_location[1] = True
+    obj.lock_location[2] = True
+    obj.lock_rotation[0] = True
+    obj.lock_rotation[1] = True
+    obj.lock_rotation[2] = True
+    obj.lock_scale[0] = True
+    obj.lock_scale[1] = True
+    obj.lock_scale[2] = True
 
 
-def get_all_bioxels_objs():
-    bioxels_objs = []
+def hide_in_ray(obj):
+    obj.visible_camera = False
+    obj.visible_diffuse = False
+    obj.visible_glossy = False
+    obj.visible_transmission = False
+    obj.visible_volume_scatter = False
+    obj.visible_shadow = False
 
+
+def get_container(current_obj):
+    if current_obj:
+        return current_obj if current_obj.get('bioxel_container') else None
+    else:
+        return None
+
+
+def get_layer(current_obj):
+    if current_obj.get('bioxel_layer') and current_obj.parent:
+        if current_obj.parent.get('bioxel_container'):
+            return current_obj
+    return None
+
+
+def get_container_layers(container):
+    layers = []
     for obj in bpy.data.objects:
-        if obj.parent:
-            if obj.parent.get('bioxels_container') and obj.get('bioxels'):
-                bioxels_objs.append(obj)
+        if obj.parent == container and get_layer(obj):
+            layers.append(obj)
 
-    return list(set(bioxels_objs))
+    return layers
+
+
+def get_all_layers():
+    layers = []
+    for obj in bpy.data.objects:
+        if get_layer(obj):
+            layers.append(obj)
+
+    return layers
 
 
 def get_text_index_str(text):

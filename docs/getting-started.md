@@ -60,4 +60,4 @@ The VDB cache and the Bioxel nodes are not reachable to computers if you don't s
 
 ![before sharin](assets/before-sharing.png)
 
-After that, both the VDB cache and the Bioxel nodes are stored in relative locations. When you share a file with someone, pack the entire directory so that the resources are not lost. The other person will be able to load correctly, regardless of whether they have BioxelNodes installed.
+After that, both the VDB cache and the Bioxel nodes are stored in relative locations. When you share a file with someone, pack the entire directory so that the resources are not lost. The other person will be able to load correctly, regardless of whether they have Bioxel Nodes installed.

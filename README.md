@@ -17,7 +17,7 @@ Below are some examples with Bioxel Nodes. Thanks to Cycles Render, the volumetr
 
 ![gallery](docs/assets/gallery.png)
 
-The "Bioxel" in "BioxelNodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data. The volumetric data made up of Bioxel is called Bioxels. We are developing a toolkit around Bioxels for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. [Getting Started](https://omoolab.github.io/BioxelNodes/latest/getting-started)
+The "Bioxel" in "Bioxel Nodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data. We are developing a toolkit around Bioxel for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. [Getting Started](https://omoolab.github.io/BioxelNodes/latest/getting-started)
 
 # Supported Format
 
@@ -41,5 +41,18 @@ The "Bioxel" in "BioxelNodes", is a combination of the words "Bio-" and "Voxel".
 
 # Known limitations
 
-- Sections cannot be generated
-- Time sequence volume not supported (will be supported soon)
+-   Sections cannot be generated (will be supported soon)
+-   Time sequence volume not supported (will be supported soon)
+
+# To Upgrade Add-on
+
+To upgrade from an older version of the add-on to the latest, you need to do the following:
+
+1. Remove the old version of Bioxel Nodes at Preferences > Add-ons
+2. Add the new version and restart Blender.
+
+It is not support editing the same blender file across add-on versions. In order to make sure that the previous file works properly. You need to save the staged data before upgrading ( read the last section of [Getting Started](https://omoolab.github.io/BioxelNodes/latest/getting-started/#share-your-file) ).
+
+But even then, there is still no guarantee that the new version of the add-on will work on the old blender file. Therefore, it is highly recommended to open a new blender file to start the creating, not based on the old one.
+
+Alternatively, objects from the old file that have nothing to do with Bioxel Nodes could be append to the new blender file.
