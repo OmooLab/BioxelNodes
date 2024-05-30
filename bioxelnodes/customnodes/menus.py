@@ -146,10 +146,13 @@ class CustomNodes():
     def _find_item(self, found_items, menu_items, node_type: str):
 
         for item in menu_items:
+            if item == 'separator':
+                continue
+
             if item.get("node_type") == node_type:
                 found_items.append(item)
 
-            item_items = item.get('items') if item != 'separator' else None
+            item_items = item.get('items')
             if item_items:
                 self._find_item(found_items, item_items, node_type)
 
@@ -169,7 +172,7 @@ class CustomNodes():
             op.node_callback = item.get('node_callback') or ""
             return op.add_node(node_tree)
         else:
-            raise RuntimeError("No custom node type found.")
+            raise RuntimeError("Not found in menu.")
 
     def register(self):
         for cls in self.menu_classes:

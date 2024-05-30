@@ -38,111 +38,310 @@ else:
     return callback_str
 
 
-MENU_ITEMS = [
-    {
-        'label': 'Presets',
-        'icon': 'MESH_MONKEY',
-        'items': [
-            {
-                'label': 'Segment',
-                'icon': 'BONE_DATA',
-                'node_type': 'BioxelNodes_Segment',
-                'node_description': '',
-                'node_callback': "\n".join([
-                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
-                    set_prop_to_node_factory("bioxels_offset", "Offset"),
-                ])
-            }
-        #     {
-        #         'label': 'Anatomy',
-        #         'icon': 'CONSTRAINT_BONE',
-        #         'node_type': 'BioxelNodes_Anatomy',
-        #         'node_description': '',
-        #         'node_callback': "\n".join([
-        #             set_prop_to_node_factory("bioxel_size", "Detail Size"),
-        #             set_prop_to_node_factory("bioxels_offset", "Offset"),
-        #         ])
-        #     }
-        ]
-    },
-    {
-        'label': 'Segment',
-        'icon': 'OUTLINER_DATA_VOLUME',
-        'items': [
-            {
-                'label': 'Segment by Level',
-                'icon': 'EMPTY_SINGLE_ARROW',
-                'node_type': 'BioxelNodes_SegmentByLevel',
-                'node_description': '',
-                'node_callback': "\n".join([
-                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
-                    set_prop_to_node_factory("bioxels_offset", "Offset"),
-                ])
-            },
-            {
-                'label': 'Segment by Range',
-                'icon': 'IPO_CONSTANT',
-                'node_type': 'BioxelNodes_SegmentByRange',
-                'node_description': '',
-                'node_callback': "\n".join([
-                    set_prop_to_node_factory("bioxel_size", "Detail Size"),
-                    set_prop_to_node_factory("bioxels_offset", "Offset"),
-                ])
-            }
-            # {
-            #     'label': 'Segment by Layers',
-            #     'icon': 'ALIGN_JUSTIFY',
-            #     'node_type': 'BioxelNodes_SegmentsByLayers',
-            #     'node_description': '',
-            #     'node_callback': "\n".join([
-            #         set_prop_to_node_factory("bioxel_size", "Detail Size"),
-            #         set_prop_to_node_factory("bioxels_offset", "Offset"),
-            #     ])
-            # }
-        ]
-    },
-    {
-        'label': 'Shader',
-        'icon': 'SHADING_RENDERED',
-        'items': [
-            {
-                'label': 'Segment Shader',
-                'icon': 'OUTLINER_OB_VOLUME',
-                'node_type': 'BioxelNodes_SegmentShader',
-                'node_description': ''
-            }
-        ]
-    }
-]
-
-NODE_FILE = "BioxelNodes_4.0"
-
 if bpy.app.version >= (4, 1, 0):
-    MENU_ITEMS.append({
-        'label': 'Slicer',
-        'icon': 'CLIPUV_DEHLT',
-        'items': [
-            {
-                'label': 'RAS Slicer',
-                'icon': 'EMPTY_DATA',
-                'node_type': 'BioxelNodes_RAS-Slicer',
-                'node_description': ''
-            },
-            {
-                'label': 'Axis Slicer',
-                'icon': 'OUTLINER_OB_EMPTY',
-                'node_type': 'BioxelNodes_AxisSlicer',
-                'node_description': '',
-            },
-            {
-                'label': 'Box Slicer',
-                'icon': 'MOD_WIREFRAME',
-                'node_type': 'BioxelNodes_BoxSlicer',
-                'node_description': '',
-            }
-        ]
-    })
     NODE_FILE = "BioxelNodes_4.1"
+
+    MENU_ITEMS = [
+        {
+            'label': 'Methods',
+            'icon': 'OUTLINER_DATA_VOLUME',
+            'items': [
+                {
+                    'label': 'Mask by Threshold',
+                    'icon': 'EMPTY_SINGLE_ARROW',
+                    'node_type': 'BioxelNodes_MaskByThreshold',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Mask by Range',
+                    'icon': 'IPO_CONSTANT',
+                    'node_type': 'BioxelNodes_MaskByRange',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Mask by Label',
+                    'icon': 'MESH_CAPSULE',
+                    'node_type': 'BioxelNodes_MaskByLabel',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Shaders',
+            'icon': 'SHADING_RENDERED',
+            'items': [
+                {
+                    'label': 'Solid Shader',
+                    'icon': 'SHADING_SOLID',
+                    'node_type': 'BioxelNodes_AssignSolidShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Slime Shader',
+                    'icon': 'OUTLINER_OB_META',
+                    'node_type': 'BioxelNodes_AssignSlimeShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Volume Shader',
+                    'icon': 'OUTLINER_OB_VOLUME',
+                    'node_type': 'BioxelNodes_AssignVolumeShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Universal Shader',
+                    'icon': 'SHADING_RENDERED',
+                    'node_type': 'BioxelNodes_AssignUniversalShader',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Colors',
+            'icon': 'COLOR',
+            'items': [
+                {
+                    'label': 'Color Presets',
+                    'icon': 'COLOR',
+                    'node_type': 'BioxelNodes_SetColorPresets',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 2',
+                    'icon': 'IPO_QUAD',
+                    'node_type': 'BioxelNodes_SetColorRamp2',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 3',
+                    'icon': 'IPO_CUBIC',
+                    'node_type': 'BioxelNodes_SetColorRamp3',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 4',
+                    'icon': 'IPO_QUART',
+                    'node_type': 'BioxelNodes_SetColorRamp4',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 5',
+                    'icon': 'IPO_QUINT',
+                    'node_type': 'BioxelNodes_SetColorRamp5',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Cutters',
+            'icon': 'MOD_BEVEL',
+            'items': [
+                {
+                    'label': 'Cut',
+                    'icon': 'MOD_BEVEL',
+                    'node_type': 'BioxelNodes_Cut',
+                    'node_description': ''
+                },
+                "separator",
+                {
+                    'label': 'Plane Cutter',
+                    'icon': 'MOD_LATTICE',
+                    'node_type': 'BioxelNodes_PlaneCutter',
+                    'node_description': '',
+                },
+                {
+                    'label': 'Plane Object Cutter',
+                    'icon': 'OUTLINER_OB_LATTICE',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'node_description': '',
+                }
+            ]
+        },
+        {
+            'label': 'Utils',
+            'icon': 'MODIFIER',
+            'items': [
+                {
+                    'label': 'Join Component',
+                    'icon': 'CONSTRAINT_BONE',
+                    'node_type': 'BioxelNodes_JoinComponent',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Separate Component',
+                    'node_type': 'BioxelNodes_SeparateComponent',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Others',
+            'icon': 'PACKAGE',
+            'items': [
+                {
+                    'label': 'Source As Label',
+                    'icon': 'GP_SELECT_POINTS',
+                    'node_type': 'BioxelNodes_AsLabel',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Source As Scalar',
+                    'icon': 'GP_SELECT_STROKES',
+                    'node_type': 'BioxelNodes_AsScalar',
+                    'node_description': ''
+                }
+            ]
+        }
+    ]
+
+else:
+    NODE_FILE = "BioxelNodes_4.0"
+    MENU_ITEMS = [
+        {
+            'label': 'Methods',
+            'icon': 'OUTLINER_DATA_VOLUME',
+            'items': [
+                {
+                    'label': 'Mask by Threshold',
+                    'icon': 'EMPTY_SINGLE_ARROW',
+                    'node_type': 'BioxelNodes_MaskByThreshold',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Mask by Range',
+                    'icon': 'IPO_CONSTANT',
+                    'node_type': 'BioxelNodes_MaskByRange',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Mask by Label',
+                    'icon': 'MESH_CAPSULE',
+                    'node_type': 'BioxelNodes_MaskByLabel',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Shaders',
+            'icon': 'SHADING_RENDERED',
+            'items': [
+                {
+                    'label': 'Solid Shader',
+                    'icon': 'SHADING_SOLID',
+                    'node_type': 'BioxelNodes_AssignSolidShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Slime Shader',
+                    'icon': 'OUTLINER_OB_META',
+                    'node_type': 'BioxelNodes_AssignSlimeShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Volume Shader',
+                    'icon': 'OUTLINER_OB_VOLUME',
+                    'node_type': 'BioxelNodes_AssignVolumeShader',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Universal Shader',
+                    'icon': 'SHADING_RENDERED',
+                    'node_type': 'BioxelNodes_AssignUniversalShader',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Colors',
+            'icon': 'COLOR',
+            'items': [
+                {
+                    'label': 'Color Ramp 2',
+                    'icon': 'IPO_QUAD',
+                    'node_type': 'BioxelNodes_SetColorRamp2',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 3',
+                    'icon': 'IPO_CUBIC',
+                    'node_type': 'BioxelNodes_SetColorRamp3',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 4',
+                    'icon': 'IPO_QUART',
+                    'node_type': 'BioxelNodes_SetColorRamp4',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Color Ramp 5',
+                    'icon': 'IPO_QUINT',
+                    'node_type': 'BioxelNodes_SetColorRamp5',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Cutters',
+            'icon': 'MOD_BEVEL',
+            'items': [
+                {
+                    'label': 'Apply Cutters',
+                    'icon': 'MOD_BEVEL',
+                    'node_type': 'BioxelNodes_ApplyCutters',
+                    'node_description': ''
+                },
+                "separator",
+                {
+                    'label': 'Plane Cutter',
+                    'icon': 'MOD_LATTICE',
+                    'node_type': 'BioxelNodes_PlaneCutter',
+                    'node_description': '',
+                },
+                {
+                    'label': 'Plane Object Cutter',
+                    'icon': 'OUTLINER_OB_LATTICE',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'node_description': '',
+                }
+            ]
+        },
+        {
+            'label': 'Utils',
+            'icon': 'MODIFIER',
+            'items': [
+                {
+                    'label': 'Join Component',
+                    'icon': 'CONSTRAINT_BONE',
+                    'node_type': 'BioxelNodes_JoinComponent',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Separate Component',
+                    'node_type': 'BioxelNodes_SeparateComponent',
+                    'node_description': ''
+                }
+            ]
+        },
+        {
+            'label': 'Others',
+            'icon': 'PACKAGE',
+            'items': [
+                {
+                    'label': 'Source As Label',
+                    'icon': 'GP_SELECT_POINTS',
+                    'node_type': 'BioxelNodes_AsLabel',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Source As Scalar',
+                    'icon': 'GP_SELECT_STROKES',
+                    'node_type': 'BioxelNodes_AsScalar',
+                    'node_description': ''
+                }
+            ]
+        }
+    ]
 
 
 custom_nodes = CustomNodes(
