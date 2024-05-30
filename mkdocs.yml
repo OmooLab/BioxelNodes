@@ -11,7 +11,7 @@ nav:
     - index.md
     - Getting Started: getting-started.md
     - Features & Options: features.md
-    - Geometry Nodes: nodes.md
+    - Nodes: nodes.md
     - Future Features: misc.md
 
 theme:
@@ -68,6 +68,8 @@ plugins:
   - mkdocstrings
 
 markdown_extensions:
+  - attr_list
+  - md_in_html
   - mkdocs-click
   - admonition
   - pymdownx.highlight:

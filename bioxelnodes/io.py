@@ -156,8 +156,13 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         subtype="FILE_PATH"
     )  # type: ignore
 
-    container_name: bpy.props.StringProperty()   # type: ignore
-    layer_name: bpy.props.StringProperty()   # type: ignore
+    container_name: bpy.props.StringProperty(
+        name="Container Name"
+    )   # type: ignore
+
+    layer_name: bpy.props.StringProperty(
+        name="Layer Name",
+    )   # type: ignore
 
     series_id: bpy.props.StringProperty()   # type: ignore
 
@@ -535,7 +540,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self, width=400)
+        context.window_manager.invoke_props_dialog(self, width=500)
         return {'RUNNING_MODAL'}
 
     def draw(self, context):

@@ -9,13 +9,15 @@ In Blender, Edit > Preferences > Add-ons > Install, select the `BioxelNodes_{ver
 
 The add-on requires a third-party python dependency called SimpleITK, click `Install SimpleITK` button below to install the dependency. After clicking, blender may get stuck, it is downloading and installing, just wait for a moment. After that, click `Reboot Blender` button.
 
-![dependency](assets/dependency.png)
+![dependency](assets/getting-started_dependency.png)
 
 This step may have failed due to network factors, just click "Set PyPI Mirror" to change the mirror.
 
 ## Prepare Your Data
 
-First you need to have your volumetric data ready. If not, you can access open research data from list below：
+First you need to have your volumetric data ready. If not, you can access open research data from list below.
+
+> Note that just because they are open and available for download does not mean you can use them for anything! Be sure to look at the description of the available scopes from website.
 
 | Source                                                                               | Object             |
 | ------------------------------------------------------------------------------------ | ------------------ |
@@ -30,34 +32,30 @@ First you need to have your volumetric data ready. If not, you can access open r
 
 ## Import Volume Data
 
-File > Import > Volume Data as Bioxels, select **one** of the .dcm files and click on "Volume Data as Bioxels" (you can also drag one of the .dcm files directly into the 3D viewport to trigger the import)
+File > Import > Volume Data as Bioxel Layer, select **one** of the .dcm files and click on "Volume Data as Bioxel Layer" (you can also drag one of the .dcm files directly into the 3D viewport to trigger the import)
 
-![importing](assets/importing.png)
+![importing](assets/getting-started_importing.png)
 
-It may take a while to read data. After finishing reading, it will pop up a dialog box
+It may take a while to read data. After finishing reading, it will pop up a dialog box. Ignore all the options, just click OK (we will tell about these options later).
 
-![import dialog](assets/import-dialog.png)
+After importing the data, the add-on will automatically add the necessary nodes to build the component. Click on the new created object in outliner, open the geometry nodes panel, set `Threshold` in "Mask by Threshold" node to 200, and then connect a Slime Shader node (Add > Bioxel Nodes > Slime Shader) after it. The node graph should be as following:
 
-Ignore the options, just click OK!
-
-After importing, the necessary nodes are automatically added, the reconstruction and shader are created. Click select Bioxels Object, and open the Geometry Nodes panel, change the "Threshold" in segment node.
-
-![segment node](assets/segment-node.png)
+![alt text](assets/getting-started_graph.png)
 
 and then turned on the cycles rendering to directly see the result.
 
-![result](assets/result.png)
+![result](assets/getting-started_result.png)
 
-You can change the "Threshold" to modify the reconstruction model, or change the "Color", "Density" to modify the shader effect. All the parameters are straightforward, you can understand them by changing the values.
+You can change the "Threshold" to modify the preview model, or change the "Color", "Density" to modify the shader effect. All the parameters are straightforward, you can understand them by changing the values.
 
 ## Share Your File
 
-The VDB cache and the Bioxel nodes are not reachable to computers if you don't save them. If you need to give your blender file to someone else, you will need to perform the following steps:
+The VDB cache and the Bioxel nodes are not reachable to other computers if you don't save them. If you want to give your blender file to someone else, you will need to perform the following steps first:
 
 1. Save your blender file
-2. Click Scene > Bioxels > Save All Bioxels in the Properties panel.
-3. Click Scene > Custom Nodes > Save All Custom Nodes under the Properties panel.
+2. Click Scene > Bioxels > Save All Bioxels in the properties panel.
+3. Click Scene > Custom Nodes > Save All Custom Nodes in the properties panel.
 
-![before sharin](assets/before-sharing.png)
+![alt text](assets/getting-started_share-file.png)
 
-After that, both the VDB cache and the Bioxel nodes are stored in relative locations. When you share a file with someone, pack the entire directory so that the resources are not lost. The other person will be able to load correctly, regardless of whether they have Bioxel Nodes installed.
+After that, both the VDB cache and the Bioxel nodes are restored in relative locations. When you share this file with someone, pack the entire directory so that the resources will be not lost. The other person will be able to open it correctly, regardless of whether they have Bioxel Nodes installed or not.

@@ -133,26 +133,26 @@ if bpy.app.version >= (4, 1, 0):
             ]
         },
         {
-            'label': 'Slicers',
+            'label': 'Cutters',
             'icon': 'MOD_BEVEL',
             'items': [
                 {
-                    'label': 'Apply Slicers',
+                    'label': 'Cut',
                     'icon': 'MOD_BEVEL',
-                    'node_type': 'BioxelNodes_ApplySlicers',
+                    'node_type': 'BioxelNodes_Cut',
                     'node_description': ''
                 },
                 "separator",
                 {
-                    'label': 'Plane Slicer',
+                    'label': 'Plane Cutter',
                     'icon': 'MOD_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneSlicer',
+                    'node_type': 'BioxelNodes_PlaneCutter',
                     'node_description': '',
                 },
                 {
-                    'label': 'Object Plane Slicer',
+                    'label': 'Plane Object Cutter',
                     'icon': 'OUTLINER_OB_LATTICE',
-                    'node_type': 'BioxelNodes_ObjectPlaneSlicer',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
                     'node_description': '',
                 }
             ]
@@ -282,26 +282,26 @@ else:
             ]
         },
         {
-            'label': 'Slicers',
+            'label': 'Cutters',
             'icon': 'MOD_BEVEL',
             'items': [
                 {
-                    'label': 'Apply Slicers',
+                    'label': 'Apply Cutters',
                     'icon': 'MOD_BEVEL',
-                    'node_type': 'BioxelNodes_ApplySlicers',
+                    'node_type': 'BioxelNodes_ApplyCutters',
                     'node_description': ''
                 },
                 "separator",
                 {
-                    'label': 'Plane Slicer',
+                    'label': 'Plane Cutter',
                     'icon': 'MOD_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneSlicer',
+                    'node_type': 'BioxelNodes_PlaneCutter',
                     'node_description': '',
                 },
                 {
-                    'label': 'Object Plane Slicer',
+                    'label': 'Plane Object Cutter',
                     'icon': 'OUTLINER_OB_LATTICE',
-                    'node_type': 'BioxelNodes_ObjectPlaneSlicer',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
                     'node_description': '',
                 }
             ]

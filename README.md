@@ -9,7 +9,7 @@
 
 Bioxel Nodes is a Blender add-on for scientific volumetric data visualization. It using Blender's powerful Geometry Nodes | Cycles to process and render volumetric data.
 
-# About
+## About
 
 Before us, there have been many tutorials and add-ons for importing volumetric data into Blender. However, we found that there were many details that were not addressed in place, some scientific facts were ignored, and the volume rendering was not pretty enough. With Bioxel Nodes, you can easily import the volumetric data into Blender, and more importantly, it can quickly make a beautiful realistic rendering of it.
 
@@ -19,7 +19,7 @@ Below are some examples with Bioxel Nodes. Thanks to Cycles Render, the volumetr
 
 The "Bioxel" in "Bioxel Nodes", is a combination of the words "Bio-" and "Voxel". Bioxel is a voxel that stores biological data. We are developing a toolkit around Bioxel for better biological data visualization. but before its release, we made this Blender version of bioxels toolkit first, in order to let more people to have fun with volumetric data. [Getting Started](https://omoolab.github.io/BioxelNodes/latest/getting-started)
 
-# Supported Format
+## Supported Format
 
 | Format | EXT                                      | Test    |
 | ------ | ---------------------------------------- | ------- |
@@ -39,12 +39,12 @@ The "Bioxel" in "Bioxel Nodes", is a combination of the words "Bio-" and "Voxel"
 | MINC   | .mnc, .MNC                               | yet     |
 | MRC    | .mrc, .rec                               | yet     |
 
-# Known limitations
+## Known Limitations
 
 -   Sections cannot be generated (will be supported soon)
 -   Time sequence volume not supported (will be supported soon)
 
-# To Upgrade Add-on
+## To Upgrade Add-on
 
 To upgrade from an older version of the add-on to the latest, you need to do the following:
 

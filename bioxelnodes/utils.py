@@ -92,14 +92,14 @@ def hide_in_ray(obj):
 def get_container(current_obj):
     if current_obj:
         return current_obj if current_obj.get('bioxel_container') else None
-    else:
-        return None
+    return None
 
 
 def get_layer(current_obj):
-    if current_obj.get('bioxel_layer') and current_obj.parent:
-        if current_obj.parent.get('bioxel_container'):
-            return current_obj
+    if current_obj:
+        if current_obj.get('bioxel_layer') and current_obj.parent:
+            if current_obj.parent.get('bioxel_container'):
+                return current_obj
     return None
 
 
