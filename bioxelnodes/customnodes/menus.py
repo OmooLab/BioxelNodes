@@ -163,16 +163,18 @@ class CustomNodes():
 
     def add_node(self, node_tree, node_type: str):
         item = self.find_item(node_type)
+        op = AddCustomNode()
+        op.nodes_file = self.nodes_file
+        op.node_type = node_type
         if item:
-            op = AddCustomNode()
-            op.nodes_file = self.nodes_file
-            op.node_type = item['node_type']
             op.node_label = item.get('label') or ""
             op.node_link = item.get('link') or True
             op.node_callback = item.get('node_callback') or ""
-            return op.add_node(node_tree)
         else:
-            raise RuntimeError("Not found in menu.")
+            op.node_label = ""
+            op.node_link = True
+            op.node_callback = ""
+        return op.add_node(node_tree)
 
     def register(self):
         for cls in self.menu_classes:

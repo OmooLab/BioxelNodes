@@ -236,14 +236,14 @@ class ImportVolumeDataDialog(bpy.types.Operator):
 
         if self.read_as == "labels":
             if "vector" in image.GetPixelIDTypeAsString():
-                print("Convet to Grayscale...")
+                print("Conveting to Grayscale...")
                 image = x2gray(image)
             else:
                 image = sitk.Cast(image, sitk.sitkUInt16)
             default_value = 0
         elif self.read_as == "scalar":
             if "vector" in image.GetPixelIDTypeAsString():
-                print("Convet to Grayscale...")
+                print("Conveting to Grayscale...")
                 image = rgb2gray(image)
             else:
                 image = sitk.Cast(image, sitk.sitkFloat32)
@@ -258,6 +258,9 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             interpolator = sitk.sitkNearestNeighbor
         elif self.resample_method == "gaussian":
             interpolator = sitk.sitkGaussian
+            
+        if self.read_as == "labels":
+            interpolator = sitk.sitkNearestNeighbor
 
         print(f"Resampling...")
         image = sitk.Resample(
@@ -448,16 +451,15 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             input_node = get_node_by_type(nodes, 'NodeGroupInput')[0]
             output_node = get_node_by_type(nodes, 'NodeGroupOutput')[0]
 
-            node_type = 'BioxelNodes_AsLabel' if layer_type == "label" else 'BioxelNodes_AsScalar'
-            source_node = custom_nodes.add_node(nodes, node_type)
+            to_layer_node = custom_nodes.add_node(nodes, "BioxelNodes__ConvertToLayer")
 
-            links.new(input_node.outputs[0], source_node.inputs[0])
-            links.new(source_node.outputs[0], output_node.inputs[0])
+            links.new(input_node.outputs[0], to_layer_node.inputs[0])
+            links.new(to_layer_node.outputs[0], output_node.inputs[0])
 
-            source_node.inputs['Bioxel Size'].default_value = bioxel_size
-            source_node.inputs['Shape'].default_value = layer_shape
-            source_node.inputs['Origin'].default_value = layer_origin
-            source_node.inputs['Rotation'].default_value = layer_rotation
+            to_layer_node.inputs['Bioxel Size'].default_value = bioxel_size
+            to_layer_node.inputs['Shape'].default_value = layer_shape
+            to_layer_node.inputs['Origin'].default_value = layer_origin
+            to_layer_node.inputs['Rotation'].default_value = layer_rotation
 
             return layer
 
@@ -511,10 +513,10 @@ class ImportVolumeDataDialog(bpy.types.Operator):
                                  layer_type="scalar")
 
             layer_node_tree = layer.modifiers[0].node_group
-            source_node = layer_node_tree.nodes['BioxelNodes_AsScalar']
-            source_node.inputs['Offset'].default_value = scalar_offset
-            source_node.inputs['Max'].default_value = orig_max
-            source_node.inputs['Min'].default_value = orig_min
+            to_layer_node = layer_node_tree.nodes['BioxelNodes__ConvertToLayer']
+            to_layer_node.inputs['Scalar Offset'].default_value = scalar_offset
+            to_layer_node.inputs['Scalar Max'].default_value = orig_max
+            to_layer_node.inputs['Scalar Min'].default_value = orig_min
 
             output_node = get_node_by_type(container_node_tree.nodes,
                                            'NodeGroupOutput')[0]

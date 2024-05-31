@@ -2,7 +2,7 @@
 
 ## Bioxel Design Concept
 
-According to Bioxel design concept, Bioxel Nodes imports volume data and put it into a **Container** as a **Layer**. One container may has more than one layer, and each layer stores the information of different fields under the same location, which is similar to the view layer of map app, except that here it is in 3D space. In order to render the volume the way we want it to, we need to build a renderable object from layers. We call this object **Component**. The following diagram shows the relationship of **Container**, **Layer**, and **Component**:
+According to Bioxel design concept, Bioxel Nodes imports volume data and put it into a **Container** as a **Layer**. One container may has more than one layer, and each layer stores the information of different fields under the same location, which is similar to the view layers in map app, except that here it is in 3D space. In order to render the volume the way we want it to, we need to build renderable objects from layers. We call those objects **Component**. The following diagram shows the relationship of **Container**, **Layer**, and **Component**:
 
 ![alt text](assets/features_concept.png)
 
