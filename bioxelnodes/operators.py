@@ -196,7 +196,7 @@ class ConvertToMesh(bpy.types.Operator):
         mesh.name = f"Mesh_{container.name}"
 
         bpy.ops.object.constraint_add(type='COPY_TRANSFORMS')
-        mesh.constraints["Copy Transforms"].target = container
+        mesh.constraints[0].target = container
 
         bpy.ops.node.new_geometry_nodes_modifier()
         modifier = mesh.modifiers[0]
