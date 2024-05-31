@@ -79,13 +79,14 @@ class JoinLayers(bpy.types.Operator):
 
         layers = []
         if self.scalar_layer != "None":
-            layers.append(bpy.data.objects[self.scalar_layer])
+            scalar_layer = bpy.data.objects[self.scalar_layer]
+            layers.append(scalar_layer)
 
         if self.label_layer != "None":
-            layers.append(bpy.data.objects[self.label_layer])
+            label_layer = bpy.data.objects[self.label_layer]
+            layers.append(label_layer)
 
-        # if self.color_layer:
-        #     layers.append(bpy.data.objects[self.color_layer])
+        # TODO: add color and vector
 
         if len(layers) == 0:
             self.report({"WARNING"}, "No additinal layers setted.")
@@ -106,8 +107,45 @@ class JoinLayers(bpy.types.Operator):
             filepath=str(vdb_path), align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
 
         joined_layer = bpy.context.active_object
-        bpy.ops.object.modifier_add(type='NODES')
-        joined_layer.modifiers[0].node_group = base_layer.modifiers[0].node_group
+        
+        base_layer_node = base_layer.modifiers[0].node_group.nodes['BioxelNodes__ConvertToLayer']
+        bioxel_size = base_layer_node.inputs['Bioxel Size'].default_value
+        layer_shape = base_layer_node.inputs['Shape'].default_value
+        layer_origin = base_layer_node.inputs['Origin'].default_value
+        layer_rotation = base_layer_node.inputs['Rotation'].default_value
+        scalar_offset = base_layer_node.inputs['Scalar Offset'].default_value
+        scalar_min = base_layer_node.inputs['Scalar Min'].default_value
+        scalar_max = base_layer_node.inputs['Scalar Max'].default_value
+        
+        if self.scalar_layer != "None":
+            scalar_layer_node = scalar_layer.modifiers[0].node_group.nodes['BioxelNodes__ConvertToLayer']
+            scalar_offset = scalar_layer_node.inputs['Scalar Offset'].default_value
+            scalar_min = scalar_layer_node.inputs['Scalar Min'].default_value
+            scalar_max = scalar_layer_node.inputs['Scalar Max'].default_value
+
+        bpy.ops.node.new_geometry_nodes_modifier()
+        node_tree = joined_layer.modifiers[0].node_group
+        nodes = node_tree.nodes
+        links = node_tree.links
+
+        input_node = get_node_by_type(nodes, 'NodeGroupInput')[0]
+        output_node = get_node_by_type(nodes, 'NodeGroupOutput')[0]
+        
+
+        joined_layer_node = custom_nodes.add_node(
+            nodes, "BioxelNodes__ConvertToLayer")
+
+        
+        links.new(input_node.outputs[0], joined_layer_node.inputs[0])
+        links.new(joined_layer_node.outputs[0], output_node.inputs[0])
+
+        joined_layer_node.inputs['Bioxel Size'].default_value = bioxel_size
+        joined_layer_node.inputs['Shape'].default_value = layer_shape
+        joined_layer_node.inputs['Origin'].default_value = layer_origin
+        joined_layer_node.inputs['Rotation'].default_value = layer_rotation
+        joined_layer_node.inputs['Scalar Offset'].default_value = scalar_offset
+        joined_layer_node.inputs['Scalar Min'].default_value = scalar_min
+        joined_layer_node.inputs['Scalar Max'].default_value = scalar_max
 
         # Set props to VDB object
         joined_layer.name = f"{base_layer.name}_Joined"
@@ -169,7 +207,7 @@ class ConvertToMesh(bpy.types.Operator):
         object_node = nodes.new("GeometryNodeObjectInfo")
         realize_nodes = nodes.new("GeometryNodeRealizeInstances")
         separate_node = custom_nodes.add_node(
-            nodes, "BioxelNodes_SeparateComponent")
+            nodes, "BioxelNodes__SeparateComponent")
 
         object_node.inputs[0].default_value = container
         separate_node.inputs[1].default_value = 1

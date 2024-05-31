@@ -166,29 +166,6 @@ if bpy.app.version >= (4, 1, 0):
                     'icon': 'CONSTRAINT_BONE',
                     'node_type': 'BioxelNodes_JoinComponent',
                     'node_description': ''
-                },
-                {
-                    'label': 'Separate Component',
-                    'node_type': 'BioxelNodes_SeparateComponent',
-                    'node_description': ''
-                }
-            ]
-        },
-        {
-            'label': 'Others',
-            'icon': 'PACKAGE',
-            'items': [
-                {
-                    'label': 'Source As Label',
-                    'icon': 'GP_SELECT_POINTS',
-                    'node_type': 'BioxelNodes_AsLabel',
-                    'node_description': ''
-                },
-                {
-                    'label': 'Source As Scalar',
-                    'icon': 'GP_SELECT_STROKES',
-                    'node_type': 'BioxelNodes_AsScalar',
-                    'node_description': ''
                 }
             ]
         }
@@ -286,9 +263,9 @@ else:
             'icon': 'MOD_BEVEL',
             'items': [
                 {
-                    'label': 'Apply Cutters',
+                    'label': 'Cut',
                     'icon': 'MOD_BEVEL',
-                    'node_type': 'BioxelNodes_ApplyCutters',
+                    'node_type': 'BioxelNodes_Cut',
                     'node_description': ''
                 },
                 "separator",
@@ -314,29 +291,6 @@ else:
                     'label': 'Join Component',
                     'icon': 'CONSTRAINT_BONE',
                     'node_type': 'BioxelNodes_JoinComponent',
-                    'node_description': ''
-                },
-                {
-                    'label': 'Separate Component',
-                    'node_type': 'BioxelNodes_SeparateComponent',
-                    'node_description': ''
-                }
-            ]
-        },
-        {
-            'label': 'Others',
-            'icon': 'PACKAGE',
-            'items': [
-                {
-                    'label': 'Source As Label',
-                    'icon': 'GP_SELECT_POINTS',
-                    'node_type': 'BioxelNodes_AsLabel',
-                    'node_description': ''
-                },
-                {
-                    'label': 'Source As Scalar',
-                    'icon': 'GP_SELECT_STROKES',
-                    'node_type': 'BioxelNodes_AsScalar',
                     'node_description': ''
                 }
             ]

@@ -251,41 +251,6 @@ This type of node is responsible for cutting components to present cross-section
 
 </div>
 
-## Utils
-
-### 📦 Join Component
-
-<div class="grid cards" markdown>
-
--   ![alt text](assets/nodes_join-component.png)
-
--   Components' combination should not be done by "Join Geometry" node because Blender Cycles can't render volumes in the same position, so the node will slightly offset all components randomly to avoid this problem.
-
-    ***
-
-    Node Parameter:
-
-    -   **Component 0~4**, _the components_
-
-</div>
-
-### 🗂️ Separate Component
-
-<div class="grid cards" markdown>
-
--   ![alt text](assets/nodes_separate-component.png)
-
--   Volumes, previews, and guides are included within a component. This node can split them by type.
-
-    ***
-
-    Node Parameter:
-
-    -   **Component**, _the upstream component_
-    -   **Type**, _the sub-object type, 0 is volume, 1 is preview, 2 is guide_
-
-</div>
-
 ## Colors
 
 This type of node is responsible for setting the color properties of the shader
@@ -404,5 +369,23 @@ This type of node is responsible for setting the color properties of the shader
         -   **Pos4 Color**, _position 100% Color_
         -   **Gamma**, _non-linear coefficient, the larger the coefficient, the more lower value color_
         -   **Contrast**, _the larger the contrast, the harder color ramp will be_
+
+</div>
+
+## Utils
+
+### 📦 Join Component
+
+<div class="grid cards" markdown>
+
+-   ![alt text](assets/nodes_join-component.png)
+
+-   Components' combination should not be done by "Join Geometry" node because Blender Cycles can't render volumes in the same position, so the node will slightly offset all components randomly to avoid this problem.
+
+    ***
+
+    Node Parameter:
+
+    -   **Component 0~4**, _the components_
 
 </div>
