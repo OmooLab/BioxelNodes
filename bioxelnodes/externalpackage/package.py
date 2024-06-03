@@ -76,7 +76,8 @@ class PackageInstaller():
 
         # Set up logging configuration
         logfile_path = Path(self.log_path, f"{logfile_name}.log")
-        logging.basicConfig(filename=logfile_path, level=logging.INFO)
+        logging.basicConfig(filename=logfile_path,
+                            level=logging.INFO, encoding='utf-8')
 
         # Return logger object
         return logging.getLogger()
@@ -248,13 +249,16 @@ class PackageInstaller():
         result = subprocess.run(cmd_list, timeout=timeout,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        if result.returncode != 0:
-            log.error('Command failed: %s', cmd_list)
-            log.error('stdout: %s', result.stdout.decode())
-            log.error('stderr: %s', result.stderr.decode(errors='ignore'))
-        else:
-            log.info('Command succeeded: %s', cmd_list)
-            log.info('stdout: %s', result.stdout.decode())
+        try:
+            if result.returncode != 0:
+                log.error('Command failed: %s', cmd_list)
+                log.error('stdout: %s', result.stdout.decode())
+                log.error('stderr: %s', result.stderr.decode(errors='ignore'))
+            else:
+                log.info('Command succeeded: %s', cmd_list)
+                log.info('stdout: %s', result.stdout.decode())
+        except:
+            ...
         # return the command list, return code, stdout, and stderr as a tuple
         return result
 
