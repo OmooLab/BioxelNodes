@@ -57,7 +57,7 @@ def unregister():
 #################################################
 
 def get_all_submodules(directory):
-    return list(iter_submodules(directory, directory.name))
+    return list(iter_submodules(directory, __package__))
 
 
 def iter_submodules(path, package_name):
