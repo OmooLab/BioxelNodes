@@ -1,9 +1,7 @@
 import bpy
 from pathlib import Path
-from .externalpackage import ExternalPackagePreferences
 
-
-class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferences):
+class BioxelNodesPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     cache_dir: bpy.props.StringProperty(
@@ -19,10 +17,6 @@ class BioxelNodesPreferences(bpy.types.AddonPreferences, ExternalPackagePreferen
 
     def draw(self, context):
         layout = self.layout
-
-        # ExternalPackagePreferences Config
-        self.requirements_dir = str(Path(__file__).parent)
-        super().draw(context)
 
         layout.label(text="Configuration")
         layout.prop(self, 'cache_dir')

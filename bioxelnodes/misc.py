@@ -1,7 +1,7 @@
 import bpy
 from pathlib import Path
 import shutil
-from bioxelnodes.utils import get_all_layers, get_container, get_container_layers
+from .utils import get_all_layers, get_container, get_container_layers
 
 
 def save_layer(layer, output_dir):

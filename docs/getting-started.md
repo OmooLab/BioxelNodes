@@ -4,8 +4,19 @@ Currently only support Blender 4.0 or above, make sure you have the correct vers
 
 ## Add-on Installation
 
-Download the latest version https://github.com/OmooLab/BioxelNodes/releases/latest  
-In Blender, Edit > Preferences > Add-ons > Install, select the `BioxelNodes_{version}.zip` you just downloaded.
+#### For Blender 4.2 or higher
+
+Download the **Extension** version `BioxelNodes_Extension_{version}.zip` from https://github.com/OmooLab/BioxelNodes/releases/latest  
+In Blender, Edit > Preferences > Extensions > Install from Disk, select the zip file you just downloaded.
+
+Thats it!
+
+> If it cannot be enable, just reboot blender.
+
+#### For Blender 4.0 or 4.1
+
+Download the **Addon** version `BioxelNodes_Addon_{version}.zip` from https://github.com/OmooLab/BioxelNodes/releases/latest  
+In Blender, Edit > Preferences > Add-ons > Install, select the zip file you just downloaded.
 
 The add-on requires a third-party python dependency called SimpleITK, click `Install SimpleITK` button below to install the dependency. After clicking, blender may get stuck, it is downloading and installing, just wait for a moment. After that, click `Reboot Blender` button.
 

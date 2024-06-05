@@ -7,7 +7,7 @@ import bpy
 def add_driver_to_node_factory(source_prop, target_prop):
     callback_str = f"""
 import bpy
-from bioxelnodes.utils import add_direct_driver, get_bioxels_obj
+from .utils import add_direct_driver, get_bioxels_obj
 bioxels_obj = get_bioxels_obj(bpy.context.active_object)
 if bioxels_obj:
     container_obj = bioxels_obj.parent
@@ -26,7 +26,7 @@ else:
 def set_prop_to_node_factory(source_prop, target_prop):
     callback_str = f"""
 import bpy
-from bioxelnodes.utils import get_bioxels_obj
+from .utils import get_bioxels_obj
 bioxels_obj = get_bioxels_obj(bpy.context.active_object)
 if bioxels_obj:
     container_obj = bioxels_obj.parent

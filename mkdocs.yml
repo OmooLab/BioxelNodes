@@ -8,11 +8,11 @@ repo_url: https://github.com/OmooLab/BioxelNodes
 
 nav:
   - BioxelNodes:
-    - index.md
-    - Getting Started: getting-started.md
-    - Features & Options: features.md
-    - Nodes: nodes.md
-    - Future Features: misc.md
+      - index.md
+      - Getting Started: getting-started.md
+      - Features & Options: features.md
+      - Nodes: nodes.md
+      - Future Features: misc.md
 
 theme:
   name: material
@@ -57,6 +57,7 @@ theme:
 extra:
   version:
     provider: mike
+    default: latest
 
 extra_css:
   - stylesheets/extra.css
