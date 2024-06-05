@@ -607,39 +607,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#utils" class="md-nav__link">
-    <span class="md-ellipsis">
-      Utils
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Utils">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#join-component" class="md-nav__link">
-    <span class="md-ellipsis">
-      📦 Join Component
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#separate-component" class="md-nav__link">
-    <span class="md-ellipsis">
-      🗂️ Separate Component
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#colors" class="md-nav__link">
     <span class="md-ellipsis">
       Colors
@@ -689,6 +656,30 @@
   <a href="#5-color-ramp-5" class="md-nav__link">
     <span class="md-ellipsis">
       5️⃣ Color Ramp 5
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#utils" class="md-nav__link">
+    <span class="md-ellipsis">
+      Utils
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Utils">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#join-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      📦 Join Component
     </span>
   </a>
   
@@ -907,39 +898,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#utils" class="md-nav__link">
-    <span class="md-ellipsis">
-      Utils
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Utils">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#join-component" class="md-nav__link">
-    <span class="md-ellipsis">
-      📦 Join Component
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#separate-component" class="md-nav__link">
-    <span class="md-ellipsis">
-      🗂️ Separate Component
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#colors" class="md-nav__link">
     <span class="md-ellipsis">
       Colors
@@ -989,6 +947,30 @@
   <a href="#5-color-ramp-5" class="md-nav__link">
     <span class="md-ellipsis">
       5️⃣ Color Ramp 5
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#utils" class="md-nav__link">
+    <span class="md-ellipsis">
+      Utils
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Utils">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#join-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      📦 Join Component
     </span>
   </a>
   
@@ -1298,40 +1280,6 @@
 </li>
 </ul>
 </div>
-<h2 id="utils">Utils</h2>
-<h3 id="join-component">📦 Join Component</h3>
-<div class="grid cards">
-<ul>
-<li>
-<p><img alt="alt text" src="../assets/nodes_join-component.png" /></p>
-</li>
-<li>
-<p>Components' combination should not be done by "Join Geometry" node because Blender Cycles can't render volumes in the same position, so the node will slightly offset all components randomly to avoid this problem.</p>
-<hr />
-<p>Node Parameter:</p>
-<ul>
-<li><strong>Component 0~4</strong>, <em>the components</em></li>
-</ul>
-</li>
-</ul>
-</div>
-<h3 id="separate-component">🗂️ Separate Component</h3>
-<div class="grid cards">
-<ul>
-<li>
-<p><img alt="alt text" src="../assets/nodes_separate-component.png" /></p>
-</li>
-<li>
-<p>Volumes, previews, and guides are included within a component. This node can split them by type.</p>
-<hr />
-<p>Node Parameter:</p>
-<ul>
-<li><strong>Component</strong>, <em>the upstream component</em></li>
-<li><strong>Type</strong>, <em>the sub-object type, 0 is volume, 1 is preview, 2 is guide</em></li>
-</ul>
-</li>
-</ul>
-</div>
 <h2 id="colors">Colors</h2>
 <p>This type of node is responsible for setting the color properties of the shader</p>
 <h3 id="color-presents">🎨 Color Presents</h3>
@@ -1459,6 +1407,23 @@
 </li>
 </ul>
 </div>
+<h2 id="utils">Utils</h2>
+<h3 id="join-component">📦 Join Component</h3>
+<div class="grid cards">
+<ul>
+<li>
+<p><img alt="alt text" src="../assets/nodes_join-component.png" /></p>
+</li>
+<li>
+<p>Components' combination should not be done by "Join Geometry" node because Blender Cycles can't render volumes in the same position, so the node will slightly offset all components randomly to avoid this problem.</p>
+<hr />
+<p>Node Parameter:</p>
+<ul>
+<li><strong>Component 0~4</strong>, <em>the components</em></li>
+</ul>
+</li>
+</ul>
+</div>
 
 
 
@@ -1549,7 +1514,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["header.autohide", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "content.code.copy", "content.code.select"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["header.autohide", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "content.code.copy", "content.code.select"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.5cfa9459.min.js"></script>
