@@ -54,3 +54,15 @@ It is not support editing the same blender file across add-on versions. In order
 But even then, there is still no guarantee that the new version of the add-on will work on the old blender file. Therefore, it is highly recommended to open a new blender file to start the creating, not based on the old one.
 
 Alternatively, objects from the old file that have nothing to do with Bioxel Nodes could be append to the new blender file.
+
+## About EEVEE Render
+
+Bioxel Nodes is designed for Cycles Render. However, it does support eevee render partially. "Solid Shader" node and "Volume Shader" node have a toggle called "EEVEE Render". If you want to render Bioxel Component in real-time, turn it on.
+
+Also, there are some limitations:
+
+1. Only one cutter supported.
+2. You cannot use "Color Ramp" over 2 colors.
+3. EEVEE Render result is not that great as Cycles does.
+
+> "Volume Shader" node is not work properly in EEVEE Next since 4.2. It is because EEVEE Next is not support attributes from instances of volume shader by now. But the Blender 4.2 docs still say attributes reading is ok, so I suppose this feature will eventually be implemented.

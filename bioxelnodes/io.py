@@ -6,10 +6,11 @@ import numpy as np
 from pathlib import Path
 from uuid import uuid4
 import mathutils
+import random
 
 from .nodes import custom_nodes
 from .props import BIOXELNODES_Series
-from .utils import (calc_bbox_verts, get_container, get_layer, get_text_index_str,
+from .utils import (calc_bbox_verts, get_all_layers, get_container, get_layer, get_text_index_str,
                     get_node_by_type, hide_in_ray, lock_transform, show_message)
 
 try:
@@ -218,6 +219,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
+        is_first_import = len(get_all_layers()) == 0
         image, name = read_image(self.filepath, self.series_id)
         container_name = self.container_name or name
         bioxel_size = self.bioxel_size
@@ -258,7 +260,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             interpolator = sitk.sitkNearestNeighbor
         elif self.resample_method == "gaussian":
             interpolator = sitk.sitkGaussian
-            
+
         if self.read_as == "labels":
             interpolator = sitk.sitkNearestNeighbor
 
@@ -451,11 +453,14 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             input_node = get_node_by_type(nodes, 'NodeGroupInput')[0]
             output_node = get_node_by_type(nodes, 'NodeGroupOutput')[0]
 
-            to_layer_node = custom_nodes.add_node(nodes, "BioxelNodes__ConvertToLayer")
+            to_layer_node = custom_nodes.add_node(nodes,
+                                                  "BioxelNodes__ConvertToLayer")
 
             links.new(input_node.outputs[0], to_layer_node.inputs[0])
             links.new(to_layer_node.outputs[0], output_node.inputs[0])
 
+            to_layer_node.inputs['Layer ID'].default_value = random.randint(-200000000,
+                                                                            200000000)
             to_layer_node.inputs['Bioxel Size'].default_value = bioxel_size
             to_layer_node.inputs['Shape'].default_value = layer_shape
             to_layer_node.inputs['Origin'].default_value = layer_origin
@@ -531,7 +536,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         bpy.context.view_layer.objects.active = container
 
         # Change render setting for better result
-        if preferences.do_change_render_setting:
+        if preferences.do_change_render_setting and is_first_import:
             bpy.context.scene.render.engine = 'CYCLES'
             bpy.context.scene.cycles.volume_bounces = 12
             bpy.context.scene.cycles.transparent_max_bounces = 16
