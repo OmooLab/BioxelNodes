@@ -3,39 +3,57 @@ from pathlib import Path
 from .customnodes import CustomNodes
 import bpy
 
+# def set_object_to_node_factory(object_type:str):
+#     if object_type == "plane":
+#         create_object = """
+#     bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+#         """
+#     callback_str = f"""
+# import bpy
+# from ..utils import get_container
+# container = get_container(bpy.context.active_object)
+# if container:
+#     {create_object}
+#     object = bpy.context.active_object
+#     node.inputs[0].default_value = object
+# else:
+#     print('Cannot find any Bioxel Container.')
+#     """
+#     return callback_str
 
-def add_driver_to_node_factory(source_prop, target_prop):
-    callback_str = f"""
-import bpy
-from .utils import add_direct_driver, get_bioxels_obj
-bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-if bioxels_obj:
-    container_obj = bioxels_obj.parent
-    add_direct_driver(
-        target=node,
-        target_prop='{target_prop}',
-        source=container_obj,
-        source_prop='{source_prop}'
-    )
-else:
-    print('Cannot find any bioxels.')
-    """
-    return callback_str
+
+# def add_driver_to_node_factory(source_prop, target_prop):
+#     callback_str = f"""
+# import bpy
+# from .utils import add_direct_driver, get_bioxels_obj
+# bioxels_obj = get_bioxels_obj(bpy.context.active_object)
+# if bioxels_obj:
+#     container_obj = bioxels_obj.parent
+#     add_direct_driver(
+#         target=node,
+#         target_prop='{target_prop}',
+#         source=container_obj,
+#         source_prop='{source_prop}'
+#     )
+# else:
+#     print('Cannot find any bioxels.')
+#     """
+#     return callback_str
 
 
-def set_prop_to_node_factory(source_prop, target_prop):
-    callback_str = f"""
-import bpy
-from .utils import get_bioxels_obj
-bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-if bioxels_obj:
-    container_obj = bioxels_obj.parent
-    node.inputs.get('{target_prop}').default_value = container_obj.get(
-        '{source_prop}')
-else:
-    print('Cannot find any bioxels.')
-    """
-    return callback_str
+# def set_prop_to_node_factory(source_prop, target_prop):
+#     callback_str = f"""
+# import bpy
+# from .utils import get_bioxels_obj
+# bioxels_obj = get_bioxels_obj(bpy.context.active_object)
+# if bioxels_obj:
+#     container_obj = bioxels_obj.parent
+#     node.inputs.get('{target_prop}').default_value = container_obj.get(
+#         '{source_prop}')
+# else:
+#     print('Cannot find any bioxels.')
+#     """
+#     return callback_str
 
 
 if bpy.app.version >= (4, 1, 0):
@@ -71,6 +89,12 @@ if bpy.app.version >= (4, 1, 0):
             'icon': 'SHADING_RENDERED',
             'items': [
                 {
+                    'label': 'Membrane Shader',
+                    'icon': 'NODE_MATERIAL',
+                    'node_type': 'BioxelNodes_MembraneShader',
+                    'node_description': ''
+                },
+                {
                     'label': 'Solid Shader',
                     'icon': 'SHADING_SOLID',
                     'node_type': 'BioxelNodes_AssignSolidShader',
@@ -78,19 +102,19 @@ if bpy.app.version >= (4, 1, 0):
                 },
                 {
                     'label': 'Slime Shader',
-                    'icon': 'OUTLINER_OB_META',
+                    'icon': 'OUTLINER_DATA_META',
                     'node_type': 'BioxelNodes_AssignSlimeShader',
                     'node_description': ''
                 },
                 {
                     'label': 'Volume Shader',
-                    'icon': 'OUTLINER_OB_VOLUME',
+                    'icon': 'VOLUME_DATA',
                     'node_type': 'BioxelNodes_AssignVolumeShader',
                     'node_description': ''
                 },
                 {
                     'label': 'Universal Shader',
-                    'icon': 'SHADING_RENDERED',
+                    'icon': 'MATSHADERBALL',
                     'node_type': 'BioxelNodes_AssignUniversalShader',
                     'node_description': ''
                 }
@@ -106,6 +130,7 @@ if bpy.app.version >= (4, 1, 0):
                     'node_type': 'BioxelNodes_SetColorPresets',
                     'node_description': ''
                 },
+                "separator",
                 {
                     'label': 'Color Ramp 2',
                     'icon': 'IPO_QUAD',
@@ -145,14 +170,26 @@ if bpy.app.version >= (4, 1, 0):
                 "separator",
                 {
                     'label': 'Plane Cutter',
-                    'icon': 'MOD_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneCutter',
+                    'icon': 'MESH_PLANE',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Cylinder Cutter',
+                    'icon': 'MESH_CYLINDER',
+                    'node_type': 'BioxelNodes_CylinderObjectCutter',
                     'node_description': '',
                 },
                 {
-                    'label': 'Plane Object Cutter',
-                    'icon': 'OUTLINER_OB_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'label': 'Cube Cutter',
+                    'icon': 'MESH_CUBE',
+                    'node_type': 'BioxelNodes_CubeObjectCutter',
+                    'node_description': '',
+                },
+                {
+                    'label': 'Sphere Cutter',
+                    'icon': 'MESH_UVSPHERE',
+                    'node_type': 'BioxelNodes_SphereObjectCutter',
                     'node_description': '',
                 }
             ]
@@ -165,6 +202,44 @@ if bpy.app.version >= (4, 1, 0):
                     'label': 'Join Component',
                     'icon': 'CONSTRAINT_BONE',
                     'node_type': 'BioxelNodes_JoinComponent',
+                    'node_description': ''
+                },
+                "separator",
+                {
+                    'label': 'To Mesh',
+                    'icon': 'OUTLINER_OB_MESH',
+                    'node_type': 'BioxelNodes_ToMesh',
+                    'node_description': ''
+                },
+                {
+                    'label': 'To Volume',
+                    'icon': 'OUTLINER_OB_VOLUME',
+                    'node_type': 'BioxelNodes_ToVolume',
+                    'node_description': ''
+                },
+                {
+                    'label': 'To Bbox Wire',
+                    'icon': 'MESH_CUBE',
+                    'node_type': 'BioxelNodes_ToBboxWire',
+                    'node_description': ''
+                },
+                "separator",
+                {
+                    'label': 'Inflate',
+                    'icon': 'OUTLINER_OB_META',
+                    'node_type': 'META_DATA',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Smooth',
+                    'icon': 'MOD_SMOOTH',
+                    'node_type': 'BioxelNodes_M_Smooth',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Remove Small Island',
+                    'icon': 'FORCE_LENNARDJONES',
+                    'node_type': 'BioxelNodes_M_RemoveSmallIsland',
                     'node_description': ''
                 }
             ]
@@ -271,14 +346,26 @@ else:
                 "separator",
                 {
                     'label': 'Plane Cutter',
-                    'icon': 'MOD_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneCutter',
+                    'icon': 'MESH_PLANE',
+                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'node_description': ''
+                },
+                {
+                    'label': 'Cylinder Cutter',
+                    'icon': 'MESH_CYLINDER',
+                    'node_type': 'BioxelNodes_CylinderObjectCutter',
                     'node_description': '',
                 },
                 {
-                    'label': 'Plane Object Cutter',
-                    'icon': 'OUTLINER_OB_LATTICE',
-                    'node_type': 'BioxelNodes_PlaneObjectCutter',
+                    'label': 'Cube Cutter',
+                    'icon': 'MESH_CUBE',
+                    'node_type': 'BioxelNodes_CubeObjectCutter',
+                    'node_description': '',
+                },
+                {
+                    'label': 'Sphere Cutter',
+                    'icon': 'MESH_UVSPHERE',
+                    'node_type': 'BioxelNodes_SphereObjectCutter',
                     'node_description': '',
                 }
             ]

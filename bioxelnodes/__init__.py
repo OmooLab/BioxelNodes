@@ -9,7 +9,7 @@ bl_info = {
     "author": "Ma Nan",
     "description": "",
     "blender": (4, 0, 0),
-    "version": (0, 2, 0),
+    "version": (0, 2, 3),
     "location": "File -> Import",
     "warning": "",
     "category": "Node"
@@ -22,7 +22,7 @@ def register():
     auto_load.register()
     menus.add()
     bpy.types.Scene.bioxel_layer_dir = bpy.props.StringProperty(
-        name="Bioxel Layers Directory",
+        name="Layer Directory",
         subtype='DIR_PATH',
         default="//"
     )

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bioxelnodes"
-version = "0.2.2"
+version = "0.2.3"
 description = ""
 authors = ["Ma Nan <icrdr2010@outlook.com>"]
 license = "MIT"
@@ -10,6 +10,7 @@ readme = "README.md"
 python = "~=3.10.0"
 bpy = "~=4.0"
 simpleitk = "^2.3.1"
+scikit-image = "^0.24.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.25.2"

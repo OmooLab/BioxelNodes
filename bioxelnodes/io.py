@@ -1,3 +1,4 @@
+import math
 import bpy
 import shutil
 from bpy_extras.io_utils import axis_conversion
@@ -8,17 +9,18 @@ from uuid import uuid4
 import mathutils
 import random
 
+from . import skimage as ski
 from .nodes import custom_nodes
 from .props import BIOXELNODES_Series
-from .utils import (calc_bbox_verts, get_all_layers, get_container, get_layer, get_text_index_str,
-                    get_node_by_type, hide_in_ray, lock_transform, show_message)
+from .utils import (calc_bbox_verts, get_all_layers, get_container_from_selection, get_layer, get_text_index_str,
+                    get_node_by_type, hide_in_ray, lock_transform, save_vdb, show_message)
 
 try:
     import SimpleITK as sitk
 except:
     ...
 
-SUPPORT_EXTS = ['.dcm', '.DCM', '.DICOM',
+SUPPORT_EXTS = ['', '.dcm', '.DCM', '.DICOM',
                 '.bmp', '.BMP',
                 '.PIC', '.pic',
                 '.gipl', '.gipl.gz',
@@ -40,9 +42,9 @@ SEQUENCE_EXTS = ['.dcm', '.DCM', '.DICOM',
                  '.tif', '.TIF', '.tiff', '.TIFF',
                  '.png', '.PNG']
 
-DICOM_EXTS = ['.dcm', '.DCM', '.DICOM']
+DICOM_EXTS = ['', '.dcm', '.DCM', '.DICOM']
 
-FH_EXTS = ['.dcm', '.DCM', '.DICOM',
+FH_EXTS = ['', '.dcm', '.DCM', '.DICOM',
            '.gipl', '.gipl.gz',
            '.mnc', '.MNC',
            '.mrc', '.rec',
@@ -62,6 +64,14 @@ def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
     return (shape[0] if shape[0] > 0 else 1,
             shape[1] if shape[1] > 0 else 1,
             shape[2] if shape[2] > 0 else 1)
+
+
+def get_layer_size(shape: tuple, bioxel_size: float, scale: float = 1.0):
+    size = (float(shape[0] * bioxel_size * scale),
+            float(shape[1] * bioxel_size * scale),
+            float(shape[2] * bioxel_size * scale))
+
+    return size
 
 
 def get_ext(filepath: str) -> str:
@@ -90,7 +100,7 @@ def get_sequence_index(filepath: str) -> int:
     return int(index) if index else 0
 
 
-def collect_image_sequence(filepath: str):
+def collect_sequence(filepath: str):
     file_path = Path(filepath).resolve()
 
     files = list(file_path.parent.iterdir())
@@ -103,7 +113,7 @@ def collect_image_sequence(filepath: str):
     return sequence
 
 
-def read_image(filepath: str, series_id=""):
+def parse_volume_data(filepath: str, series_id=""):
     ext = get_ext(filepath)
 
     if ext in DICOM_EXTS:
@@ -114,37 +124,42 @@ def read_image(filepath: str, series_id=""):
         series_files = reader.GetGDCMSeriesFileNames(
             str(dir_path), series_id)
         reader.SetFileNames(series_files)
-        image = reader.Execute()
+        itk_volume = reader.Execute()
         name = dir_path.name
 
     elif ext in SEQUENCE_EXTS:
-        image = sitk.ReadImage(filepath)
-        if image.GetDimension() == 2:
-            sequence = collect_image_sequence(filepath)
-            image = sitk.ReadImage(sequence)
+        itk_volume = sitk.ReadImage(filepath)
+        if itk_volume.GetDimension() == 2:
+            sequence = collect_sequence(filepath)
+            itk_volume = sitk.ReadImage(sequence)
             name = get_sequence_name(filepath)
         else:
-            image = sitk.ReadImage(filepath)
+            itk_volume = sitk.ReadImage(filepath)
             name = Path(filepath).name.removesuffix(ext)
     else:
-        image = sitk.ReadImage(filepath)
+        itk_volume = sitk.ReadImage(filepath)
         name = Path(filepath).name.removesuffix(ext)
 
-    return image, name
+    itk_volume = sitk.DICOMOrient(itk_volume, 'RAS')
+    volume = sitk.GetArrayFromImage(itk_volume)
 
+    if volume.ndim == 4:
+        volume = np.transpose(volume, (2, 1, 0, 3))
+    else:
+        volume = np.transpose(volume)
 
-def rgb2gray(image):
-    # Convert sRGB image to gray scale and rescale results to [0,255]
-    layers = [sitk.VectorIndexSelectionCast(
-        image, i, sitk.sitkFloat32) for i in range(image.GetNumberOfComponentsPerPixel())]
-    # linear mapping
-    I = (0.2126*layers[0] + 0.7152*layers[1] + 0.0722*layers[2])
+    meta = {
+        "name": name,
+        "shape": tuple(itk_volume.GetSize()),
+        "spacing": tuple(itk_volume.GetSpacing()),
+        "origin": tuple(itk_volume.GetOrigin()),
+        "direction": tuple(itk_volume.GetDirection()),
+    }
 
-    return sitk.Cast(I, sitk.sitkFloat32)
+    for key, value in meta.items():
+        print(f"{key}: {value}")
 
-
-def x2gray(image):
-    return sitk.VectorIndexSelectionCast(image, 0, sitk.sitkUInt16)
+    return volume, meta
 
 
 class ImportVolumeDataDialog(bpy.types.Operator):
@@ -166,14 +181,6 @@ class ImportVolumeDataDialog(bpy.types.Operator):
     )   # type: ignore
 
     series_id: bpy.props.StringProperty()   # type: ignore
-
-    resample_method: bpy.props.EnumProperty(
-        name="Resample Method",
-        default="linear",
-        items=[("linear", "Linear", ""),
-               ("nearest_neighbor", "Nearest Neighbor", ""),
-               ("gaussian", "Gaussian", "")]
-    )  # type: ignore
 
     container: bpy.props.StringProperty()   # type: ignore
 
@@ -203,7 +210,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
 
     scene_scale: bpy.props.FloatProperty(
         name="Scene Scale (Bioxel Unit pre Blender Unit)",
-        soft_min=0.001, soft_max=100.0,
+        soft_min=0.0001, soft_max=10.0,
         min=1e-6, max=1e6,
         default=0.01,
     )  # type: ignore
@@ -213,95 +220,21 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         default=True,
     )  # type: ignore
 
-    invert_scalar: bpy.props.BoolProperty(
-        name="Invert Scalar (Background value maybe higher than object)",
-        default=False,
-    )  # type: ignore
-
     def execute(self, context):
         is_first_import = len(get_all_layers()) == 0
-        image, name = read_image(self.filepath, self.series_id)
-        container_name = self.container_name or name
+        volume, meta = parse_volume_data(self.filepath)
+        container_name = self.container_name or meta['name'] or "Container"
         bioxel_size = self.bioxel_size
         orig_spacing = self.orig_spacing
-        image_spacing = image.GetSpacing()
-        image_shape = image.GetSize()
 
         layer_spacing = (
-            image_spacing[0] / orig_spacing[0] * bioxel_size,
-            image_spacing[1] / orig_spacing[1] * bioxel_size,
-            image_spacing[2] / orig_spacing[2] * bioxel_size
+            meta['spacing'][0] / orig_spacing[0] * bioxel_size,
+            meta['spacing'][1] / orig_spacing[1] * bioxel_size,
+            meta['spacing'][2] / orig_spacing[2] * bioxel_size
         )
 
         layer_shape = get_layer_shape(
-            bioxel_size, image_shape, orig_spacing)
-
-        if self.read_as == "labels":
-            if "vector" in image.GetPixelIDTypeAsString():
-                print("Conveting to Grayscale...")
-                image = x2gray(image)
-            else:
-                image = sitk.Cast(image, sitk.sitkUInt16)
-            default_value = 0
-        elif self.read_as == "scalar":
-            if "vector" in image.GetPixelIDTypeAsString():
-                print("Conveting to Grayscale...")
-                image = rgb2gray(image)
-            else:
-                image = sitk.Cast(image, sitk.sitkFloat32)
-
-            stats = sitk.StatisticsImageFilter()
-            stats.Execute(image)
-            default_value = stats.GetMaximum() if self.invert_scalar else stats.GetMinimum()
-
-        if self.resample_method == "linear":
-            interpolator = sitk.sitkLinear
-        elif self.resample_method == "nearest_neighbor":
-            interpolator = sitk.sitkNearestNeighbor
-        elif self.resample_method == "gaussian":
-            interpolator = sitk.sitkGaussian
-
-        if self.read_as == "labels":
-            interpolator = sitk.sitkNearestNeighbor
-
-        print(f"Resampling...")
-        image = sitk.Resample(
-            image1=image,
-            size=layer_shape,
-            transform=sitk.Transform(),
-            interpolator=interpolator,
-            outputOrigin=image.GetOrigin(),
-            outputSpacing=layer_spacing,
-            outputDirection=image.GetDirection(),
-            defaultPixelValue=default_value,
-            outputPixelType=image.GetPixelID(),
-        )
-
-        if self.do_orient:
-            print("Orienting to RAS...")
-            image = sitk.DICOMOrient(image, 'RAS')
-
-        print("Oriented Origin:", image.GetOrigin())
-        print("Oriented Direction:", image.GetDirection())
-
-        # return {'FINISHED'}
-
-        # ITK indices, by convention, are [i,j,k] while NumPy indices are [k,j,i]
-        # https://www.slicer.org/wiki/Coordinate_systems
-
-        # ITK                  Numpy      3D
-        # R (ight)     i   ->    k   ->   x
-        # A (nterior)  j   ->    j   ->   y
-        # S (uperior)  k   ->    i   ->   z
-        array = sitk.GetArrayFromImage(image)
-        orig_dtype = str(array.dtype)
-        # print(f"Coverting Dtype from {orig_dtype} to float...")
-        # array = array.astype(float)
-
-        if array.ndim == 4:
-            array = array[:, :, :, 0]
-
-        array = np.transpose(array)
+            bioxel_size, meta['shape'], orig_spacing)
 
         # After sitk.DICOMOrient(), origin and direction will also orient base on LPS
         # so we need to convert them into RAS
@@ -312,23 +245,22 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             to_up='Y'
         ).to_4x4()
 
-        origin = image.GetOrigin()
-        direction = image.GetDirection()
-
         mat_location = mathutils.Matrix.Translation(
-            mathutils.Vector(origin)
+            mathutils.Vector(meta['origin'])
         )
 
         mat_rotation = mathutils.Matrix(
-            np.array(direction).reshape((3, 3))
+            np.array(meta['direction']).reshape((3, 3))
         ).to_4x4()
 
         mat_scale = mathutils.Matrix.Scale(
             bioxel_size, 4
         )
 
-        transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale \
-            if self.do_orient else mat_location @ mat_rotation @ mat_scale
+        # transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale \
+        #     if self.do_orient else mat_location @ mat_rotation @ mat_scale
+
+        transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale
 
         # Wrapper a Container
         if not self.container:
@@ -353,7 +285,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             )
             container = bpy.context.active_object
 
-            bbox_verts = calc_bbox_verts((0, 0, 0), array.shape)
+            bbox_verts = calc_bbox_verts((0, 0, 0), volume.shape)
             for index, vert in enumerate(container.data.vertices):
                 bbox_transform = transfrom
                 vert.co = bbox_transform @ mathutils.Vector(bbox_verts[index])
@@ -370,49 +302,24 @@ class ImportVolumeDataDialog(bpy.types.Operator):
                                           'NodeGroupInput')[0]
             container_node_tree.links.remove(input_node.outputs[0].links[0])
 
-            # bpy.ops.mesh.primitive_cube_add(
-            #     enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1)
-            # )
-            # frame = bpy.context.active_object
-            # bbox_verts = calc_bbox_verts((0, 0, 0), array.shape)
-            # for index, vert in enumerate(frame.data.vertices):
-            #     # bbox_transform = mat_ras2blender @ mat_scene_scale @ transfrom
-            #     bbox_transform = transfrom
-            #     vert.co = bbox_transform @ mathutils.Vector(bbox_verts[index])
-
-            # frame.name = f"Frame_{container_name}"
-            # frame.data.name = f"Frame_{container_name}"
-            # lock_transform(frame)
-            # hide_in_ray(frame)
-            # frame.hide_select = True
-            # frame.hide_render = True
-            # frame.display_type = 'WIRE'
-            # frame.parent = container
-
         else:
             container = bpy.data.objects[self.container]
             container_node_tree = container.modifiers[0].node_group
 
         preferences = context.preferences.addons[__package__].preferences
-        cache_dir = Path(preferences.cache_dir, 'VDBs')
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
         loc, rot, sca = transfrom.decompose()
 
         layer_origin = tuple(loc)
         layer_rotation = tuple(rot.to_euler())
-        layer_shape = tuple(array.shape)
 
-        def create_layer(array, layer_name, layer_type="scalar"):
+        def create_layer(volume, layer_name, layer_type="scalar"):
             grid = vdb.FloatGrid()
-            array = array.copy().astype(float)
-            grid.copyFromArray(array)
+            volume = volume.copy().astype(np.float32)
+            grid.copyFromArray(volume)
             grid.transform = vdb.createLinearTransform(transfrom.transposed())
             grid.name = layer_type
 
-            vdb_path = Path(cache_dir, f"{uuid4()}.vdb")
-            print(f"Storing the cache ({str(vdb_path)})...")
-            vdb.write(str(vdb_path), grids=[grid])
+            vdb_path = save_vdb([grid], context)
 
             # Read VDB
             print(f"Loading the cache to Blender scene...")
@@ -469,51 +376,66 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             return layer
 
         if self.read_as == "labels":
-            orig_max = int(np.max(array))
-            orig_min = int(np.min(array))
+            if volume.ndim == 4:
+                volume = np.amax(volume, -1)
+            volume = volume.astype(int)
+            orig_max = int(np.max(volume))
+            orig_min = int(np.min(volume))
             layer_name = self.layer_name or "Label"
 
             for i in range(orig_max):
-                label = array == np.full_like(array, i+1)
-                layer = create_layer(array=label,
+                label = volume == np.full_like(volume, i+1)
+                print(f"Resampling...")
+                label = ski.resize(label.astype(np.float32),
+                                   layer_shape,
+                                   anti_aliasing=True)
+                layer = create_layer(volume=label,
                                      layer_name=f"{container_name}_{layer_name}_{i+1}",
                                      layer_type="label")
 
-                output_node = get_node_by_type(container_node_tree.nodes,
-                                               'NodeGroupOutput')[0]
+                # Deselect all nodes first
+                for node in container_node_tree.nodes:
+                    if node.select:
+                        node.select = False
+
                 mask_node = custom_nodes.add_node(container_node_tree.nodes,
                                                   'BioxelNodes_MaskByLabel')
+                mask_node.label = f"{layer_name}_{i+1}"
                 mask_node.inputs[0].default_value = layer
+
+                # Connect to output if no output linked
+                output_node = get_node_by_type(container_node_tree.nodes,
+                                               'NodeGroupOutput')[0]
                 if len(output_node.inputs[0].links) == 0:
                     container_node_tree.links.new(mask_node.outputs[0],
                                                   output_node.inputs[0])
 
         else:
-            if self.invert_scalar:
-                array = -array
+            if volume.ndim == 4:
+                volume = np.amax(volume, -1)
+                # volume = skimage.color.rgb2gray(volume)
 
-            orig_max = float(np.max(array))
-            orig_min = float(np.min(array))
-            orig_median = float(np.median(array))
-            orig_percentile80 = float(np.percentile(array, 80)) \
-                if self.invert_scalar else float(np.percentile(array, 80))
+            if volume.dtype.kind == 'u':
+                imax_in = np.iinfo(volume.dtype).max
+                volume = np.multiply(volume, 255.0 / imax_in, dtype=np.float32)
+            elif volume.dtype.kind == 'i':
+                volume = volume.astype(np.float32)
 
-            stats_table = [("Max", orig_max),
-                           ("Min", orig_min),
-                           ("Median", orig_median),
-                           ("80%", orig_percentile80)]
+            print(f"Resampling...")
+            volume = ski.resize(volume,
+                                layer_shape,
+                                anti_aliasing=True)
 
-            print("Volume Data Stats:")
-            for stats in stats_table:
-                print("| {: >10} | {: >40} |".format(*stats))
+            orig_max = float(np.max(volume))
+            orig_min = float(np.min(volume))
 
             scalar_offset = 0
             if orig_min < 0:
                 scalar_offset = -orig_min
-                array = array + np.full_like(array, scalar_offset)
+                volume = volume + np.full_like(volume, scalar_offset)
 
             layer_name = self.layer_name or "Scalar"
-            layer = create_layer(array=array,
+            layer = create_layer(volume=volume,
                                  layer_name=f"{container_name}_{layer_name}",
                                  layer_type="scalar")
 
@@ -523,12 +445,18 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             to_layer_node.inputs['Scalar Max'].default_value = orig_max
             to_layer_node.inputs['Scalar Min'].default_value = orig_min
 
-            output_node = get_node_by_type(container_node_tree.nodes,
-                                           'NodeGroupOutput')[0]
+            # Deselect all nodes first
+            for node in container_node_tree.nodes:
+                if node.select:
+                    node.select = False
             mask_node = custom_nodes.add_node(container_node_tree.nodes,
                                               'BioxelNodes_MaskByThreshold')
+            mask_node.label = layer_name
             mask_node.inputs[0].default_value = layer
 
+            # Connect to output if no output linked
+            output_node = get_node_by_type(container_node_tree.nodes,
+                                           'NodeGroupOutput')[0]
             if len(output_node.inputs[0].links) == 0:
                 container_node_tree.links.new(mask_node.outputs[0],
                                               output_node.inputs[0])
@@ -538,50 +466,64 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         # Change render setting for better result
         if preferences.do_change_render_setting and is_first_import:
             bpy.context.scene.render.engine = 'CYCLES'
-            bpy.context.scene.cycles.volume_bounces = 12
-            bpy.context.scene.cycles.transparent_max_bounces = 16
-            bpy.context.scene.cycles.volume_preview_step_rate = 10
+            try:
+                bpy.context.scene.cycles.volume_bounces = 12
+                bpy.context.scene.cycles.transparent_max_bounces = 16
+                bpy.context.scene.cycles.volume_preview_step_rate = 10
+                bpy.context.scene.cycles.volume_step_rate = 10
+                bpy.context.scene.eevee.volumetric_tile_size = '2'
+                bpy.context.scene.eevee.volumetric_shadow_samples = 128
+                bpy.context.scene.eevee.volumetric_samples = 256
+            except:
+                pass
 
         self.report({"INFO"}, "Successfully Imported")
 
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self, width=500)
+        if self.read_as == "labels":
+            volume_dtype = "Label"
+        elif self.read_as == "scalar":
+            volume_dtype = "Scalar"
+        title = f"Import '{volume_dtype}' Layer (Add to Container: {self.container})" \
+            if self.container != "" else f"Import '{volume_dtype}' Layer (Init a Container)"
+        context.window_manager.invoke_props_dialog(self,
+                                                   width=500,
+                                                   title=title)
         return {'RUNNING_MODAL'}
 
     def draw(self, context):
-        layer_shape = get_layer_shape(
-            self.bioxel_size, self.orig_shape, self.orig_spacing)
+        layer_shape = get_layer_shape(self.bioxel_size,
+                                      self.orig_shape,
+                                      self.orig_spacing)
+        layer_size = get_layer_size(layer_shape,
+                                    self.bioxel_size,
+                                    self.scene_scale)
+
         bioxel_count = layer_shape[0] * layer_shape[1] * layer_shape[2]
-        text = f"Shape will be: {str(layer_shape)} {bioxel_count:,} "
+        layer_shape_text = f"Shape will be: {str(layer_shape)} {bioxel_count:,} "
         if bioxel_count > 100000000:
-            text += "**TOO LARGE!**"
+            layer_shape_text += "**TOO LARGE!**"
+
+        layer_size_text = f"Size will be: ({layer_size[0]:.2f}, {layer_size[1]:.2f}, {layer_size[2]:.2f}) m"
 
         layout = self.layout
         panel = layout.box()
-        panel.prop(self, "container_name")
+        if self.container == "":
+            panel.prop(self, "container_name")
         panel.prop(self, "layer_name")
 
         panel = layout.box()
-        panel.prop(self, "resample_method")
         panel.prop(self, "bioxel_size")
         row = panel.row()
         row.prop(self, "orig_spacing")
-        panel.label(text=text)
+        panel.label(text=layer_shape_text)
 
-        panel = layout.box()
-        panel.prop(self, "do_orient")
-
-        panel = layout.box()
-        panel.prop(self, "read_as")
-        if self.read_as == "labels":
-            ...
-        else:
-            panel.prop(self, "invert_scalar")
-
-        panel = layout.box()
-        panel.prop(self, "scene_scale")
+        if self.container == "":
+            panel = layout.box()
+            panel.prop(self, "scene_scale")
+            panel.label(text=layer_size_text)
 
 
 def get_series_ids(self, context):
@@ -607,6 +549,13 @@ class ParseVolumeData(bpy.types.Operator):
     directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
     container: bpy.props.StringProperty()   # type: ignore
 
+    read_as: bpy.props.EnumProperty(
+        name="Read as",
+        default="scalar",
+        items=[("scalar", "Scalar", ""),
+               ("labels", "Labels", "")]
+    )  # type: ignore
+
     series_id: bpy.props.EnumProperty(
         name="Select Series",
         items=get_series_ids
@@ -622,31 +571,24 @@ class ParseVolumeData(bpy.types.Operator):
             return {'CANCELLED'}
 
         print("Collecting Meta Data...")
-        image, name = read_image(self.filepath, self.series_id)
-
-        stats_table = [("Shape", str(image.GetSize())),
-                       ("Spacing", str(image.GetSpacing())),
-                       ("Origin", str(image.GetOrigin())),
-                       ("Direction", str(image.GetDirection())),
-                       ("Data Type", image.GetPixelIDTypeAsString())]
-        for k in image.GetMetaDataKeys():
-            stats_table.append((k, str(image.GetMetaData(k))))
-
-        print("Meta Data:")
-        for stats in stats_table:
-            print("| {: >20} | {: >100} |".format(*stats))
-
+        volume, meta = parse_volume_data(self.filepath)
         do_orient = ext not in SEQUENCE_EXTS or ext in DICOM_EXTS
 
-        orig_shape = image.GetSize()
-        orig_spacing = image.GetSpacing()
+        orig_shape = meta['shape']
+        orig_spacing = meta['spacing']
         min_size = min(orig_spacing[0], orig_spacing[1], orig_spacing[2])
         bioxel_size = max(min_size, 1.0)
+
+        layer_size = get_layer_size(orig_shape,
+                                    bioxel_size)
+        log10 = math.floor(math.log10(max(*layer_size)))
+        scene_scale = math.pow(10, -log10)
+
         if self.container:
             container = bpy.data.objects[self.container]
             container_name = container.name
         else:
-            container_name = name
+            container_name = meta['name']
 
         bpy.ops.bioxelnodes.import_volume_data_dialog(
             'INVOKE_DEFAULT',
@@ -657,7 +599,9 @@ class ParseVolumeData(bpy.types.Operator):
             bioxel_size=bioxel_size,
             series_id=self.series_id or "",
             do_orient=do_orient,
-            container=self.container
+            container=self.container,
+            read_as=self.read_as,
+            scene_scale=scene_scale
         )
 
         self.report({"INFO"}, "Successfully Readed.")
@@ -705,26 +649,51 @@ class ParseVolumeData(bpy.types.Operator):
             text="Please be patient...")
 
 
-class ImportVolumeData(bpy.types.Operator):
-    bl_idname = "bioxelnodes.import_volume_data"
-    bl_label = "Volume Data as Bioxel Layer"
-    bl_description = "Import Volume Data as Bioxel Layer"
+class ImportVolumeData():
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
     directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
 
+    read_as = "scalar"
+
     def execute(self, context):
-        bpy.ops.bioxelnodes.parse_volume_data(
-            'INVOKE_DEFAULT',
-            filepath=self.filepath,
-            directory=self.directory
-        )
+        containers = get_container_from_selection()
+
+        if len(containers) > 0:
+            bpy.ops.bioxelnodes.parse_volume_data(
+                'INVOKE_DEFAULT',
+                filepath=self.filepath,
+                directory=self.directory,
+                container=containers[0].name,
+                read_as=self.read_as
+            )
+        else:
+            bpy.ops.bioxelnodes.parse_volume_data(
+                'INVOKE_DEFAULT',
+                filepath=self.filepath,
+                directory=self.directory
+            )
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
+
+class ImportAsScalarLayer(bpy.types.Operator, ImportVolumeData):
+    bl_idname = "bioxelnodes.import_as_scalar_layer"
+    bl_label = "Import as Scale Layer"
+    bl_description = "Import Volume Data to Container as Scale Layer"
+    read_as = "scalar"
+
+
+class ImportAsLabelLayer(bpy.types.Operator, ImportVolumeData):
+    bl_idname = "bioxelnodes.import_as_label_layer"
+    bl_label = "Import as Label Layer"
+    bl_description = "Import Volume Data to Container as Label Layer"
+    read_as = "labels"
 
 
 try:
@@ -743,8 +712,8 @@ except:
 
 class AddVolumeData(bpy.types.Operator):
     bl_idname = "bioxelnodes.add_volume_data"
-    bl_label = "Add Volume Data to Container"
-    bl_description = "Add Volume Data to Container"
+    bl_label = "Import as Bioxel Layer"
+    bl_description = "Import additional Volume Data to Container"
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
@@ -752,17 +721,17 @@ class AddVolumeData(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        container = get_container(bpy.context.active_object)
-        return True if container else False
+        containers = get_container_from_selection()
+        return len(containers) > 0
 
     def execute(self, context):
-        container = get_container(bpy.context.active_object)
+        containers = get_container_from_selection()
 
         bpy.ops.bioxelnodes.parse_volume_data(
             'INVOKE_DEFAULT',
             filepath=self.filepath,
             directory=self.directory,
-            container=container.name
+            container=containers[0].name
         )
         return {'FINISHED'}
 
@@ -771,9 +740,9 @@ class AddVolumeData(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class ExportVDB(bpy.types.Operator):
-    bl_idname = "bioxelnodes.export_vdb"
-    bl_label = "Bioxel Layer as VDB"
+class ExportVolumeData(bpy.types.Operator):
+    bl_idname = "bioxelnodes.export_volume_data"
+    bl_label = "Export Layer"
     bl_description = "Export Bioxel Layer as VDB"
     bl_options = {'UNDO'}
 

@@ -58,7 +58,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          lfs: 'true'
+          lfs: "true"
       - name: Zip Add-on
         run: |
           zip -r package.zip bioxelnodes
@@ -72,7 +72,7 @@ jobs:
           asset_path: ./package.zip
           asset_name: BioxelNodes_Addon_${{ needs.draft_release.outputs.version }}.zip
           asset_content_type: application/zip
-  
+
   upload_blender_extension:
     name: Upload Blender Extension
     needs: draft_release
@@ -81,15 +81,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          lfs: 'true'
+          lfs: "true"
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
       - name: Zip Extension
         run: |
-          pip download SimpleITK --dest bioxelnodes/wheels --only-binary=:all: --python-version=3.11 --platform=macosx_11_0_arm64
-          pip download SimpleITK --dest bioxelnodes/wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          pip download SimpleITK==2.3.1 --dest bioxelnodes/wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
           rm -r bioxelnodes/externalpackage
           cp extension/__init__.py bioxelnodes/__init__.py
           cp extension/preferences.py bioxelnodes/preferences.py
