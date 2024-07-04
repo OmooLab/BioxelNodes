@@ -22,9 +22,9 @@ def save_layer(layer, output_dir):
         str(output_path), start=str(blend_path))
 
 
-class SaveBioxelLayers(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_bioxel_layers"
-    bl_label = "Save Bioxel Layers"
+class SaveLayers(bpy.types.Operator):
+    bl_idname = "bioxelnodes.save_layers"
+    bl_label = "Save Layers"
     bl_description = "Save Bioxel Layers to Directory."
     bl_options = {'UNDO'}
 
@@ -52,9 +52,9 @@ class SaveBioxelLayers(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SaveAllBioxelLayers(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_all_bioxel_layers"
-    bl_label = "Save All Bioxel Layers"
+class SaveAllLayers(bpy.types.Operator):
+    bl_idname = "bioxelnodes.save_all_layers"
+    bl_label = "Save All Layers"
     bl_description = "Save All Bioxel Layers to Directory."
     bl_options = {'UNDO'}
 
@@ -89,4 +89,4 @@ class BIOXELNODES_PT_Bioxels(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         layout.prop(scene, 'bioxel_layer_dir')
-        layout.operator(SaveAllBioxelLayers.bl_idname)
+        layout.operator(SaveAllLayers.bl_idname)

@@ -6,7 +6,7 @@ from .nodes import AddCustomNode
 
 class SaveAllNodes(bpy.types.Operator):
     bl_idname = "customnodes.save_all_nodes"
-    bl_label = "Save All Custom Nodes"
+    bl_label = "Save All Nodes"
     bl_description = "Save All Custom Nodes to Directory."
     bl_options = {'UNDO'}
 
@@ -21,9 +21,9 @@ class SaveAllNodes(bpy.types.Operator):
         for file in files:
             file_name = Path(file).name
             # "//"
-            custom_nodes_dir = bpy.path.abspath(context.scene.custom_nodes_dir)
+            customnodes_node_dir = bpy.path.abspath(context.scene.customnodes_node_dir)
 
-            output_path: Path = Path(custom_nodes_dir, file_name).resolve()
+            output_path: Path = Path(customnodes_node_dir, file_name).resolve()
             source_path: Path = Path(file).resolve()
 
             if output_path != source_path:
@@ -51,7 +51,7 @@ class CUSTOMNODES_PT_CustomNodes(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        layout.prop(scene, 'custom_nodes_dir')
+        layout.prop(scene, 'customnodes_node_dir')
         layout.operator(SaveAllNodes.bl_idname)
 
 
@@ -181,8 +181,8 @@ class CustomNodes():
             bpy.utils.register_class(cls)
 
         bpy.types.NODE_MT_add.append(self.add_node_menu)
-        bpy.types.Scene.custom_nodes_dir = bpy.props.StringProperty(
-            name="Nodes Directory",
+        bpy.types.Scene.customnodes_node_dir = bpy.props.StringProperty(
+            name="Node Directory",
             subtype='DIR_PATH',
             default="//"
         )

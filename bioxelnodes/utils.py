@@ -1,5 +1,8 @@
 import bpy
 import mathutils
+from pathlib import Path
+import pyopenvdb as vdb
+from uuid import uuid4
 
 
 def get_type(cls):
@@ -89,9 +92,34 @@ def hide_in_ray(obj):
     obj.visible_shadow = False
 
 
+def save_vdb(grids, context):
+    preferences = context.preferences.addons[__package__].preferences
+    cache_dir = Path(preferences.cache_dir, 'VDBs')
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    vdb_path = Path(cache_dir, f"{uuid4()}.vdb")
+    print(f"Storing the VDB file ({str(vdb_path)})...")
+    vdb.write(str(vdb_path), grids=grids)
+
+    return vdb_path
+
+
+def get_container_from_selection():
+    containers = []
+    for obj in bpy.context.selected_objects:
+        if get_container(obj):
+            containers.append(obj)
+
+    return containers
+
+
 def get_container(current_obj):
     if current_obj:
-        return current_obj if current_obj.get('bioxel_container') else None
+        if current_obj.get('bioxel_container'):
+            return current_obj
+        elif current_obj.get('bioxel_layer'):
+            parent = current_obj.parent
+            return parent if parent.get('bioxel_container') else None
     return None
 
 

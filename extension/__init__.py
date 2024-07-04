@@ -11,7 +11,7 @@ def register():
     auto_load.register()
     menus.add()
     bpy.types.Scene.bioxel_layer_dir = bpy.props.StringProperty(
-        name="Bioxel Layers Directory",
+        name="Layer Directory",
         subtype='DIR_PATH',
         default="//"
     )
