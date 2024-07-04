@@ -91,7 +91,7 @@ if bpy.app.version >= (4, 1, 0):
                 {
                     'label': 'Membrane Shader',
                     'icon': 'NODE_MATERIAL',
-                    'node_type': 'BioxelNodes_MembraneShader',
+                    'node_type': 'BioxelNodes_AssignMembraneShader',
                     'node_description': ''
                 },
                 {
