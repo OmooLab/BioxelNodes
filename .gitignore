@@ -132,3 +132,5 @@ blendcache_*
 *.ipynb
 
 .secrets
+
+!bioxelnodes/scipy/_nd_image.cp311-win_amd64.pyd
