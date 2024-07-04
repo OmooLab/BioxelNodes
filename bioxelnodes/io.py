@@ -415,11 +415,14 @@ class ImportVolumeDataDialog(bpy.types.Operator):
                 volume = np.amax(volume, -1)
                 # volume = skimage.color.rgb2gray(volume)
 
-            if volume.dtype.kind == 'u':
-                imax_in = np.iinfo(volume.dtype).max
-                volume = np.multiply(volume, 255.0 / imax_in, dtype=np.float32)
-            elif volume.dtype.kind == 'i':
-                volume = volume.astype(np.float32)
+            # if volume.dtype.kind == 'u':
+            #     imax_in = np.iinfo(volume.dtype).max
+            #     volume = np.multiply(volume, 255.0 / imax_in, dtype=np.float32)
+            # elif volume.dtype.kind == 'i':
+            #     volume = volume.astype(np.float32)
+            
+            # should not change any value!
+            volume = volume.astype(np.float32)
 
             print(f"Resampling...")
             volume = ski.resize(volume,
@@ -684,15 +687,15 @@ class ImportVolumeData():
 
 class ImportAsScalarLayer(bpy.types.Operator, ImportVolumeData):
     bl_idname = "bioxelnodes.import_as_scalar_layer"
-    bl_label = "Import as Scale Layer"
-    bl_description = "Import Volume Data to Container as Scale Layer"
+    bl_label = "Import as Scalar"
+    bl_description = "Import Volume Data to Container as Scalar"
     read_as = "scalar"
 
 
 class ImportAsLabelLayer(bpy.types.Operator, ImportVolumeData):
     bl_idname = "bioxelnodes.import_as_label_layer"
-    bl_label = "Import as Label Layer"
-    bl_description = "Import Volume Data to Container as Label Layer"
+    bl_label = "Import as Labels"
+    bl_description = "Import Volume Data to Container as Label"
     read_as = "labels"
 
 

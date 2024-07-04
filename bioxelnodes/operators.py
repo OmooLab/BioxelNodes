@@ -178,7 +178,7 @@ def get_label_layer_selection(self, context):
 #     )   # type: ignore
 
 #     scalar_layer: bpy.props.EnumProperty(
-#         name="Scaler Layer",
+#         name="Scalar Layer",
 #         items=get_scalar_layer_selection
 #     )  # type: ignore
 
