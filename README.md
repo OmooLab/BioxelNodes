@@ -7,11 +7,11 @@
 ![GitHub Release](https://img.shields.io/github/v/release/OmooLab/BioxelNodes?style=for-the-badge)
 ![GitHub Repo stars](https://img.shields.io/github/stars/OmooLab/BioxelNodes?style=for-the-badge)
 
-Bioxel Nodes is a Blender extension for scientific volumetric data visualization. It using Blender's powerful Geometry Nodes and Cycles to process and render volumetric data. You are free to share your blender file to anyone who does not install this extension, since most processes were done by Blender's native nodes.
+Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It using Blender's powerful Geometry Nodes and Cycles to process and render volumetric data. You are free to share your blender file to anyone who does not install this extension, since most processes were done by Blender's native nodes.
 
 ## About
 
-Before us, there have been many tutorials and extensions for importing volumetric data into Blender. However, we found that there were many scientific issues that were not addressed in place, and the volume render results were not epic. With Bioxel Nodes, you can easily import any format volumetric data into Blender, and more importantly, make a beautiful realistic volume rendering quickly.
+Before us, there have been many tutorials and addons for importing volumetric data into Blender. However, we found that there were many scientific issues that were not addressed in place, and the volume render results were not epic. With Bioxel Nodes, you can easily import any format volumetric data into Blender, and more importantly, make a beautiful realistic volume rendering quickly.
 
 Below are some examples with Bioxel Nodes. Thanks to Cycles Render, the volumetric data can be rendered with great detail:
 
@@ -41,30 +41,29 @@ So how to use this extension? please check [Getting Started](https://omoolab.git
 
 ## Known Limitations
 
+-   Cycles CPUs only, Cycles GPUs (Optix), EEVEE (partial support)
 -   Sections cannot be generated (will be supported soon)
 -   Time sequence volume not supported (will be supported soon)
 
-## Upgrade from 0.1.x to 0.2.x
+## Compatibility to Newer Version
 
-You need to do the following:
+Addon are updating, and it is possible that newer versions of the addon will not work on old project files properly. In order to make the old files work, you can do the following:
 
-1. Remove the old version of Bioxel Nodes at Preferences > Add-ons
-2. Add the new version and restart Blender.
+### For project files that need to be archived
 
-It is not support editing the same blender file across extension versions. In order to make sure that the previous file works properly. You need to save the staged data before upgrading ( read the last section of [Getting Started](https://omoolab.github.io/BioxelNodes/latest/getting-started/#share-your-file) ).
+Persistently save the Addon nodes before the addon is updated. This will put the nodes out of sync with the addon functionality, but it will ensure that the entire file can be calculated and rendered correctly, it fit to project files that you need to archive.
+Bioxel Nodes > Save All Staged Data
 
-But even then, there is still no guarantee that the new version of the extension will work on the old blender file. Therefore, it is highly recommended to open a new blender file to start the creating, not based on the old one.
+### For working project files
 
-Alternatively, objects from the old file that have nothing to do with Bioxel Nodes could be append to the new blender file.
+If you've ever done a persistent save of Bioxel Nodes nodes, it's possible that after the addon update, there may be new features of the addon that don't synergize with the saved nodes. In order for the new version to work with the old nodes, you need to relink them.
+Bioxel Nodes > Relink Nodes to Addon
 
 ## About EEVEE Render
 
-Bioxel Nodes is designed for Cycles Render. However, it does support eevee render partially. "Solid Shader" node and "Volume Shader" node have a toggle called "EEVEE Render". If you want to render Bioxel Component in real-time, turn it on.
-
-Also, there are some limitations:
+Bioxel Nodes is designed for Cycles Render. However, it does support eevee render partially.Also, there are some limitations:
 
 1. Only one cutter supported.
-2. You cannot use "Color Ramp" over 2 colors.
-3. EEVEE Render result is not that great as Cycles does.
+2. EEVEE Render result is not that great as Cycles does.
 
-> "Volume Shader" node is not work properly in EEVEE Next since 4.2. It is because EEVEE Next is not support attributes from instances of volume shader by now. But the Blender 4.2 docs still say attributes reading is ok, so I suppose this feature will eventually be implemented.
+> Volume Shader is not work properly in EEVEE Next since 4.2. It is because EEVEE Next is not support attributes from instances of volume shader by now. But Blender 4.3 is ok, so I suppose this issue will eventually be fixed.

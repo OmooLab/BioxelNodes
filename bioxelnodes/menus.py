@@ -1,8 +1,9 @@
 import bpy
+
 from .operators import (AddPlaneCutter, AddCylinderCutter, AddCubeCutter, AddSphereCutter, CombineLabels,
                         ConvertToMesh, InvertScalar, FillByLabel, FillByThreshold, FillByRange)
 from .io import ExportVolumeData, ImportAsLabelLayer, ImportAsScalarLayer, ImportVolumeData, AddVolumeData
-from .misc import SaveLayers
+from .save import ReLinkNodes, SaveLayers, SaveAllToShare
 
 
 class ModifyLayer(bpy.types.Menu):
@@ -20,7 +21,7 @@ class ModifyLayer(bpy.types.Menu):
 
 class AddCutterMenu(bpy.types.Menu):
     bl_idname = "BIOXELNODES_MT_CUTTERS"
-    bl_label = "Add Cutter"
+    bl_label = "Add a Cutter to Container"
 
     def draw(self, context):
         layout = self.layout
@@ -32,7 +33,7 @@ class AddCutterMenu(bpy.types.Menu):
 
 class ImportLayerMenu(bpy.types.Menu):
     bl_idname = "BIOXELNODES_MT_LAYERS"
-    bl_label = "Import Layer"
+    bl_label = "Import Volume Data as Bioxel"
 
     def draw(self, context):
         layout = self.layout
@@ -68,28 +69,28 @@ class BioxelNodesOutlinerMenu(bpy.types.Menu):
         layout.operator(SaveLayers.bl_idname)
 
 
-# def TOPBAR_FILE_IMPORT(self, context):
-#     layout = self.layout
-#     layout.separator()
-#     layout.operator(ImportVolumeData.bl_idname)
+def TOPBAR_FILE_IMPORT(self, context):
+    layout = self.layout
+    layout.separator()
+    layout.menu(ImportLayerMenu.bl_idname)
 
 
-# def TOPBAR_FILE_EXPORT(self, context):
-#     layout = self.layout
-#     layout.separator()
-#     layout.operator(ExportVolumeData.bl_idname)
+def TOPBAR_FILE_EXPORT(self, context):
+    layout = self.layout
+    layout.separator()
+    layout.operator(ExportVolumeData.bl_idname)
 
 
 def VIEW3D_OBJECT(self, context):
     layout = self.layout
-    layout.menu(BioxelNodesView3DMenu.bl_idname)
     layout.separator()
+    layout.menu(BioxelNodesView3DMenu.bl_idname, icon="FILE_VOLUME")
 
 
 def OUTLINER_OBJECT(self, context):
     layout = self.layout
-    layout.menu(BioxelNodesOutlinerMenu.bl_idname)
     layout.separator()
+    layout.menu(BioxelNodesOutlinerMenu.bl_idname, icon="FILE_VOLUME")
 
 
 class BioxelNodesTopbarMenu(bpy.types.Menu):
@@ -104,7 +105,8 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
         layout.menu(AddCutterMenu.bl_idname)
         layout.operator(ConvertToMesh.bl_idname)
         layout.separator()
-        layout.operator(SaveLayers.bl_idname)
+        layout.operator(SaveAllToShare.bl_idname)
+        layout.operator(ReLinkNodes.bl_idname)
 
 
 def TOPBAR(self, context):
@@ -113,16 +115,16 @@ def TOPBAR(self, context):
 
 
 def add():
-    # bpy.types.TOPBAR_MT_file_import.append(TOPBAR_FILE_IMPORT)
-    # bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)
-    bpy.types.OUTLINER_MT_object.prepend(OUTLINER_OBJECT)
-    bpy.types.VIEW3D_MT_object_context_menu.prepend(VIEW3D_OBJECT)
+    bpy.types.TOPBAR_MT_file_import.append(TOPBAR_FILE_IMPORT)
+    bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)
+    bpy.types.OUTLINER_MT_object.append(OUTLINER_OBJECT)
+    bpy.types.VIEW3D_MT_object_context_menu.append(VIEW3D_OBJECT)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR)
 
 
 def remove():
-    # bpy.types.TOPBAR_MT_file_import.remove(TOPBAR_FILE_IMPORT)
-    # bpy.types.TOPBAR_MT_file_export.remove(TOPBAR_FILE_EXPORT)
+    bpy.types.TOPBAR_MT_file_import.remove(TOPBAR_FILE_IMPORT)
+    bpy.types.TOPBAR_MT_file_export.remove(TOPBAR_FILE_EXPORT)
     bpy.types.OUTLINER_MT_object.remove(OUTLINER_OBJECT)
     bpy.types.VIEW3D_MT_object_context_menu.remove(VIEW3D_OBJECT)
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR)
