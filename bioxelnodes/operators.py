@@ -8,7 +8,7 @@ from . import skimage as ski
 from . import scipy
 from .nodes import custom_nodes
 from .utils import (get_container, get_container_from_selection, get_container_layers,
-                    get_layer, get_node_by_type, hide_in_ray, lock_transform, save_vdb)
+                    get_layer, get_nodes_by_type, hide_in_ray, lock_transform, move_node_between_nodes, move_node_to_node, save_vdb)
 
 
 def get_layer_name(layer):
@@ -52,23 +52,22 @@ def set_layer_meta(layer, key: str, value):
 
 def add_mask_node(container, layer, node_type: str, node_label: str):
     modifier = container.modifiers[0]
-    node_tree = modifier.node_group
-    
-    # Deselect all nodes first
-    for node in node_tree.nodes:
-        if node.select:
-            node.select = False
-    
-    mask_node = custom_nodes.add_node(node_tree.nodes, node_type)
+    container_node_group = modifier.node_group
+
+    mask_node = custom_nodes.add_node(container_node_group, node_type)
     mask_node.label = node_label
     mask_node.inputs[0].default_value = layer
 
     # Connect to output if no output linked
-    output_node = get_node_by_type(node_tree.nodes,
-                                   'NodeGroupOutput')[0]
+    output_node = get_nodes_by_type(container_node_group,
+                                    'NodeGroupOutput')[0]
+
     if len(output_node.inputs[0].links) == 0:
-        node_tree.links.new(mask_node.outputs[0],
-                            output_node.inputs[0])
+        container_node_group.links.new(mask_node.outputs[0],
+                                       output_node.inputs[0])
+        move_node_to_node(mask_node, output_node, (-300, 0))
+    else:
+        move_node_to_node(mask_node, output_node, (0, -100))
 
     return mask_node
 
@@ -106,6 +105,7 @@ def deep_copy_layer(vdb_path, base_layer, name):
     # add convert to layer node
     base_layer_node = base_layer.modifiers[0].node_group.nodes['BioxelNodes__ConvertToLayer']
 
+    dtype_index = base_layer_node.inputs['Data Type'].default_value
     bioxel_size = base_layer_node.inputs['Bioxel Size'].default_value
     layer_shape = base_layer_node.inputs['Shape'].default_value
     layer_origin = base_layer_node.inputs['Origin'].default_value
@@ -115,19 +115,22 @@ def deep_copy_layer(vdb_path, base_layer, name):
     scalar_max = base_layer_node.inputs['Scalar Max'].default_value
 
     bpy.ops.node.new_geometry_nodes_modifier()
-    node_tree = copyed_layer.modifiers[0].node_group
+    node_group = copyed_layer.modifiers[0].node_group
 
-    input_node = get_node_by_type(node_tree.nodes, 'NodeGroupInput')[0]
-    output_node = get_node_by_type(node_tree.nodes, 'NodeGroupOutput')[0]
+    input_node = get_nodes_by_type(node_group, 'NodeGroupInput')[0]
+    output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
 
-    copyed_layer_node = custom_nodes.add_node(node_tree.nodes,
+    copyed_layer_node = custom_nodes.add_node(node_group,
                                               "BioxelNodes__ConvertToLayer")
 
-    node_tree.links.new(input_node.outputs[0], copyed_layer_node.inputs[0])
-    node_tree.links.new(copyed_layer_node.outputs[0], output_node.inputs[0])
+    node_group.links.new(input_node.outputs[0], copyed_layer_node.inputs[0])
+    node_group.links.new(copyed_layer_node.outputs[0], output_node.inputs[0])
 
+    # for compatibility to old vdb
+    copyed_layer_node.inputs['Not Transfromed'].default_value = True
     copyed_layer_node.inputs['Layer ID'].default_value = random.randint(-200000000,
                                                                         200000000)
+    copyed_layer_node.inputs['Data Type'].default_value = dtype_index
     copyed_layer_node.inputs['Bioxel Size'].default_value = bioxel_size
     copyed_layer_node.inputs['Shape'].default_value = layer_shape
     copyed_layer_node.inputs['Origin'].default_value = layer_origin
@@ -501,6 +504,7 @@ class FillByLabel(bpy.types.Operator):
         mask = get_volume(label_grids, 0, label_shape)
         mask = ski.resize(mask,
                           base_shape,
+                          preserve_range=True,
                           anti_aliasing=True)
         mask = scipy.median_filter(mask.astype(np.float32), size=2)
 
@@ -564,6 +568,7 @@ class CombineLabels(bpy.types.Operator):
             label_volume = get_volume(label_grids, 0, label_shape)
             label_volume = ski.resize(label_volume,
                                       base_shape,
+                                      preserve_range=True,
                                       anti_aliasing=True)
             base_volume = np.maximum(base_volume, label_volume)
             label_names.append(get_layer_name(label))
@@ -586,8 +591,8 @@ class CombineLabels(bpy.types.Operator):
 
 class ConvertToMesh(bpy.types.Operator):
     bl_idname = "bioxelnodes.convert_to_mesh"
-    bl_label = "Convert To Mesh"
-    bl_description = "Convert Bioxel Components To Mesh"
+    bl_label = "Convert Container To Mesh"
+    bl_description = "Convert Bioxel Container To Mesh"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -615,20 +620,23 @@ class ConvertToMesh(bpy.types.Operator):
 
         bpy.ops.node.new_geometry_nodes_modifier()
         modifier = mesh.modifiers[0]
-        node_tree = modifier.node_group
+        node_group = modifier.node_group
 
-        output_node = get_node_by_type(node_tree.nodes, 'NodeGroupOutput')[0]
-        to_mesh_node = custom_nodes.add_node(node_tree.nodes,
-                                              "BioxelNodes_ToMesh")
+        output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
+        to_mesh_node = custom_nodes.add_node(node_group,
+                                             "BioxelNodes_PickMesh")
 
         to_mesh_node.inputs[0].default_value = container
-        node_tree.links.new(to_mesh_node.outputs[0], output_node.inputs[0])
+        node_group.links.new(to_mesh_node.outputs[0], output_node.inputs[0])
 
-        bpy.ops.object.convert(target='MESH')
         # bpy.ops.constraint.apply(
         #     constraint=mesh.constraints[0].name, owner='OBJECT')
+        bpy.ops.object.modifier_apply(modifier=mesh.modifiers[0].name)
+
         bpy.context.object.active_material_index = 1
         bpy.ops.object.material_slot_remove()
+
+        bpy.context.view_layer.objects.active = mesh
 
         self.report({"INFO"}, f"Successfully convert to mesh")
 
@@ -681,10 +689,34 @@ class AddCutter():
         cutter.display_type = 'WIRE'
 
         modifier = container.modifiers[0]
-        node_tree = modifier.node_group
-        cutter_node = custom_nodes.add_node(node_tree.nodes, node_type)
+        node_group = modifier.node_group
+        cutter_node = custom_nodes.add_node(node_group, node_type)
         cutter_node.inputs[0].default_value = cutter
+        
+        cut_nodes = get_nodes_by_type(node_group,
+                                      'BioxelNodes_Cut')
+        output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
+        if len(cut_nodes) == 0:
+            cut_node = custom_nodes.add_node(node_group, 'BioxelNodes_Cut')
+            if len(output_node.inputs[0].links) == 0:
+                node_group.links.new(cut_node.outputs[0],
+                                     output_node.inputs[0])
+                move_node_to_node(cut_node, output_node, (-300, 0))
+            else:
+                pre_output_node = output_node.inputs[0].links[0].from_node
+                node_group.links.new(pre_output_node.outputs[0],
+                                     cut_node.inputs[0])
+                node_group.links.new(cut_node.outputs[0],
+                                     output_node.inputs[0])
+                move_node_between_nodes(cut_node,
+                                        [pre_output_node, output_node])
 
+            node_group.links.new(cutter_node.outputs[0],
+                                 cut_node.inputs[1])
+
+            move_node_to_node(cutter_node, cut_node, (-300, -300))
+        else:
+            move_node_to_node(cutter_node, output_node, (0, -100))
         bpy.context.view_layer.objects.active = container
 
         return {'FINISHED'}
@@ -692,31 +724,31 @@ class AddCutter():
 
 class AddPlaneCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_plane_cutter"
-    bl_label = "Add Plane Cutter"
-    bl_description = "Add Plane Cutter to Container"
+    bl_label = "Add a Plane Cutter"
+    bl_description = "Add a Plane Cutter to Container"
     bl_options = {'UNDO'}
     object_type = "plane"
 
 
 class AddCylinderCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_cylinder_cutter"
-    bl_label = "Add Cylinder Cutter"
-    bl_description = "Add Cylinder Cutter to Container"
+    bl_label = "Add a Cylinder Cutter"
+    bl_description = "Add a Cylinder Cutter to Container"
     bl_options = {'UNDO'}
     object_type = "cylinder"
 
 
 class AddCubeCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_cube_cutter"
-    bl_label = "Add Cube Cutter"
-    bl_description = "Add Cube Cutter to Container"
+    bl_label = "Add a Cube Cutter"
+    bl_description = "Add a Cube Cutter to Container"
     bl_options = {'UNDO'}
     object_type = "cube"
 
 
 class AddSphereCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_sphere_cutter"
-    bl_label = "Add Sphere Cutter"
-    bl_description = "Add Sphere Cutter to Container"
+    bl_label = "Add a Sphere Cutter"
+    bl_description = "Add a Sphere Cutter to Container"
     bl_options = {'UNDO'}
     object_type = "sphere"

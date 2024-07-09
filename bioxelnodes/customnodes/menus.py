@@ -4,62 +4,12 @@ from pathlib import Path
 from .nodes import AddCustomNode
 
 
-class SaveAllNodes(bpy.types.Operator):
-    bl_idname = "customnodes.save_all_nodes"
-    bl_label = "Save All Nodes"
-    bl_description = "Save All Custom Nodes to Directory."
-    bl_options = {'UNDO'}
-
-    def execute(self, context):
-        files = []
-        for classname in dir(bpy.types):
-            if "CUSTOMNODES_MT_NODES_" in classname:
-                cls = getattr(bpy.types, classname)
-                files.append(cls.nodes_file)
-        files = list(set(files))
-
-        for file in files:
-            file_name = Path(file).name
-            # "//"
-            customnodes_node_dir = bpy.path.abspath(context.scene.customnodes_node_dir)
-
-            output_path: Path = Path(customnodes_node_dir, file_name).resolve()
-            source_path: Path = Path(file).resolve()
-
-            if output_path != source_path:
-                shutil.copy(source_path, output_path)
-
-            for lib in bpy.data.libraries:
-                lib_path = str(Path(bpy.path.abspath(lib.filepath)).resolve())
-                if lib_path == file:
-                    blend_path = Path(bpy.path.abspath("//")).resolve()
-                    lib.filepath = bpy.path.relpath(
-                        str(output_path), start=str(blend_path))
-
-            self.report({"INFO"}, f"Successfully saved to {output_path}")
-
-        return {'FINISHED'}
-
-
-class CUSTOMNODES_PT_CustomNodes(bpy.types.Panel):
-    bl_idname = "CUSTOMNODES_PT_CustomNodes"
-    bl_label = "Custom Nodes"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "scene"
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        layout.prop(scene, 'customnodes_node_dir')
-        layout.operator(SaveAllNodes.bl_idname)
-
-
 class CustomNodes():
     def __init__(
         self,
         menu_items,
         nodes_file,
+        class_prefix="CUSTOMNODES_MT_NODES",
         root_label='CustomNodes',
         root_icon='NONE'
     ) -> None:
@@ -68,9 +18,10 @@ class CustomNodes():
 
         self.menu_items = menu_items
         self.nodes_file = str(Path(nodes_file).resolve())
-
+        self.class_prefix = class_prefix
         self.root_label = root_label
         self.root_icon = root_icon
+        self.class_prefix = class_prefix
 
         menu_classes = []
         self._create_menu_class(
@@ -80,7 +31,7 @@ class CustomNodes():
         )
         self.menu_classes = menu_classes
 
-        idname = f"CUSTOMNODES_MT_NODES_{root_label.replace(' ', '').upper()}"
+        idname = f"{class_prefix}_{root_label.replace(' ', '').upper()}"
 
         def add_node_menu(self, context):
             if ('GeometryNodeTree' == bpy.context.area.spaces[0].tree_type):
@@ -92,7 +43,7 @@ class CustomNodes():
 
     def _create_menu_class(self, menu_classes, items, label='CustomNodes', icon=0, idname_namespace=None):
         nodes_file = self.nodes_file
-        idname_namespace = idname_namespace or "CUSTOMNODES_MT_NODES"
+        idname_namespace = idname_namespace or self.class_prefix
         idname = f"{idname_namespace}_{label.replace(' ', '').upper()}"
 
         # create submenu class if item is menu.
@@ -161,7 +112,7 @@ class CustomNodes():
         self._find_item(found_items, self.menu_items, node_type)
         return found_items[0] if len(found_items) > 0 else None
 
-    def add_node(self, node_tree, node_type: str):
+    def add_node(self, node_group, node_type: str):
         item = self.find_item(node_type)
         op = AddCustomNode()
         op.nodes_file = self.nodes_file
@@ -174,7 +125,7 @@ class CustomNodes():
             op.node_label = ""
             op.node_link = True
             op.node_callback = ""
-        return op.add_node(node_tree)
+        return op.add_node(node_group)
 
     def register(self):
         for cls in self.menu_classes:

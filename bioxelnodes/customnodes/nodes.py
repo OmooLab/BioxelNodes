@@ -85,9 +85,14 @@ class AddCustomNode():
             except:
                 ...
 
-    def add_node(self, node_tree):
+    def add_node(self, node_group):
+        # Deselect all nodes first
+        for node in node_group.nodes:
+            if node.select:
+                node.select = False
+
         self.get_node_tree(self.node_type, self.node_link)
-        node = node_tree.new("GeometryNodeGroup")
+        node = node_group.nodes.new("GeometryNodeGroup")
         self.assign_node_tree(node)
 
         return node
