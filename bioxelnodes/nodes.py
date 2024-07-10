@@ -174,6 +174,13 @@ MENU_ITEMS = [
             },
             "separator",
             {
+                'label': 'Primitive Cutter',
+                'icon': 'MOD_LINEART',
+                'node_type': 'BioxelNodes_PrimitiveCutter',
+                'node_description': ''
+            },
+            "separator",
+            {
                 'label': 'Plane Cutter',
                 'icon': 'MESH_PLANE',
                 'node_type': 'BioxelNodes_PlaneObjectCutter',

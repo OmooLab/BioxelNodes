@@ -31,60 +31,67 @@ class SaveAllToShare(bpy.types.Operator):
     bl_label = "Save All Staged Data"
     bl_description = "Save all staged data for sharing"
 
+    save_layer: bpy.props.BoolProperty(
+        name="Save Layer VDB Cache",
+        default=True,
+    )  # type: ignore
+
     layer_dir: bpy.props.StringProperty(
         name="Layer Directory",
         subtype='DIR_PATH',
         default="//"
     )  # type: ignore
 
-    save_node: bpy.props.BoolProperty(
+    save_lib: bpy.props.BoolProperty(
         name="Save Node Library File",
         default=True,
     )  # type: ignore
 
-    node_file_dir: bpy.props.StringProperty(
+    lib_dir: bpy.props.StringProperty(
         name="Library Directory",
         subtype='DIR_PATH',
         default="//"
     )  # type: ignore
 
     def execute(self, context):
-        files = []
-        for classname in dir(bpy.types):
-            if CLASS_PREFIX in classname:
-                cls = getattr(bpy.types, classname)
-                files.append(cls.nodes_file)
-        files = list(set(files))
+        if self.save_lib:
+            files = []
+            for classname in dir(bpy.types):
+                if CLASS_PREFIX in classname:
+                    cls = getattr(bpy.types, classname)
+                    files.append(cls.nodes_file)
+            files = list(set(files))
 
-        for file in files:
-            file_name = Path(file).name
-            # "//"
-            node_file_dir = bpy.path.abspath(self.node_file_dir)
+            for file in files:
+                file_name = Path(file).name
+                # "//"
+                lib_dir = bpy.path.abspath(self.lib_dir)
 
-            output_path: Path = Path(node_file_dir, file_name).resolve()
-            source_path: Path = Path(file).resolve()
+                output_path: Path = Path(lib_dir, file_name).resolve()
+                source_path: Path = Path(file).resolve()
 
-            if output_path != source_path:
-                shutil.copy(source_path, output_path)
+                if output_path != source_path:
+                    shutil.copy(source_path, output_path)
 
-            for lib in bpy.data.libraries:
-                lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
-                if lib_path == source_path:
-                    blend_path = Path(bpy.path.abspath("//")).resolve()
-                    lib.filepath = bpy.path.relpath(
-                        str(output_path), start=str(blend_path))
+                for lib in bpy.data.libraries:
+                    lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
+                    if lib_path == source_path:
+                        blend_path = Path(bpy.path.abspath("//")).resolve()
+                        lib.filepath = bpy.path.relpath(
+                            str(output_path), start=str(blend_path))
 
-            self.report({"INFO"}, f"Successfully saved to {output_path}")
+                self.report({"INFO"}, f"Successfully saved to {output_path}")
 
-        layers = get_all_layers()
-        for layer in layers:
-            try:
-                save_layer(layer, self.layer_dir)
-            except:
-                self.report(
-                    {"WARNING"}, f"Fail to save {layer.name}, skiped")
+        if self.save_layer:
+            layers = get_all_layers()
+            for layer in layers:
+                try:
+                    save_layer(layer, self.layer_dir)
+                except:
+                    self.report(
+                        {"WARNING"}, f"Fail to save {layer.name}, skiped")
 
-        self.report({"INFO"}, f"Successfully saved bioxel layers.")
+            self.report({"INFO"}, f"Successfully saved bioxel layers.")
 
         return {'FINISHED'}
 
@@ -100,11 +107,11 @@ class SaveAllToShare(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         panel = layout.box()
+        panel.prop(self, "save_layer")
         panel.prop(self, "layer_dir")
         panel = layout.box()
-        panel.prop(self, "save_node")
-        panel.prop(self, "node_file_dir")
-        layout.label(text="Save your blender file first.")
+        panel.prop(self, "save_lib")
+        panel.prop(self, "lib_dir")
 
 
 def save_layer(layer, output_dir):
