@@ -203,6 +203,12 @@ MENU_ITEMS = [
                 'icon': 'MESH_UVSPHERE',
                 'node_type': 'BioxelNodes_SphereObjectCutter',
                 'node_description': '',
+            },
+            {
+                'label': 'Pie Cutter',
+                'icon': 'MESH_CONE',
+                'node_type': 'BioxelNodes_PieObjectCutter',
+                'node_description': '',
             }
         ]
     },

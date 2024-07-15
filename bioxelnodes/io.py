@@ -13,7 +13,7 @@ from . import skimage as ski
 from .nodes import custom_nodes
 from .props import BIOXELNODES_Series
 from .utils import (calc_bbox_verts, get_all_layers, get_container_from_selection, get_layer, get_text_index_str,
-                    get_nodes_by_type, hide_in_ray, lock_transform, move_node_between_nodes, move_node_to_node, save_vdb, show_message)
+                    get_nodes_by_type, hide_in_ray, lock_transform, move_node_between_nodes, move_node_to_node, save_vdb, save_vdbs, select_object, show_message)
 
 try:
     import SimpleITK as sitk
@@ -124,7 +124,11 @@ def parse_volume_data(filepath: str, series_id=""):
         series_files = reader.GetGDCMSeriesFileNames(
             str(dir_path), series_id)
         reader.SetFileNames(series_files)
+
         itk_volume = reader.Execute()
+        # for k in reader.GetMetaDataKeys(0):
+        #     v = reader.GetMetaData(0, k)
+        #     print(f'({k}) = = "{v}"')
         name = dir_path.name
 
     elif ext in SEQUENCE_EXTS:
@@ -140,32 +144,64 @@ def parse_volume_data(filepath: str, series_id=""):
         itk_volume = sitk.ReadImage(filepath)
         name = Path(filepath).name.removesuffix(ext)
 
-    itk_volume = sitk.DICOMOrient(itk_volume, 'RAS')
-    volume = sitk.GetArrayFromImage(itk_volume)
+    # for key in itk_volume.GetMetaDataKeys():
+    #     print(f"{key},{itk_volume.GetMetaData(key)}")
 
-    if volume.ndim == 4:
-        volume = np.transpose(volume, (2, 1, 0, 3))
+    if itk_volume.GetDimension() == 3:
+        itk_volume = sitk.DICOMOrient(itk_volume, 'RAS')
+
+        meta = {
+            "name": name,
+            "shape": tuple(itk_volume.GetSize()),
+            "spacing": tuple(itk_volume.GetSpacing()),
+            "origin": tuple(itk_volume.GetOrigin()),
+            "direction": tuple(itk_volume.GetDirection()),
+            "is_oriented": True
+        }
+
+        volume = sitk.GetArrayFromImage(itk_volume)
+
+        # transpose ijk to kji
+        if volume.ndim == 4:
+            volume = np.transpose(volume, (2, 1, 0, 3))
+        else:
+            volume = np.transpose(volume)
+            volume = np.expand_dims(volume, axis=-1)
+
     else:
-        volume = np.transpose(volume)
+        # FIXME: not sure...
+        print(itk_volume.GetDirection())
+        direction = np.array(itk_volume.GetDirection())
+        direction = direction.reshape(3, 3) if itk_volume.GetDimension() == 3 \
+            else direction.reshape(4, 4)
 
-    meta = {
-        "name": name,
-        "shape": tuple(itk_volume.GetSize()),
-        "spacing": tuple(itk_volume.GetSpacing()),
-        "origin": tuple(itk_volume.GetOrigin()),
-        "direction": tuple(itk_volume.GetDirection()),
-    }
+        direction = direction[1:, 1:]
+        direction = tuple(direction.flatten())
 
-    for key, value in meta.items():
-        print(f"{key}: {value}")
+        meta = {
+            "name": name,
+            "shape": tuple(itk_volume.GetSize()[:3]),
+            "spacing": tuple(itk_volume.GetSpacing()[:3]),
+            "origin": tuple(itk_volume.GetOrigin()[:3]),
+            "direction": direction,
+            "is_oriented": False
+        }
+
+        volume = sitk.GetArrayFromImage(itk_volume)
+
+        if volume.ndim == 5:
+            volume = np.transpose(volume, (0, 3, 2, 1, 4))
+        else:
+            volume = np.transpose(volume, (0, 3, 2, 1))
+            volume = np.expand_dims(volume, axis=-1)
 
     return volume, meta
 
 
 class ImportVolumeDataDialog(bpy.types.Operator):
     bl_idname = "bioxelnodes.import_volume_data_dialog"
-    bl_label = "Volume Data as Bioxel Layer"
-    bl_description = "Import Volume Data as Bioxel Layer"
+    bl_label = "Volumetric Data as Bioxel Layer"
+    bl_description = "Import Volumetric Data as Bioxel Layer"
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(
@@ -188,7 +224,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         name="Read as",
         default="scalar",
         items=[("scalar", "Scalar", ""),
-               ("labels", "Labels", "")]
+               ("label", "Labels", "")]
     )  # type: ignore
 
     bioxel_size: bpy.props.FloatProperty(
@@ -215,9 +251,14 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         default=0.01,
     )  # type: ignore
 
-    do_orient: bpy.props.BoolProperty(
-        name="Orient to RAS",
-        default=True,
+    is_time_sequence: bpy.props.BoolProperty(
+        name="Is Time Sequence",
+        default=False,
+    )  # type: ignore
+
+    split_channels: bpy.props.BoolProperty(
+        name="Split Channels",
+        default=False,
     )  # type: ignore
 
     def execute(self, context):
@@ -259,10 +300,8 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             bioxel_size, 4
         )
 
-        # transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale \
-        #     if self.do_orient else mat_location @ mat_rotation @ mat_scale
-
-        transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale
+        transfrom = mat_lps2ras @ mat_location @ mat_rotation @ mat_scale \
+            if meta['is_oriented'] else mat_location @ mat_rotation @ mat_scale
 
         # Wrapper a Container
         if not self.container:
@@ -308,26 +347,62 @@ class ImportVolumeDataDialog(bpy.types.Operator):
             container_node_group = container.modifiers[0].node_group
 
         preferences = context.preferences.addons[__package__].preferences
-        loc, rot, sca = transfrom.decompose()
 
+        # TODO: change to transform when 4.2?
+        loc, rot, sca = transfrom.decompose()
         layer_origin = tuple(loc)
         layer_rotation = tuple(rot.to_euler())
 
-        def create_layer(volume, layer_name, layer_type="scalar"):
-            grid = vdb.FloatGrid()
-            volume = volume.copy().astype(np.float32)
-            grid.copyFromArray(volume)
-            # grid.transform = vdb.createLinearTransform(transfrom.transposed())
-            grid.name = layer_type
+        def create_layer(volume, layer_name, layer_shape, layer_type="scalar"):
+            if volume.ndim == 4:
+                grids_sequence = []
+                for f in range(volume.shape[0]):
+                    print(f"Resampling...")
+                    frame = ski.resize(volume[f, :, :, :],
+                                       layer_shape,
+                                       preserve_range=True,
+                                       anti_aliasing=volume.dtype.kind != "b")
 
-            vdb_path = save_vdb([grid], context)
+                    grid = vdb.FloatGrid()
+                    frame = frame.copy().astype(np.float32)
+                    grid.copyFromArray(frame)
+                    grid.transform = vdb.createLinearTransform(
+                        transfrom.transposed())
+                    grid.name = layer_type
+                    grids_sequence.append([grid])
 
-            # Read VDB
-            print(f"Loading the cache to Blender scene...")
-            bpy.ops.object.volume_import(
-                filepath=str(vdb_path), align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+                vdb_paths = save_vdbs(grids_sequence, context)
+
+                # Read VDB
+                print(f"Loading the cache to Blender scene...")
+                files = [{"name": str(vdb_path.name), "name": str(vdb_path.name)}
+                         for vdb_path in vdb_paths]
+
+                bpy.ops.object.volume_import(filepath=str(vdb_paths[0]), directory=str(vdb_paths[0].parent),
+                                             files=files, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+
+            else:
+                volume = ski.resize(volume,
+                                    layer_shape,
+                                    preserve_range=True,
+                                    anti_aliasing=volume.dtype.kind != "b")
+
+                grid = vdb.FloatGrid()
+                volume = volume.copy().astype(np.float32)
+                grid.copyFromArray(volume)
+                grid.transform = vdb.createLinearTransform(
+                    transfrom.transposed())
+                grid.name = layer_type
+
+                vdb_path = save_vdb([grid], context)
+
+                # Read VDB
+                print(f"Loading the cache to Blender scene...")
+                bpy.ops.object.volume_import(filepath=str(vdb_path),
+                                             align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
 
             layer = bpy.context.active_object
+            layer.data.sequence_mode = 'REPEAT'
 
             # Set props to VDB object
             layer.name = layer_name
@@ -368,7 +443,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
                                  output_node.inputs[0])
 
             # for compatibility to old vdb
-            to_layer_node.inputs['Not Transfromed'].default_value = True
+            # to_layer_node.inputs['Not Transfromed'].default_value = True
             to_layer_node.inputs['Layer ID'].default_value = random.randint(-200000000,
                                                                             200000000)
             to_layer_node.inputs['Data Type'].default_value = dtype_index
@@ -381,96 +456,118 @@ class ImportVolumeDataDialog(bpy.types.Operator):
 
             return layer
 
-        if self.read_as == "labels":
-            if volume.ndim == 4:
-                volume = np.amax(volume, -1)
-            volume = volume.astype(int)
-            orig_max = int(np.max(volume))
-            orig_min = int(np.min(volume))
-            layer_name = self.layer_name or "Label"
-
-            for i in range(orig_max):
-                label = volume == np.full_like(volume, i+1)
-                print(f"Resampling...")
-                label = ski.resize(label,
-                                   layer_shape,
-                                   preserve_range=True,
-                                   anti_aliasing=False)
-                layer = create_layer(volume=label,
-                                     layer_name=f"{container_name}_{layer_name}_{i+1}",
-                                     layer_type="label")
-
-                mask_node = custom_nodes.add_node(container_node_group,
-                                                  'BioxelNodes_MaskByLabel')
-                mask_node.label = f"{layer_name}_{i+1}"
-                mask_node.inputs[0].default_value = layer
-
-                # Connect to output if no output linked
-                output_node = get_nodes_by_type(container_node_group,
-                                                'NodeGroupOutput')[0]
-                if len(output_node.inputs[0].links) == 0:
-                    container_node_group.links.new(mask_node.outputs[0],
-                                                   output_node.inputs[0])
-                    move_node_to_node(mask_node, output_node, (-300, 0))
-                else:
-                    move_node_to_node(mask_node, output_node,
-                                      (0, -100 * (i+1)))
-
-        else:
-            if volume.ndim == 4:
-                volume = np.amax(volume, -1)
-                # volume = skimage.color.rgb2gray(volume)
-
-            # if volume.dtype.kind == 'u':
-            #     imax_in = np.iinfo(volume.dtype).max
-            #     volume = np.multiply(volume, 255.0 / imax_in, dtype=np.float32)
-            # elif volume.dtype.kind == 'i':
-            #     volume = volume.astype(np.float32)
-
-            # should not change any value!
-            volume = volume.astype(np.float32)
-
-            print(f"Resampling...")
-            volume = ski.resize(volume,
-                                layer_shape,
-                                anti_aliasing=True)
-
-            orig_max = float(np.max(volume))
-            orig_min = float(np.min(volume))
-
-            scalar_offset = 0
-            if orig_min < 0:
-                scalar_offset = -orig_min
-                volume = volume + np.full_like(volume, scalar_offset)
-
-            layer_name = self.layer_name or "Scalar"
-            layer = create_layer(volume=volume,
-                                 layer_name=f"{container_name}_{layer_name}",
-                                 layer_type="scalar")
-
-            layer_node_group = layer.modifiers[0].node_group
-            to_layer_node = layer_node_group.nodes['BioxelNodes__ConvertToLayer']
-            to_layer_node.inputs['Scalar Offset'].default_value = scalar_offset
-            to_layer_node.inputs['Scalar Max'].default_value = orig_max
-            to_layer_node.inputs['Scalar Min'].default_value = orig_min
-
+        def create_mask_node(layer, node_type, node_label, offset):
             mask_node = custom_nodes.add_node(container_node_group,
-                                              'BioxelNodes_MaskByThreshold')
-            mask_node.label = layer_name
+                                              node_type)
+            mask_node.label = node_label
             mask_node.inputs[0].default_value = layer
 
             # Connect to output if no output linked
             output_node = get_nodes_by_type(container_node_group,
                                             'NodeGroupOutput')[0]
-
             if len(output_node.inputs[0].links) == 0:
                 container_node_group.links.new(mask_node.outputs[0],
                                                output_node.inputs[0])
                 move_node_to_node(mask_node, output_node, (-300, 0))
             else:
-                move_node_to_node(mask_node, output_node, (0, -100))
+                move_node_to_node(mask_node, output_node, offset)
 
-        bpy.context.view_layer.objects.active = container
+        # change shape as sequence or not
+        if self.is_time_sequence:
+            # 4->5 or 5->5
+            if volume.ndim == 4:
+                # channel as frame
+                volume = volume.transpose(3, 0, 1, 2)
+                volume = np.expand_dims(volume, axis=-1)
+
+        else:
+            # 4->4 or 5->4
+            if volume.ndim == 5:
+                # select frame 0
+                volume = volume[0, :, :, :, :]
+
+        if self.read_as == "label":
+            layer_name = self.layer_name or "Label"
+            volume = np.amax(volume, -1)
+            volume = volume.astype(int)
+            orig_max = int(np.max(volume))
+            orig_min = int(np.min(volume))
+
+            for i in range(orig_max):
+                label = volume == np.full_like(volume, i+1)
+                layer_name_i = f"{layer_name}_{i+1}"
+
+                layer = create_layer(volume=label,
+                                     layer_name=f"{container_name}_{layer_name_i}",
+                                     layer_shape=layer_shape,
+                                     layer_type="label")
+
+                mask_node = create_mask_node(layer=layer,
+                                             node_type='BioxelNodes_MaskByLabel',
+                                             node_label=layer_name_i,
+                                             offset=(0, -100 * (i+1)))
+
+        else:
+            layer_name = self.layer_name or "Scalar"
+            # SHOULD NOT change any value!
+            volume = volume.astype(np.float32)
+
+            if self.split_channels:
+                for i in range(volume.shape[-1]):
+                    scalar = volume[:, :, :, :,
+                                    0] if self.is_time_sequence else volume[:, :, :, i]
+                    orig_max = float(np.max(scalar))
+                    orig_min = float(np.min(scalar))
+
+                    scalar_offset = 0
+                    if orig_min < 0:
+                        scalar_offset = -orig_min
+                        scalar = scalar + np.full_like(scalar, scalar_offset)
+
+                    layer_name_i = f"{layer_name}_{i+1}"
+                    layer = create_layer(volume=scalar,
+                                         layer_name=f"{container_name}_{layer_name_i}",
+                                         layer_shape=layer_shape,
+                                         layer_type="scalar")
+
+                    layer_node_group = layer.modifiers[0].node_group
+                    to_layer_node = layer_node_group.nodes['BioxelNodes__ConvertToLayer']
+                    to_layer_node.inputs['Scalar Offset'].default_value = scalar_offset
+                    to_layer_node.inputs['Scalar Max'].default_value = orig_max
+                    to_layer_node.inputs['Scalar Min'].default_value = orig_min
+
+                    mask_node = create_mask_node(layer=layer,
+                                                 node_type='BioxelNodes_MaskByThreshold',
+                                                 node_label=layer_name_i,
+                                                 offset=(0, -100 * (i+1)))
+
+            else:
+                volume = np.amax(volume, -1)
+                orig_max = float(np.max(volume))
+                orig_min = float(np.min(volume))
+
+                scalar_offset = 0
+                if orig_min < 0:
+                    scalar_offset = -orig_min
+                    volume = volume + np.full_like(volume, scalar_offset)
+
+                layer = create_layer(volume=volume,
+                                     layer_name=f"{container_name}_{layer_name}",
+                                     layer_shape=layer_shape,
+                                     layer_type="scalar")
+
+                layer_node_group = layer.modifiers[0].node_group
+                to_layer_node = layer_node_group.nodes['BioxelNodes__ConvertToLayer']
+                to_layer_node.inputs['Scalar Offset'].default_value = scalar_offset
+                to_layer_node.inputs['Scalar Max'].default_value = orig_max
+                to_layer_node.inputs['Scalar Min'].default_value = orig_min
+
+                mask_node = create_mask_node(layer=layer,
+                                             node_type='BioxelNodes_MaskByThreshold',
+                                             node_label=layer_name,
+                                             offset=(0, -100))
+
+        select_object(container)
 
         # Change render setting for better result
         if preferences.do_change_render_setting and is_first_import:
@@ -492,7 +589,7 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        if self.read_as == "labels":
+        if self.read_as == "label":
             volume_dtype = "Label"
         elif self.read_as == "scalar":
             volume_dtype = "Scalar"
@@ -529,6 +626,11 @@ class ImportVolumeDataDialog(bpy.types.Operator):
         row.prop(self, "orig_spacing")
         panel.label(text=layer_shape_text)
 
+        panel = layout.box()
+        panel.prop(self, "is_time_sequence")
+        if self.read_as == "scalar":
+            panel.prop(self, "split_channels")
+
         if self.container == "":
             panel = layout.box()
             panel.prop(self, "scene_scale")
@@ -550,8 +652,8 @@ def get_series_ids(self, context):
 
 class ParseVolumeData(bpy.types.Operator):
     bl_idname = "bioxelnodes.parse_volume_data"
-    bl_label = "Volume Data as Bioxel Layer"
-    bl_description = "Import Volume Data as Bioxel Layer"
+    bl_label = "Volumetric Data as Bioxel Layer"
+    bl_description = "Import Volumetric Data as Bioxel Layer"
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
@@ -562,7 +664,7 @@ class ParseVolumeData(bpy.types.Operator):
         name="Read as",
         default="scalar",
         items=[("scalar", "Scalar", ""),
-               ("labels", "Labels", "")]
+               ("label", "Labels", "")]
     )  # type: ignore
 
     series_id: bpy.props.EnumProperty(
@@ -581,13 +683,17 @@ class ParseVolumeData(bpy.types.Operator):
 
         print("Collecting Meta Data...")
         volume, meta = parse_volume_data(self.filepath)
-        if self.read_as == "labels":
+
+        for key, value in meta.items():
+            print(f"{key}: {value}")
+
+        if self.read_as == "label":
             not_int = volume.dtype.kind != "b" and volume.dtype.kind != "i" and volume.dtype.kind != "u"
             too_large = np.max(volume) > 100
 
             if not_int or too_large:
                 self.report(
-                    {"WARNING"}, "This volume data does not looks like labels, please check again.")
+                    {"WARNING"}, "This volume data does not looks like label, please check again.")
                 return {'CANCELLED'}
 
         # do_orient = ext not in SEQUENCE_EXTS or ext in DICOM_EXTS
@@ -704,15 +810,15 @@ class ImportVolumeData():
 class ImportAsScalarLayer(bpy.types.Operator, ImportVolumeData):
     bl_idname = "bioxelnodes.import_as_scalar_layer"
     bl_label = "Import as Scalar"
-    bl_description = "Import Volume Data to Container as Scalar"
+    bl_description = "Import Volumetric Data to Container as Scalar"
     read_as = "scalar"
 
 
 class ImportAsLabelLayer(bpy.types.Operator, ImportVolumeData):
     bl_idname = "bioxelnodes.import_as_label_layer"
-    bl_label = "Import as Labels"
-    bl_description = "Import Volume Data to Container as Label"
-    read_as = "labels"
+    bl_label = "Import as Label"
+    bl_description = "Import Volumetric Data to Container as Label"
+    read_as = "label"
 
 
 try:
@@ -729,40 +835,10 @@ except:
     ...
 
 
-class AddVolumeData(bpy.types.Operator):
-    bl_idname = "bioxelnodes.add_volume_data"
-    bl_label = "Import as Bioxel Layer"
-    bl_description = "Import additional Volume Data to Container"
-    bl_options = {'UNDO'}
-
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
-    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
-
-    @classmethod
-    def poll(cls, context):
-        containers = get_container_from_selection()
-        return len(containers) > 0
-
-    def execute(self, context):
-        containers = get_container_from_selection()
-
-        bpy.ops.bioxelnodes.parse_volume_data(
-            'INVOKE_DEFAULT',
-            filepath=self.filepath,
-            directory=self.directory,
-            container=containers[0].name
-        )
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
 class ExportVolumeData(bpy.types.Operator):
     bl_idname = "bioxelnodes.export_volume_data"
-    bl_label = "Export Bioxel as VDB"
-    bl_description = "Export Bioxel Layer as VDB"
+    bl_label = "Export Layer as VDB"
+    bl_description = "Export Layer as VDB"
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(

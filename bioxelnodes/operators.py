@@ -3,12 +3,12 @@ import random
 import bpy
 import pyopenvdb as vdb
 import numpy as np
-
+import bmesh
 from . import skimage as ski
 from . import scipy
 from .nodes import custom_nodes
 from .utils import (get_container, get_container_from_selection, get_container_layers,
-                    get_layer, get_nodes_by_type, hide_in_ray, lock_transform, move_node_between_nodes, move_node_to_node, save_vdb)
+                    get_layer, get_nodes_by_type, hide_in_ray, lock_transform, move_node_between_nodes, move_node_to_node, save_vdb, select_object)
 
 
 def get_layer_name(layer):
@@ -105,6 +105,7 @@ def deep_copy_layer(vdb_path, base_layer, name):
     # add convert to layer node
     base_layer_node = base_layer.modifiers[0].node_group.nodes['BioxelNodes__ConvertToLayer']
 
+    not_transformed = base_layer_node.inputs['Not Transfromed'].default_value
     dtype_index = base_layer_node.inputs['Data Type'].default_value
     bioxel_size = base_layer_node.inputs['Bioxel Size'].default_value
     layer_shape = base_layer_node.inputs['Shape'].default_value
@@ -127,7 +128,7 @@ def deep_copy_layer(vdb_path, base_layer, name):
     node_group.links.new(copyed_layer_node.outputs[0], output_node.inputs[0])
 
     # for compatibility to old vdb
-    copyed_layer_node.inputs['Not Transfromed'].default_value = True
+    copyed_layer_node.inputs['Not Transfromed'].default_value = not_transformed
     copyed_layer_node.inputs['Layer ID'].default_value = random.randint(-200000000,
                                                                         200000000)
     copyed_layer_node.inputs['Data Type'].default_value = dtype_index
@@ -291,14 +292,14 @@ class InvertScalar(bpy.types.Operator):
                       "BioxelNodes_MaskByThreshold",
                       inverted_layer_name)
 
-        bpy.context.view_layer.objects.active = container
+        select_object(container)
 
         return {'FINISHED'}
 
 
 class FillByThreshold(bpy.types.Operator):
     bl_idname = "bioxelnodes.fill_by_threshold"
-    bl_label = "Fill by Threshold"
+    bl_label = "Fill Value by Threshold"
     bl_description = "Fill Value by Threshold"
     bl_options = {'UNDO'}
 
@@ -358,7 +359,7 @@ class FillByThreshold(bpy.types.Operator):
 
         mask_node.inputs[1].default_value = self.threshold
 
-        bpy.context.view_layer.objects.active = container
+        select_object(container)
 
         return {'FINISHED'}
 
@@ -372,7 +373,7 @@ class FillByThreshold(bpy.types.Operator):
 
 class FillByRange(bpy.types.Operator):
     bl_idname = "bioxelnodes.fill_by_range"
-    bl_label = "Fill by Range"
+    bl_label = "Fill Value by Range"
     bl_description = "Fill Value by Range"
     bl_options = {'UNDO'}
 
@@ -441,7 +442,7 @@ class FillByRange(bpy.types.Operator):
 
         mask_node.inputs[1].default_value = self.from_min
 
-        bpy.context.view_layer.objects.active = container
+        select_object(container)
 
         return {'FINISHED'}
 
@@ -455,7 +456,7 @@ class FillByRange(bpy.types.Operator):
 
 class FillByLabel(bpy.types.Operator):
     bl_idname = "bioxelnodes.fill_by_label"
-    bl_label = "Fill by Label"
+    bl_label = "Fill Value by Label"
     bl_description = "Fill Value by Label Area"
     bl_options = {'UNDO'}
 
@@ -525,7 +526,7 @@ class FillByLabel(bpy.types.Operator):
                       "BioxelNodes_MaskByThreshold",
                       filled_layer_name)
 
-        bpy.context.view_layer.objects.active = container
+        select_object(container)
 
         return {'FINISHED'}
 
@@ -585,14 +586,14 @@ class CombineLabels(bpy.types.Operator):
                       "BioxelNodes_MaskByLabel",
                       combined_layer_name)
 
-        bpy.context.view_layer.objects.active = container
+        select_object(container)
         return {'FINISHED'}
 
 
 class ConvertToMesh(bpy.types.Operator):
     bl_idname = "bioxelnodes.convert_to_mesh"
-    bl_label = "Convert Container To Mesh"
-    bl_description = "Convert Bioxel Container To Mesh"
+    bl_label = "Convert To Mesh"
+    bl_description = "Convert Container To Mesh"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -633,12 +634,143 @@ class ConvertToMesh(bpy.types.Operator):
         #     constraint=mesh.constraints[0].name, owner='OBJECT')
         bpy.ops.object.modifier_apply(modifier=mesh.modifiers[0].name)
 
-        bpy.context.object.active_material_index = 1
-        bpy.ops.object.material_slot_remove()
-
-        bpy.context.view_layer.objects.active = mesh
+        select_object(mesh)
 
         self.report({"INFO"}, f"Successfully convert to mesh")
+
+        return {'FINISHED'}
+
+
+class PickMesh(bpy.types.Operator):
+    bl_idname = "bioxelnodes.pick_mesh"
+    bl_label = "Pick Mesh"
+    bl_description = "Pick Container Mesh"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        containers = get_container_from_selection()
+        return len(containers) > 0
+
+    def execute(self, context):
+        containers = get_container_from_selection()
+
+        if len(containers) == 0:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        container = containers[0]
+
+        bpy.ops.mesh.primitive_cube_add(
+            size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        mesh = bpy.context.active_object
+
+        mesh.name = f"Mesh_{container.name}"
+
+        bpy.ops.node.new_geometry_nodes_modifier()
+        modifier = mesh.modifiers[0]
+        node_group = modifier.node_group
+
+        output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
+        pick_mesh_node = custom_nodes.add_node(node_group,
+                                               "BioxelNodes_PickMesh")
+
+        pick_mesh_node.inputs[0].default_value = container
+        node_group.links.new(pick_mesh_node.outputs[0], output_node.inputs[0])
+
+        select_object(mesh)
+
+        self.report({"INFO"}, f"Successfully picked mesh")
+
+        return {'FINISHED'}
+
+
+class PickVolume(bpy.types.Operator):
+    bl_idname = "bioxelnodes.pick_volume"
+    bl_label = "Pick Volume"
+    bl_description = "Pick Container Volume"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        containers = get_container_from_selection()
+        return len(containers) > 0
+
+    def execute(self, context):
+        containers = get_container_from_selection()
+
+        if len(containers) == 0:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        container = containers[0]
+
+        bpy.ops.mesh.primitive_cube_add(
+            size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        volume = bpy.context.active_object
+
+        volume.name = f"Volume_{container.name}"
+
+        bpy.ops.node.new_geometry_nodes_modifier()
+        modifier = volume.modifiers[0]
+        node_group = modifier.node_group
+
+        output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
+        pick_volume_node = custom_nodes.add_node(node_group,
+                                                 "BioxelNodes_PickVolume")
+
+        pick_volume_node.inputs[0].default_value = container
+        node_group.links.new(
+            pick_volume_node.outputs[0], output_node.inputs[0])
+
+        select_object(volume)
+
+        self.report({"INFO"}, f"Successfully picked volume")
+
+        return {'FINISHED'}
+
+
+class PickBboxWire(bpy.types.Operator):
+    bl_idname = "bioxelnodes.pick_bbox_wire"
+    bl_label = "Pick Bbox Wire"
+    bl_description = "Pick Container Bbox Wire"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        containers = get_container_from_selection()
+        return len(containers) > 0
+
+    def execute(self, context):
+        containers = get_container_from_selection()
+
+        if len(containers) == 0:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        container = containers[0]
+
+        bpy.ops.mesh.primitive_cube_add(
+            size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bbox_wire = bpy.context.active_object
+
+        bbox_wire.name = f"Wire_{container.name}"
+
+        bpy.ops.node.new_geometry_nodes_modifier()
+        modifier = bbox_wire.modifiers[0]
+        node_group = modifier.node_group
+
+        output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
+        pick_bbox_wire_node = custom_nodes.add_node(node_group,
+                                                    "BioxelNodes_PickBboxWire")
+
+        pick_bbox_wire_node.inputs[0].default_value = container
+        node_group.links.new(
+            pick_bbox_wire_node.outputs[0], output_node.inputs[0])
+
+        select_object(bbox_wire)
+
+        self.report({"INFO"}, f"Successfully picked bbox wire")
 
         return {'FINISHED'}
 
@@ -677,6 +809,40 @@ class AddCutter():
             node_type = "BioxelNodes_SphereObjectCutter"
             bpy.ops.mesh.primitive_ico_sphere_add(
                 radius=1, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        elif self.object_type == "pie":
+            node_type = "BioxelNodes_PieObjectCutter"
+            # Create mesh
+            pie_mesh = bpy.data.meshes.new('Pie')
+
+            # Create object
+            pie = bpy.data.objects.new('Pie', pie_mesh)
+
+            # Link object to scene
+            bpy.context.scene.collection.objects.link(pie)
+            # Get a BMesh representation
+            bm = bmesh.new()   # create an empty BMesh
+            bm.from_mesh(pie_mesh)   # fill it in from a Mesh
+
+            # Hot to create vertices
+            v_0 = bm.verts.new((0.0, -1.0, 0.0))
+            v_1 = bm.verts.new((-1.0, -1.0, 1.0))
+            v_2 = bm.verts.new((0.0, 1.0, 0.0))
+            v_3 = bm.verts.new((-1.0, 1.0, 1.0))
+            v_4 = bm.verts.new((1.0, -1.0, 1.0))
+            v_5 = bm.verts.new((1.0, 1.0, 1.0))
+
+            # Initialize the index values of this sequence.
+            bm.verts.index_update()
+
+            # How to create a face
+            # it's not necessary to create the edges before, I made it only to show how create
+            # edges too
+            bm.faces.new((v_0, v_1, v_3, v_2))
+            bm.faces.new((v_0, v_2, v_5, v_4))
+
+            # Finish up, write the bmesh back to the mesh
+            bm.to_mesh(pie_mesh)
+            bpy.context.view_layer.objects.active = pie
 
         cutter = bpy.context.active_object
         cutter.visible_camera = False
@@ -692,7 +858,7 @@ class AddCutter():
         node_group = modifier.node_group
         cutter_node = custom_nodes.add_node(node_group, node_type)
         cutter_node.inputs[0].default_value = cutter
-        
+
         cut_nodes = get_nodes_by_type(node_group,
                                       'BioxelNodes_Cut')
         output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
@@ -715,9 +881,10 @@ class AddCutter():
                                  cut_node.inputs[1])
 
             move_node_to_node(cutter_node, cut_node, (-300, -300))
+            select_object(cutter)
         else:
             move_node_to_node(cutter_node, output_node, (0, -100))
-        bpy.context.view_layer.objects.active = container
+            select_object(container)
 
         return {'FINISHED'}
 
@@ -752,3 +919,11 @@ class AddSphereCutter(bpy.types.Operator, AddCutter):
     bl_description = "Add a Sphere Cutter to Container"
     bl_options = {'UNDO'}
     object_type = "sphere"
+
+
+class AddPieCutter(bpy.types.Operator, AddCutter):
+    bl_idname = "bioxelnodes.add_pie_cutter"
+    bl_label = "Add a Pie Cutter"
+    bl_description = "Add a Pie Cutter to Container"
+    bl_options = {'UNDO'}
+    object_type = "pie"

@@ -3,6 +3,45 @@ import mathutils
 from pathlib import Path
 import pyopenvdb as vdb
 from uuid import uuid4
+import shutil
+
+
+def select_object(target_obj):
+    for obj in bpy.data.objects:
+        obj.select_set(False)
+
+    target_obj.select_set(True)
+    bpy.context.view_layer.objects.active = target_obj
+
+
+def copy_to_dir(source_path, dir_path, new_name=None, exist_ok=True):
+    source = Path(source_path)
+    target = Path(dir_path)
+
+    # Check if the source exists
+    if not source.exists():
+        raise FileNotFoundError
+
+    # Check if the target exists
+    if not target.exists():
+        target.mkdir(parents=True, exist_ok=True)
+
+    target_path = target / new_name if new_name else target / source.name
+    # If source is a file, copy it to the target directory
+    if source.is_file():
+        try:
+            shutil.copy(source, target_path)
+        except shutil.SameFileError:
+            if exist_ok:
+                pass
+            else:
+                raise shutil.SameFileError
+    # If source is a directory, copy its contents to the target directory
+    elif source.is_dir():
+        shutil.copytree(source, target_path, dirs_exist_ok=exist_ok)
+
+    if not target_path.exists():
+        raise Exception
 
 
 def move_node_to_node(node, target_node, offset=(0, 0)):
@@ -124,13 +163,35 @@ def save_vdb(grids, context):
     return vdb_path
 
 
+def save_vdbs(grids_sequence, context):
+    preferences = context.preferences.addons[__package__].preferences
+    cache_dir = Path(preferences.cache_dir, 'VDBs')
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    vdb_name = str(uuid4())
+    vdb_dir_path = Path(cache_dir, vdb_name)
+    vdb_dir_path.mkdir(parents=True, exist_ok=True)
+
+    vdb_paths = []
+    for f, grids in enumerate(grids_sequence):
+        vdb_path = Path(vdb_dir_path, f"{vdb_name}.{str(f+1).zfill(4)}.vdb")
+        print(f"Storing the VDB file ({str(vdb_path)})...")
+        vdb.write(str(vdb_path), grids=grids)
+        vdb_paths.append(vdb_path)
+
+    return vdb_paths
+
+
 def get_container_from_selection():
     containers = []
     for obj in bpy.context.selected_objects:
         if get_container(obj):
             containers.append(obj)
+    # if bpy.context.active_object:
+    #     if bpy.context.active_object.get('bioxel_layer'):
+    #         if bpy.context.active_object.parent.get('bioxel_container'):
+    #             containers.append(bpy.context.active_object.parent)
 
-    return containers
+    return list(set(containers))
 
 
 def get_container(current_obj):

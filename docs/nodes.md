@@ -1,22 +1,6 @@
 # Nodes
 
-## Nodes Design Concept
-
-In order to build a component, the general process is to first use a "Mask Method" node to build the surface of the component based on its layers, and then connect to a "Assign Shader" node to add the material physical properties. Finally, if you need to cut the cross-section, then connect to a "Cut" node. The whole process is shown in the following diagram
-
-![alt text](assets/nodes_concept.png)
-
-A typical example looks like this:
-
-![alt text](assets/nodes_example.png)
-
-The "Mask Method" node tends to be very computationally intensive, and if it consumes too much time, then you can bake it with a "Bake" node after it (but you need to save the Blender file first).
-
-![alt text](assets/nodes_bake.png)
-
 ## Mask Methods
-
-This type of node is responsible for culling out the extent of the component that does not need to be rendered, forming the interface between the object and the object, or the surface of the object (i.e., the interface between the object and the air)
 
 ### ⬆️ Mask by Threshold
 
@@ -90,8 +74,6 @@ This type of node is responsible for culling out the extent of the component tha
 </div>
 
 ## Shaders
-
-This type of node is responsible for setting material physical properties to the component to reflect the differences in rendering effects of different components.
 
 ### 🥚 Solid Shader
 
@@ -192,8 +174,6 @@ This type of node is responsible for setting material physical properties to the
 
 ## Cutters
 
-This type of node is responsible for cutting components to present cross-section
-
 ### 🪚 Cut
 
 <div class="grid cards" markdown>
@@ -212,25 +192,6 @@ This type of node is responsible for cutting components to present cross-section
 
 </div>
 
-### 🧀 Plane Cutter
-
-<div class="grid cards" markdown>
-
--   ![alt text](assets/nodes_plane-cutter.png)
-
--   Flat plane cutter, cuts off above Z-axis in local.
-
-    ***
-
-    Node Parameter:
-
-    -   **Origin**, _plane cutter position_
-    -   **Direction**, _plane cutter orientation_
-    -   Guide
-        -   **Show**, _show the cutter guide_
-        -   **Scale**, _scale the cutter guide_
-
-</div>
 
 ### 🧀 Plane Object Cutter
 
@@ -252,8 +213,6 @@ This type of node is responsible for cutting components to present cross-section
 </div>
 
 ## Colors
-
-This type of node is responsible for setting the color properties of the shader
 
 ### 🎨 Color Presents
 
