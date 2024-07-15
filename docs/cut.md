@@ -1,0 +1,1 @@
+This type of node is responsible for cutting components to present cross-section

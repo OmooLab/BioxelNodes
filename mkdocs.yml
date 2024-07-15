@@ -1,4 +1,4 @@
-site_name: Bioxel Nodes Docs
+site_name: Bioxel Nodes Handbook
 site_url: https://omoolab.github.io/BioxelNodes/
 site_author: OmooLab
 site_description: Bioxel Nodes is a Blender add-on for scientific volumetric data visualization.
@@ -7,15 +7,28 @@ repo_name: OmooLab/BioxelNodes
 repo_url: https://github.com/OmooLab/BioxelNodes
 
 nav:
-  - BioxelNodes:
-      - index.md
-      - Getting Started: getting-started.md
-      - Features & Options: features.md
+  - index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Prepare Your Data: prepare_data.md
+      - Step by Step: step_by_step.md
+      - Concepts & Pipeline: concept.md
+  - Visualizating any Bio-structure:
+      - Import & Preprocess: import.md
+      - Mask Methods: mask.md
+      - Assgin a Shader: shader.md
+      - Cut the Component: cut.md
+      - Set Colors: color.md
+      - Integration into Other Pipeline: intergration.md
+      - Render Tips: render.md
+  - Reference:
+      - Terms: terms.md
       - Nodes: nodes.md
-      - Future Features: misc.md
+      - Benchmark: benchmark.md
 
 theme:
   name: material
+  favicon: assets/logo.png
   logo: assets/logo.png
   language: en
   font:
