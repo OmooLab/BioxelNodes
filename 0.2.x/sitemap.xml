@@ -2,27 +2,77 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://omoolab.github.io/BioxelNodes/0.2.x/</loc>
-         <lastmod>2024-06-05</lastmod>
+         <lastmod>2024-07-15</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/features/</loc>
-         <lastmod>2024-06-05</lastmod>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/benchmark/</loc>
+         <lastmod>2024-07-15</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/getting-started/</loc>
-         <lastmod>2024-06-05</lastmod>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/color/</loc>
+         <lastmod>2024-07-15</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/misc/</loc>
-         <lastmod>2024-06-05</lastmod>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/concept/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/cut/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/import/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/installation/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/intergration/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/mask/</loc>
+         <lastmod>2024-07-15</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://omoolab.github.io/BioxelNodes/0.2.x/nodes/</loc>
-         <lastmod>2024-06-05</lastmod>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/prepare_data/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/render/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/shader/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/step_by_step/</loc>
+         <lastmod>2024-07-15</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://omoolab.github.io/BioxelNodes/0.2.x/terms/</loc>
+         <lastmod>2024-07-15</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
