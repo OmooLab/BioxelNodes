@@ -40,7 +40,7 @@ SEQUENCE_EXTS = ['.bmp', '.BMP',
                  '.tif', '.TIF', '.tiff', '.TIFF',
                  '.png', '.PNG']
 
-DICOM_EXTS = ['', '.dcm', '.DCM', '.DICOM']
+DICOM_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA']
 
 FH_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
            '.gipl', '.gipl.gz',
