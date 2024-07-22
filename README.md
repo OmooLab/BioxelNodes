@@ -24,7 +24,7 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 
 | Format | EXT                                      | Test    |
 | ------ | ---------------------------------------- | ------- |
-| DICOM  | .dcm, .DICOM                             | ✅ pass |
+| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           | ✅ pass |
 | BMP    | .bmp, .BMP                               | ✅ pass |
 | JPEG   | .jpg, .JPG, .jpeg, .JPEG                 | ✅ pass |
 | PNG    | .png, .PNG                               | ✅ pass |
@@ -32,6 +32,8 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 | Nifti  | .nia, .nii, .nii.gz, .hdr, .img, .img.gz | ✅ pass |
 | Nrrd   | .nrrd, .nhdr                             | ✅ pass |
 | HDF5   | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 | ✅ pass |
+| OME    | .ome.tiff, .ome.tif                      | ✅ pass |
+| MRC    | .mrc, .mrc.gz, .map, .map.gz             | ✅ pass |
 
 ## Support 4D volumetric data
 
