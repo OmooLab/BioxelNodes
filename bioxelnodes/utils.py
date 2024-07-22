@@ -72,12 +72,19 @@ def get_nodes_by_type(node_group, type_name: str):
     return [node for node in node_group.nodes if get_node_type(node) == type_name]
 
 
-def show_message(message="", title="Message Box", icon='INFO'):
+def progress_bar(self, context):
+    row = self.layout.row()
+    row.progress(
+        factor=context.window_manager.bioxelnodes_progress_factor,
+        type="BAR",
+        text=context.window_manager.bioxelnodes_progress_text
+    )
+    row.scale_x = 2
 
-    def draw(self, context):
-        self.layout.label(text=message)
 
-    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
+def progress_update(context, factor, text=""):
+    context.window_manager.bioxelnodes_progress_factor = factor
+    context.window_manager.bioxelnodes_progress_text = text
 
 
 def calc_bbox_verts(origin, size):
@@ -157,7 +164,7 @@ def save_vdb(grids, context):
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     vdb_path = Path(cache_dir, f"{uuid4()}.vdb")
-    print(f"Storing the VDB file ({str(vdb_path)})...")
+    # print(f"Storing the VDB file ({str(vdb_path)})...")
     vdb.write(str(vdb_path), grids=grids)
 
     return vdb_path
@@ -174,7 +181,7 @@ def save_vdbs(grids_sequence, context):
     vdb_paths = []
     for f, grids in enumerate(grids_sequence):
         vdb_path = Path(vdb_dir_path, f"{vdb_name}.{str(f+1).zfill(4)}.vdb")
-        print(f"Storing the VDB file ({str(vdb_path)})...")
+        # print(f"Storing the VDB file ({str(vdb_path)})...")
         vdb.write(str(vdb_path), grids=grids)
         vdb_paths.append(vdb_path)
 

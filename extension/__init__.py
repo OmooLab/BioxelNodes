@@ -9,6 +9,8 @@ auto_load.init()
 
 def register():
     auto_load.register()
+    bpy.types.WindowManager.bioxelnodes_progress_factor = bpy.props.FloatProperty()
+    bpy.types.WindowManager.bioxelnodes_progress_text = bpy.props.StringProperty()
     menus.add()
 
 

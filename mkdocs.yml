@@ -13,7 +13,7 @@ nav:
       - Prepare Your Data: prepare_data.md
       - Step by Step: step_by_step.md
       - Concepts & Pipeline: concept.md
-  - Visualizating any Bio-structure:
+  - Visualizing any Bio-structure:
       - Import & Preprocess: import.md
       - Mask Methods: mask.md
       - Assgin a Shader: shader.md

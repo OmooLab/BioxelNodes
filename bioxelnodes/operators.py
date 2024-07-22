@@ -366,7 +366,7 @@ class FillByThreshold(bpy.types.Operator):
     def invoke(self, context, event):
         base_layer = get_layer(bpy.context.active_object)
         scalar_min = get_layer_meta(base_layer, "Scalar Min")
-        self.fill_value = scalar_min
+        self.fill_value = min(scalar_min,0)
         context.window_manager.invoke_props_dialog(self, width=400)
         return {'RUNNING_MODAL'}
 
@@ -449,7 +449,7 @@ class FillByRange(bpy.types.Operator):
     def invoke(self, context, event):
         base_layer = get_layer(bpy.context.active_object)
         scalar_min = get_layer_meta(base_layer, "Scalar Min")
-        self.fill_value = scalar_min
+        self.fill_value = min(scalar_min,0)
         context.window_manager.invoke_props_dialog(self, width=400)
         return {'RUNNING_MODAL'}
 
@@ -533,7 +533,7 @@ class FillByLabel(bpy.types.Operator):
     def invoke(self, context, event):
         base_layer = get_layer(bpy.context.active_object)
         scalar_min = get_layer_meta(base_layer, "Scalar Min")
-        self.fill_value = scalar_min
+        self.fill_value = min(scalar_min,0)
         context.window_manager.invoke_props_dialog(self, width=400)
         return {'RUNNING_MODAL'}
 

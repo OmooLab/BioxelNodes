@@ -88,7 +88,15 @@ jobs:
           python-version: 3.11
       - name: Zip Extension
         run: |
-          pip download SimpleITK==2.3.1 --dest bioxelnodes/wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          pip download SimpleITK==2.3.1 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          pip download pyometiff==1.0.0 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          pip download mrcfile==1.5.1 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          mkdir bioxelnodes/wheels
+          cp wheels/SimpleITK-2.3.1-cp311-cp311-win_amd64.whl bioxelnodes/wheels/SimpleITK-2.3.1-cp311-cp311-win_amd64.whl
+          cp wheels/lxml-5.2.2-cp311-cp311-win_amd64.whl bioxelnodes/wheels/lxml-5.2.2-cp311-cp311-win_amd64.whl
+          cp wheels/tifffile-2024.7.21-py3-none-any.whl bioxelnodes/wheels/tifffile-2024.7.21-py3-none-any.whl
+          cp wheels/pyometiff-1.0.0-py3-none-any.whl bioxelnodes/wheels/pyometiff-1.0.0-py3-none-any.whl
+          cp wheels/mrcfile-1.5.1-py2.py3-none-any.whl bioxelnodes/wheels/mrcfile-1.5.1-py2.py3-none-any.whl
           rm -r bioxelnodes/externalpackage
           cp extension/__init__.py bioxelnodes/__init__.py
           cp extension/preferences.py bioxelnodes/preferences.py

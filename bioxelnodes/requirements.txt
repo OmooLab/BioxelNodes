@@ -1,1 +1,3 @@
 SimpleITK==2.3.1     # Insight Segmentation and Registration Toolkit.
+pyometiff==1.0.0     # .ome.tiff
+mrcfile==1.5.1       # .map
