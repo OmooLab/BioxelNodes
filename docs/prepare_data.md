@@ -6,7 +6,7 @@ First thing first, you need to get your volumetric data ready in disk. Bioxel No
 
 | Format | EXT                                      | Test    |
 | ------ | ---------------------------------------- | ------- |
-| DICOM  | .dcm, .DICOM                             | ✅ pass |
+| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           | ✅ pass |
 | BMP    | .bmp, .BMP                               | ✅ pass |
 | JPEG   | .jpg, .JPG, .jpeg, .JPEG                 | ✅ pass |
 | PNG    | .png, .PNG                               | ✅ pass |
@@ -21,6 +21,8 @@ First thing first, you need to get your volumetric data ready in disk. Bioxel No
 | LSM    | .lsm, .LSM                               | yet     |
 | MINC   | .mnc, .MNC                               | yet     |
 | MRC    | .mrc, .rec                               | yet     |
+| OME    | .ome.tiff, .ome.tif                      | ✅ pass |
+| MRC    | .mrc, .mrc.gz, .map, .map.gz             | ✅ pass |
 
 ## Download Data from Internet
 
@@ -32,10 +34,12 @@ If you don't have any volumetric data, you can access open research data from li
 | ------------------------------------------------------------------------------------ | ------------------ |
 | [MorphoSource](https://www.morphosource.org/)                                        | Open Research Data |
 | [Dryad](https://datadryad.org)                                                       | Open Research Data |
+| [Cell Image Library](http://cellimagelibrary.org/home)                               | Cells              |
 | [OpenOrganelle](https://openorganelle.janelia.org/datasets)                          | Cells              |
+| [Allen Cell Explorer](https://www.allencell.org/3d-cell-viewer.html)                 | Cells              |
+| [EMDB](https://www.ebi.ac.uk/emdb/)                                                  | Protein, Viruses   |
 | [Embodi3D](https://www.embodi3d.com/files/category/37-medical-scans/)                | Medical Images     |
 | [Github](https://github.com/sfikas/medical-imaging-datasets)                         | Medical Images     |
 | [NIHR](https://nhsx.github.io/open-source-imaging-data-sets/)                        | Medical Images     |
 | [Medical Segmentation Decathlon](http://medicaldecathlon.com/)                       | Medical Images     |
-| [Allen Cell Explorer](https://www.allencell.org/3d-cell-viewer.html)                 | Cells              |
 | [Visible Human Project](https://www.nlm.nih.gov/research/visible/visible_human.html) | Medical Images     |
