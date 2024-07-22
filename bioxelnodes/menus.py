@@ -3,7 +3,7 @@ import bpy
 from .utils import get_container_from_selection
 from .operators import (AddPieCutter, AddPlaneCutter, AddCylinderCutter, AddCubeCutter, AddSphereCutter, CombineLabels,
                         ConvertToMesh, InvertScalar, FillByLabel, FillByThreshold, FillByRange, PickBboxWire, PickMesh, PickVolume)
-from .io import ExportVolumeData, ImportAsLabelLayer, ImportAsScalarLayer
+from .io import ExportVolumetricData, ImportAsLabelLayer, ImportAsScalarLayer
 from .save import CleanAllCaches, ReLinkNodes, SaveLayers, SaveStagedData
 
 
@@ -115,7 +115,7 @@ class BioxelNodesOutlinerMenu(bpy.types.Menu):
         layout.operator(FillByLabel.bl_idname)
         layout.operator(CombineLabels.bl_idname)
         layout.separator()
-        layout.operator(ExportVolumeData.bl_idname)
+        layout.operator(ExportVolumetricData.bl_idname)
 
 
 def TOPBAR_FILE_IMPORT(self, context):
@@ -131,7 +131,7 @@ def TOPBAR_FILE_IMPORT(self, context):
 def TOPBAR_FILE_EXPORT(self, context):
     layout = self.layout
     layout.separator()
-    layout.operator(ExportVolumeData.bl_idname,
+    layout.operator(ExportVolumetricData.bl_idname,
                     text="Bioxel Layer (.vdb)")
 
 
@@ -171,8 +171,8 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
 def TOPBAR(self, context):
     layout = self.layout
     layout.menu(BioxelNodesTopbarMenu.bl_idname)
-
-
+    
+    
 def add():
     bpy.types.TOPBAR_MT_file_import.append(TOPBAR_FILE_IMPORT)
     bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)

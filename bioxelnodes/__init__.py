@@ -9,7 +9,7 @@ bl_info = {
     "author": "Ma Nan",
     "description": "",
     "blender": (4, 1, 0),
-    "version": (0, 2, 7),
+    "version": (0, 2, 8),
     "location": "File -> Import",
     "warning": "",
     "category": "Node"
@@ -20,6 +20,8 @@ auto_load.init()
 
 def register():
     auto_load.register()
+    bpy.types.WindowManager.bioxelnodes_progress_factor = bpy.props.FloatProperty()
+    bpy.types.WindowManager.bioxelnodes_progress_text = bpy.props.StringProperty()
     menus.add()
 
 
