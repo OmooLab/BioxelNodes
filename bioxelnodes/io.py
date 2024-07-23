@@ -175,6 +175,9 @@ class ParseVolumetricData(bpy.types.Operator):
                                                      progress_callback=progress_callback)
             except CancelledByUser:
                 return
+            except RuntimeError:
+                self.has_error = True
+                return
 
             if cancel():
                 return
@@ -183,6 +186,8 @@ class ParseVolumetricData(bpy.types.Operator):
 
         # Init cancel flag
         self.is_cancelled = False
+        self.has_error = False
+
         # Create the thread
         self.thread = threading.Thread(target=parse_volumetric_data_func,
                                        args=(self, context, lambda: self.is_cancelled))
@@ -229,6 +234,11 @@ class ParseVolumetricData(bpy.types.Operator):
             self.report({"WARNING"}, "Canncelled by user.")
             return {'CANCELLED'}
 
+        # Check if thread is cancelled by user
+        if self.has_error:
+            self.report({"ERROR"}, "Fail to parse, something went wrong.")
+            return {'CANCELLED'}
+
         # If not canncelled...
         for key, value in self.meta.items():
             print(f"{key}: {value}")
@@ -239,9 +249,12 @@ class ParseVolumetricData(bpy.types.Operator):
                        orig_spacing[1], orig_spacing[2])
         bioxel_size = max(min_size, 1.0)
 
-        layer_size = get_layer_size(orig_shape,
+        layer_shape = get_layer_shape(1, orig_shape, orig_spacing)
+        layer_size = get_layer_size(layer_shape,
                                     bioxel_size)
         log10 = math.floor(math.log10(max(*layer_size)))
+        log10 = max(1,log10)
+        log10 = min(3,log10)
         scene_scale = math.pow(10, -log10)
 
         if self.container:
@@ -700,6 +713,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
             container.matrix_world = mat_ras2blender @ mat_scene_scale
             container.name = container_name
+            container.show_in_front = True
             container.data.name = container_name
 
             container['bioxel_container'] = True
@@ -741,8 +755,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
             layer.hide_select = True
             layer.hide_render = True
             layer.hide_viewport = True
-            layer.data.display.use_slice = True
-            layer.data.display.density = 1e-05
+            # layer.data.display.use_slice = True
+            # layer.data.display.density = 1e-05
 
             layer['bioxel_layer'] = True
             layer['bioxel_layer_type'] = layer_info['type']
@@ -811,11 +825,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
         # Change render setting for better result
         preferences = context.preferences.addons[__package__].preferences
-
         if preferences.do_change_render_setting and self.is_first_import:
-            if bpy.app.version < (4, 2, 0):
-                bpy.context.scene.render.engine = 'CYCLES'
-
+            bpy.context.scene.render.engine = 'CYCLES'
             try:
                 bpy.context.scene.cycles.shading_system = True
                 bpy.context.scene.cycles.volume_bounces = 12

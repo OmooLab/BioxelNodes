@@ -11,6 +11,9 @@ try:
 except:
     ...
 
+"""
+Convert any volumetric data to 3D numpy array with order TXYZC
+"""
 
 SUPPORT_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
                 '.bmp', '.BMP',
@@ -136,7 +139,11 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
         if len(sequence) > 1:
             is_sequence = True
 
-    if ext in MRC_EXTS and not is_sequence:
+    volume = None
+
+    # Parsing with mrcfile
+    if volume is None and ext in MRC_EXTS and not is_sequence:
+        print("Parsing with mrcfile...")
         # TODO: much to do with mrc
         with mrcfile.open(filepath) as mrc:
             volume = mrc.data
@@ -159,10 +166,10 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
 
             elif mrc.is_volume_stack():
                 volume = np.expand_dims(volume, axis=-1)  # expend channel
-
             name = Path(filepath).name.removesuffix(ext).replace(" ", "-")
             shape = volume.shape[1:4]
             spacing = (mrc.voxel_size.x, mrc.voxel_size.y, mrc.voxel_size.z)
+
             meta = {
                 "name": name,
                 "description": "",
@@ -175,7 +182,9 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
                 "is_oriented": False
             }
 
-    elif ext in OME_EXTS and not is_sequence:
+    # Parsing with OMETIFFReader
+    if volume is None and ext in OME_EXTS and not is_sequence:
+        print("Parsing with OMETIFFReader...")
         reader = OMETIFFReader(fpath=filepath)
         ome_volume, metadata, xml_metadata = reader.read()
 
@@ -189,69 +198,70 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
             # for key in metadata:
             #     print(f"{key},{metadata[key]}")
             ome_order = metadata['DimOrder BF Array']
+            if ome_volume.ndim == 2:
+                ome_order = ome_order.replace("T", "")\
+                    .replace("C", "").replace("Z", "")
+                bioxel_order = (ome_order.index('X'),
+                                ome_order.index('Y'))
+                volume = np.transpose(ome_volume, bioxel_order)
+                volume = np.expand_dims(volume, axis=0)  # expend frame
+                volume = np.expand_dims(volume, axis=-1)  # expend Z
+                volume = np.expand_dims(volume, axis=-1)  # expend channel
+
+            elif ome_volume.ndim == 3:
+                # -> XYZC
+                ome_order = ome_order.replace("T", "").replace("C", "")
+                bioxel_order = (ome_order.index('X'),
+                                ome_order.index('Y'),
+                                ome_order.index('Z'))
+                volume = np.transpose(ome_volume, bioxel_order)
+                volume = np.expand_dims(volume, axis=0)  # expend frame
+                volume = np.expand_dims(volume, axis=-1)  # expend channel
+            elif ome_volume.ndim == 4:
+                # -> XYZC
+                ome_order = ome_order.replace("T", "")
+                bioxel_order = (ome_order.index('X'),
+                                ome_order.index('Y'),
+                                ome_order.index('Z'),
+                                ome_order.index('C'))
+                volume = np.transpose(ome_volume, bioxel_order)
+                volume = np.expand_dims(volume, axis=0)  # expend frame
+            elif ome_volume.ndim == 5:
+                # -> TXYZC
+                bioxel_order = (ome_order.index('T'),
+                                ome_order.index('X'),
+                                ome_order.index('Y'),
+                                ome_order.index('Z'),
+                                ome_order.index('C'))
+                volume = np.transpose(ome_volume, bioxel_order)
+
+            shape = volume.shape[1:4]
+
+            try:
+                spacing = (metadata['PhysicalSizeX'],
+                           metadata['PhysicalSizeY'],
+                           metadata['PhysicalSizeZ'])
+            except:
+                spacing = (1, 1, 1)
+
+            name = Path(filepath).name.removesuffix(ext).replace(" ", "-")
+            meta = {
+                "name": name,
+                "description": "",
+                "shape": shape,
+                "spacing": spacing,
+                "origin": (0, 0, 0),
+                "direction": (1, 0, 0, 0, 1, 0, 0, 0, 1),
+                "frame_count": volume.shape[0],
+                "channel_count": volume.shape[-1],
+                "is_oriented": False
+            }
         except:
-            ome_order = "TCZYX"
+            ...
 
-        if ome_volume.ndim == 2:
-            ome_order = ome_order.replace("T", "")\
-                .replace("C", "").replace("Z", "")
-            bioxel_order = (ome_order.index('X'),
-                            ome_order.index('Y'))
-            volume = np.transpose(ome_volume, bioxel_order)
-            volume = np.expand_dims(volume, axis=0)  # expend frame
-            volume = np.expand_dims(volume, axis=-1)  # expend Z
-            volume = np.expand_dims(volume, axis=-1)  # expend channel
-
-        elif ome_volume.ndim == 3:
-            # -> XYZC
-            ome_order = ome_order.replace("T", "").replace("C", "")
-            bioxel_order = (ome_order.index('X'),
-                            ome_order.index('Y'),
-                            ome_order.index('Z'))
-            volume = np.transpose(ome_volume, bioxel_order)
-            volume = np.expand_dims(volume, axis=0)  # expend frame
-            volume = np.expand_dims(volume, axis=-1)  # expend channel
-        elif ome_volume.ndim == 4:
-            # -> XYZC
-            ome_order = ome_order.replace("T", "")
-            bioxel_order = (ome_order.index('X'),
-                            ome_order.index('Y'),
-                            ome_order.index('Z'),
-                            ome_order.index('C'))
-            volume = np.transpose(ome_volume, bioxel_order)
-            volume = np.expand_dims(volume, axis=0)  # expend frame
-        elif ome_volume.ndim == 5:
-            # -> TXYZC
-            bioxel_order = (ome_order.index('T'),
-                            ome_order.index('X'),
-                            ome_order.index('Y'),
-                            ome_order.index('Z'),
-                            ome_order.index('C'))
-            volume = np.transpose(ome_volume, bioxel_order)
-
-        shape = volume.shape[1:4]
-
-        try:
-            spacing = (metadata['PhysicalSizeX'],
-                       metadata['PhysicalSizeY'],
-                       metadata['PhysicalSizeZ'])
-        except:
-            spacing = (1, 1, 1)
-
-        name = Path(filepath).name.removesuffix(ext).replace(" ", "-")
-        meta = {
-            "name": name,
-            "description": "",
-            "shape": shape,
-            "spacing": spacing,
-            "origin": (0, 0, 0),
-            "direction": (1, 0, 0, 0, 1, 0, 0, 0, 1),
-            "frame_count": volume.shape[0],
-            "channel_count": volume.shape[-1],
-            "is_oriented": False
-        }
-
-    else:
+    # Parsing with SimpleITK
+    if volume is None:
+        print("Parsing with SimpleITK...")
         if ext in DICOM_EXTS:
             dir_path = Path(filepath).resolve().parent
             reader = sitk.ImageSeriesReader()
@@ -294,10 +304,13 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
             name = name.replace(" ", "-")
             description = description.replace(" ", "-")
 
-        elif ext in SEQUENCE_EXTS:
-            itk_volume = sitk.ReadImage(sequence)
-            name = get_sequence_name(filepath).replace(" ", "-")
-            description = ""
+        elif ext in SEQUENCE_EXTS and is_sequence:
+            try:
+                itk_volume = sitk.ReadImage(sequence)
+                name = get_sequence_name(filepath).replace(" ", "-")
+                description = ""
+            except RuntimeError as e:
+                raise e
         else:
             itk_volume = sitk.ReadImage(filepath)
             name = Path(filepath).name.removesuffix(ext).replace(" ", "-")
@@ -311,7 +324,33 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
             if not progressing:
                 raise CancelledByUser
 
-        if itk_volume.GetDimension() == 3:
+        if itk_volume.GetDimension() == 2:
+            volume = sitk.GetArrayFromImage(itk_volume)
+
+            if volume.ndim == 3:
+                volume = np.transpose(volume, (1, 0, 2))
+
+                volume = np.expand_dims(volume, axis=-2)  # expend Z
+            else:
+                volume = np.transpose(volume)
+                volume = np.expand_dims(volume, axis=-1)  # expend Z
+                volume = np.expand_dims(volume, axis=-1)  # expend channel
+
+            volume = np.expand_dims(volume, axis=0)  # expend frame
+
+            meta = {
+                "name": name,
+                "description": description,
+                "shape": volume.shape[1:4],
+                "spacing": (1, 1, 1),
+                "origin": (0, 0, 0),
+                "direction": (1, 0, 0, 0, 1, 0, 0, 0, 1),
+                "frame_count": 1,
+                "channel_count": volume.shape[-1],
+                "is_oriented": False
+            }
+
+        elif itk_volume.GetDimension() == 3:
             itk_volume = sitk.DICOMOrient(itk_volume, 'RAS')
 
             volume = sitk.GetArrayFromImage(itk_volume)
@@ -332,12 +371,12 @@ def parse_volumetric_data(filepath: str, series_id="", progress_callback=None):
                 "spacing": tuple(itk_volume.GetSpacing()),
                 "origin": tuple(itk_volume.GetOrigin()),
                 "direction": tuple(itk_volume.GetDirection()),
-                "frame_count": volume.shape[0],
+                "frame_count": 1,
                 "channel_count": volume.shape[-1],
                 "is_oriented": True
             }
 
-        if itk_volume.GetDimension() == 4:
+        elif itk_volume.GetDimension() == 4:
             # FIXME: not sure...
             direction = np.array(itk_volume.GetDirection())
             direction = direction.reshape(3, 3) if itk_volume.GetDimension() == 3 \
