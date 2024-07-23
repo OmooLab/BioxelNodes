@@ -89,8 +89,8 @@ def deep_copy_layer(vdb_path, base_layer, name):
     copyed_layer.hide_select = True
     copyed_layer.hide_render = True
     copyed_layer.hide_viewport = True
-    copyed_layer.data.display.use_slice = True
-    copyed_layer.data.display.density = 1e-05
+    # copyed_layer.data.display.use_slice = True
+    # copyed_layer.data.display.density = 1e-05
 
     copyed_layer['bioxel_layer'] = True
     copyed_layer['bioxel_layer_type'] = base_layer['bioxel_layer_type']
