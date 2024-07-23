@@ -9,7 +9,7 @@ bl_info = {
     "author": "Ma Nan",
     "description": "",
     "blender": (4, 1, 0),
-    "version": (0, 2, 8),
+    "version": (0, 2, 9),
     "location": "File -> Import",
     "warning": "",
     "category": "Node"
