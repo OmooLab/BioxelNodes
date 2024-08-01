@@ -13,7 +13,7 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 
 ![cover](https://omoolab.github.io/BioxelNodes/latest/assets/cover.png)
 
--   Fantastic rendering result, also support EEVEE NEXT.
+-   Realistic rendering result, also support EEVEE NEXT.
 -   Support multiple formats.
 -   Support 4D volumetric data.
 -   All kinds of cutters.
@@ -61,13 +61,13 @@ Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any 
 
 ## Compatible to Newer Version
 
-**Updating this addon may break old files, so read the following carefully before updating**
+**v0.3.x is not compatible to v0.2.x, Updating this addon may break old files. Read the following carefully before upgradation**
 
-Before updating this addon, you need to ask yourself whether this project file will be modified again or not, if it's an archived project file, I would recommend that you run **Bioxel Nodes > Save Staged Data** to make the addon nodes permanent. In this way, there will be no potential problem with the nodes not functioning due to the addon update.
+Before upgradation, you need to ask yourself whether this project file will be modified again or not, if it's an archived project file, I would recommend that you run **Bioxel Nodes > Save Staged Data** to make the addon nodes permanent. In this way, there will be no potential problem with the nodes not functioning due to the addon update.
 
 After the addon update, your old project files may not work either, this may be because you had executed **Save Staged Data**. If so, you need to execute **Bioxel Nodes > Relink Nodes to Addon** to relink them to make sure that the addon's new functionality and the addon nodes are synchronized.
 
-Also, unlike the newer versions, the older shaders are not based on OSL, so if you find that you can't render volumes, you need to turn on **Open Shading Language (OSL)** in the Render Settings.
+Also, the older shaders are not based on OSL, so if you find that you can't render volumes, you need to turn on **Open Shading Language (OSL)** in the Render Settings.
 
 ## Roadmap
 

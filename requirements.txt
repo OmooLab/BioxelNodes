@@ -1,3 +1,5 @@
 SimpleITK==2.3.1     # Insight Segmentation and Registration Toolkit.
 pyometiff==1.0.0     # .ome.tiff
 mrcfile==1.5.1       # .map
+h5py==3.11.0         # .h5
+transforms3d==0.4.2  # transforms

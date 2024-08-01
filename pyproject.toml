@@ -1,31 +1,29 @@
 [tool.poetry]
 name = "bioxelnodes"
-version = "0.2.9"
+version = "0.3.0"
 description = ""
 authors = ["Ma Nan <icrdr2010@outlook.com>"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "~=3.10.0"
-bpy = "~=4.0"
-simpleitk = "^2.3.1"
-scikit-image = "^0.24.0"
-pyometiff = "^1.0.0"
-mrcfile = "^1.5.1"
+python = ">=3.11.0,<3.12.dev0"
+simpleitk = "2.3.1"
+pyometiff = "1.0.0"
+mrcfile = "1.5.1"
+h5py = "3.11.0"
+transforms3d = "0.4.2"
 
 [tool.poetry.group.dev.dependencies]
-ipykernel = "^6.25.2"
-pytest = "^7.4.2"
-pytest-dependency = "^0.5.1"
-mkdocs = "^1.5.3"
-mkdocs-material = "^9.4.6"
-mkdocstrings = { extras = ["python"], version = "^0.23.0" }
-mkdocs-click = "^0.8.1"
-autopep8 = "^2.0.4"
-pytest-cov = "^4.1.0"
-mike = "^2.0.0"
-
+bpy = "^4.2.0"
+pytest = "^8.3.2"
+pytest-dependency = "^0.6.0"
+pytest-cov = "^5.0.0"
+mkdocs = "^1.6.0"
+mkdocs-material = "^9.5.30"
+autopep8 = "^2.3.1"
+mike = "^2.1.2"
+tomlkit = "^0.13.0"
 
 [build-system]
 requires = ["poetry-core"]

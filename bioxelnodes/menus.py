@@ -1,10 +1,21 @@
 import bpy
 
-from .utils import get_container_from_selection
-from .operators import (AddPieCutter, AddPlaneCutter, AddCylinderCutter, AddCubeCutter, AddSphereCutter, CombineLabels,
-                        ConvertToMesh, InvertScalar, FillByLabel, FillByThreshold, FillByRange, PickBboxWire, PickMesh, PickVolume)
-from .io import ExportVolumetricData, ImportAsLabelLayer, ImportAsScalarLayer
-from .save import CleanAllCaches, ReLinkNodes, SaveLayers, SaveStagedData
+from .bioxelutils.container import get_container_objs_from_selection
+from .operators.layer import (CombineLabels, SignScalar,
+                              FillByLabel, FillByThreshold, FillByRange)
+from .operators.container import (SaveContainer, LoadContainer,
+                                  AddPieCutter, AddPlaneCutter,
+                                  AddCylinderCutter, AddCubeCutter, AddSphereCutter,
+                                  PickBboxWire, PickMesh, PickVolume)
+from .operators.io import (ExportVolumetricData,
+                           ImportAsLabelLayer, ImportAsScalarLayer)
+from .operators.misc import (CleanAllCaches,
+                             ReLinkNodes, SaveCaches, SaveStagedData)
+
+
+def container_is_selected():
+    container_objs = get_container_objs_from_selection()
+    return len(container_objs) > 0
 
 
 class PickFromContainerMenu(bpy.types.Menu):
@@ -24,7 +35,7 @@ class ModifyLayerMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(InvertScalar.bl_idname)
+        layout.operator(SignScalar.bl_idname)
         layout.operator(FillByThreshold.bl_idname)
         layout.operator(FillByRange.bl_idname)
         layout.operator(FillByLabel.bl_idname)
@@ -60,8 +71,7 @@ class BioxelNodesView3DMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        containers = get_container_from_selection()
-        is_selected = len(containers) > 0
+        is_selected = container_is_selected()
         layout.operator(ImportAsScalarLayer.bl_idname,
                         text=ImportAsScalarLayer.bl_label+" (Add to)"
                         if is_selected else ImportAsScalarLayer.bl_label+" (Init)")
@@ -79,7 +89,7 @@ class BioxelNodesView3DMenu(bpy.types.Menu):
         layout.operator(PickVolume.bl_idname)
         layout.operator(PickBboxWire.bl_idname)
         layout.separator()
-        layout.operator(SaveLayers.bl_idname)
+        layout.operator(SaveCaches.bl_idname)
 
 
 class BioxelNodesOutlinerMenu(bpy.types.Menu):
@@ -88,8 +98,7 @@ class BioxelNodesOutlinerMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        containers = get_container_from_selection()
-        is_selected = len(containers) > 0
+        is_selected = container_is_selected()
         layout.operator(ImportAsScalarLayer.bl_idname,
                         text=ImportAsScalarLayer.bl_label+" (Add to)"
                         if is_selected else ImportAsScalarLayer.bl_label+" (Init)")
@@ -107,21 +116,18 @@ class BioxelNodesOutlinerMenu(bpy.types.Menu):
         layout.operator(PickVolume.bl_idname)
         layout.operator(PickBboxWire.bl_idname)
         layout.separator()
-        layout.operator(SaveLayers.bl_idname)
+        layout.operator(SaveCaches.bl_idname)
         layout.separator()
-        layout.operator(InvertScalar.bl_idname)
+        layout.operator(SignScalar.bl_idname)
         layout.operator(FillByThreshold.bl_idname)
         layout.operator(FillByRange.bl_idname)
         layout.operator(FillByLabel.bl_idname)
         layout.operator(CombineLabels.bl_idname)
-        layout.separator()
-        layout.operator(ExportVolumetricData.bl_idname)
 
 
 def TOPBAR_FILE_IMPORT(self, context):
     layout = self.layout
-    containers = get_container_from_selection()
-    is_selected = len(containers) > 0
+    is_selected = container_is_selected()
 
     layout.separator()
     layout.menu(ImportLayerMenu.bl_idname, text="Volumetric Data as Bioxel (Add to)"
@@ -153,11 +159,13 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        containers = get_container_from_selection()
-        is_selected = len(containers) > 0
+        is_selected = container_is_selected()
 
         layout.menu(ImportLayerMenu.bl_idname, text=ImportLayerMenu.bl_label+" (Add to)"
                     if is_selected else ImportLayerMenu.bl_label+" (Init)")
+        layout.separator()
+        layout.operator(LoadContainer.bl_idname)
+        layout.operator(SaveContainer.bl_idname)
         layout.separator()
         layout.menu(AddCutterMenu.bl_idname)
         layout.menu(PickFromContainerMenu.bl_idname)
@@ -171,11 +179,11 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
 def TOPBAR(self, context):
     layout = self.layout
     layout.menu(BioxelNodesTopbarMenu.bl_idname)
-    
-    
+
+
 def add():
     bpy.types.TOPBAR_MT_file_import.append(TOPBAR_FILE_IMPORT)
-    bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)
+    # bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)
     bpy.types.OUTLINER_MT_object.append(OUTLINER_OBJECT)
     bpy.types.VIEW3D_MT_object_context_menu.append(VIEW3D_OBJECT)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR)
@@ -183,7 +191,7 @@ def add():
 
 def remove():
     bpy.types.TOPBAR_MT_file_import.remove(TOPBAR_FILE_IMPORT)
-    bpy.types.TOPBAR_MT_file_export.remove(TOPBAR_FILE_EXPORT)
+    # bpy.types.TOPBAR_MT_file_export.remove(TOPBAR_FILE_EXPORT)
     bpy.types.OUTLINER_MT_object.remove(OUTLINER_OBJECT)
     bpy.types.VIEW3D_MT_object_context_menu.remove(VIEW3D_OBJECT)
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR)
