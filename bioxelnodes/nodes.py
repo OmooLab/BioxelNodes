@@ -1,62 +1,8 @@
 
 from pathlib import Path
 from .customnodes import CustomNodes
-import bpy
 
-# def set_object_to_node_factory(object_type:str):
-#     if object_type == "plane":
-#         create_object = """
-#     bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-#         """
-#     callback_str = f"""
-# import bpy
-# from ..utils import get_container
-# container = get_container(bpy.context.active_object)
-# if container:
-#     {create_object}
-#     object = bpy.context.active_object
-#     node.inputs[0].default_value = object
-# else:
-#     print('Cannot find any Bioxel Container.')
-#     """
-#     return callback_str
-
-
-# def add_driver_to_node_factory(source_prop, target_prop):
-#     callback_str = f"""
-# import bpy
-# from .utils import add_direct_driver, get_bioxels_obj
-# bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-# if bioxels_obj:
-#     container_obj = bioxels_obj.parent
-#     add_direct_driver(
-#         target=node,
-#         target_prop='{target_prop}',
-#         source=container_obj,
-#         source_prop='{source_prop}'
-#     )
-# else:
-#     print('Cannot find any bioxels.')
-#     """
-#     return callback_str
-
-
-# def set_prop_to_node_factory(source_prop, target_prop):
-#     callback_str = f"""
-# import bpy
-# from .utils import get_bioxels_obj
-# bioxels_obj = get_bioxels_obj(bpy.context.active_object)
-# if bioxels_obj:
-#     container_obj = bioxels_obj.parent
-#     node.inputs.get('{target_prop}').default_value = container_obj.get(
-#         '{source_prop}')
-# else:
-#     print('Cannot find any bioxels.')
-#     """
-#     return callback_str
-
-
-NODE_FILE = "BioxelNodes_4.1"
+NODE_FILE = "BioxelNodes_4.2"
 
 MENU_ITEMS = [
     {

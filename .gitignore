@@ -133,4 +133,4 @@ blendcache_*
 
 .secrets
 
-!bioxelnodes/scipy/_nd_image.cp311-win_amd64.pyd
+!scipy_ndimage/*/**

@@ -1,4 +1,3 @@
-import shutil
 import bpy
 from pathlib import Path
 from .nodes import AddCustomNode

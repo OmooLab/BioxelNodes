@@ -94,6 +94,7 @@ class AddCustomNode():
         self.get_node_tree(self.node_type, self.node_link)
         node = node_group.nodes.new("GeometryNodeGroup")
         self.assign_node_tree(node)
+        node.show_options = False
 
         return node
 
@@ -121,5 +122,6 @@ class CUSTOMNODES_OT_Add_Custom_Node(bpy.types.Operator, AddCustomNode):
         node = bpy.context.active_node
 
         self.assign_node_tree(node)
+        node.show_options = False
 
         return {"FINISHED"}

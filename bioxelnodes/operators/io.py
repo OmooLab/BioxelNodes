@@ -1,0 +1,808 @@
+import math
+import bpy
+import shutil
+import threading
+import numpy as np
+from pathlib import Path
+
+
+from ..exceptions import CancelledByUser
+from ..props import BIOXELNODES_Series
+from ..bioxel.layer import Layer
+from ..bioxelutils.layer import (get_all_layer_objs,
+                                 get_layer_obj)
+from ..bioxelutils.container import (Container,
+                                     add_layers,
+                                     container_to_obj,
+                                     get_container_objs_from_selection)
+from ..bioxel.parse import (DICOM_EXTS, SUPPORT_EXTS,
+                            get_ext, parse_volumetric_data)
+from .utils import (get_cache_dir, get_preferences,
+                    progress_update, progress_bar, select_object)
+
+# 3rd-party
+import SimpleITK as sitk
+import transforms3d
+
+FH_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
+           '.gipl', '.gipl.gz',
+           '.mnc', '.MNC',
+           '.mrc', '.rec',
+           '.mha', '.mhd',
+           '.nia', '.nii', '.nii.gz', '.hdr', '.img', '.img.gz',
+           '.hdf', '.h4', '.hdf4', '.he2', '.h5', '.hdf5', '.he5',
+           '.nrrd', '.nhdr',
+           '.vtk',
+           '.gz'
+           '.ome.tiff', '.ome.tif',
+           '.mrc', '.mrc.gz', '.map', '.map.gz']
+
+
+def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
+    shape = (int(orig_shape[0] / bioxel_size * orig_spacing[0]),
+             int(orig_shape[1] / bioxel_size * orig_spacing[1]),
+             int(orig_shape[2] / bioxel_size * orig_spacing[2]))
+
+    return (shape[0] if shape[0] > 0 else 1,
+            shape[1] if shape[1] > 0 else 1,
+            shape[2] if shape[2] > 0 else 1)
+
+
+def get_layer_size(shape: tuple, bioxel_size: float, scale: float = 1.0):
+    size = (float(shape[0] * bioxel_size * scale),
+            float(shape[1] * bioxel_size * scale),
+            float(shape[2] * bioxel_size * scale))
+
+    return size
+
+
+"""
+ImportVolumetricData
+                        -> ParseVolumetricData -> ImportVolumetricDataDialog
+FH_ImportVolumetricData
+
+ start import                  parse data               execute import
+"""
+
+
+class ImportVolumetricData():
+    bl_options = {'UNDO'}
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
+
+    read_as = "scalar"
+
+    def execute(self, context):
+        container_objs = get_container_objs_from_selection()
+
+        if len(container_objs) > 0:
+            bpy.ops.bioxelnodes.parse_volumetric_data('INVOKE_DEFAULT',
+                                                      filepath=self.filepath,
+                                                      directory=self.directory,
+                                                      container_obj_name=container_objs[0].name,
+                                                      read_as=self.read_as)
+        else:
+            bpy.ops.bioxelnodes.parse_volumetric_data('INVOKE_DEFAULT',
+                                                      filepath=self.filepath,
+                                                      directory=self.directory,
+                                                      read_as=self.read_as)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+class ImportAsScalarLayer(bpy.types.Operator, ImportVolumetricData):
+    bl_idname = "bioxelnodes.import_as_scalar_layer"
+    bl_label = "Import as Scalar"
+    bl_description = "Import Volumetric Data to Container as Scalar"
+    read_as = "scalar"
+
+
+class ImportAsLabelLayer(bpy.types.Operator, ImportVolumetricData):
+    bl_idname = "bioxelnodes.import_as_label_layer"
+    bl_label = "Import as Label"
+    bl_description = "Import Volumetric Data to Container as Label"
+    read_as = "label"
+
+
+class BIOXELNODES_FH_ImportVolumetricData(bpy.types.FileHandler):
+    bl_idname = "BIOXELNODES_FH_ImportVolumetricData"
+    bl_label = "File handler for dicom import"
+    bl_import_operator = "bioxelnodes.parse_volumetric_data"
+    bl_file_extensions = ";".join(FH_EXTS)
+
+    @classmethod
+    def poll_drop(cls, context):
+        return (context.area and context.area.type == 'VIEW_3D')
+
+
+def get_series_ids(self, context):
+    items = []
+    for index, series_id in enumerate(self.series_ids):
+        items.append((
+            series_id.id,
+            series_id.label,
+            "",
+            index
+        ))
+
+    return items
+
+
+class ParseVolumetricData(bpy.types.Operator):
+    bl_idname = "bioxelnodes.parse_volumetric_data"
+    bl_label = "Import Volumetric Data"
+    bl_description = "Import Volumetric Data as Layer"
+    bl_options = {'UNDO'}
+
+    meta = None
+    thread = None
+    _timer = None
+
+    progress: bpy.props.FloatProperty(name="Progress",
+                                      options={"SKIP_SAVE"},
+                                      default=1)  # type: ignore
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
+    container_obj_name: bpy.props.StringProperty()   # type: ignore
+
+    read_as: bpy.props.EnumProperty(name="Read as",
+                                    default="scalar",
+                                    items=[("scalar", "Scalar", ""),
+                                           ("label", "Labels", "")])  # type: ignore
+
+    series_id: bpy.props.EnumProperty(name="Select Series",
+                                      items=get_series_ids)  # type: ignore
+
+    series_ids: bpy.props.CollectionProperty(
+        type=BIOXELNODES_Series)  # type: ignore
+
+    def execute(self, context):
+        data_path = Path(self.filepath).resolve()
+        ext = get_ext(data_path)
+        if ext not in SUPPORT_EXTS:
+            self.report({"WARNING"}, "Not supported extension.")
+            return {'CANCELLED'}
+
+        print("Collecting Meta Data...")
+
+        def parse_volumetric_data_func(self, context, cancel):
+            def progress_callback(factor, text):
+                if cancel():
+                    raise CancelledByUser
+                progress_update(context, factor, text)
+
+            try:
+                series_id = self.series_id if self.series_id != "empty" else ""
+                data, meta = parse_volumetric_data(data_file=self.filepath,
+                                                   series_id=series_id,
+                                                   progress_callback=progress_callback)
+            except CancelledByUser:
+                return
+            except Exception as e:
+                self.has_error = e
+                return
+
+            if cancel():
+                return
+
+            self.meta = meta
+
+        # Init cancel flag
+        self.is_cancelled = False
+        self.has_error = None
+
+        # Create the thread
+        self.thread = threading.Thread(target=parse_volumetric_data_func,
+                                       args=(self, context, lambda: self.is_cancelled))
+
+        # Start the thread
+        self.thread.start()
+        # Add a timmer for modal
+        self._timer = context.window_manager.event_timer_add(time_step=0.1,
+                                                             window=context.window)
+        # Append progress bar to status bar
+        bpy.types.STATUSBAR_HT_header.append(progress_bar)
+
+        # Start modal handler
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        # Check if user press 'ESC'
+        if event.type == 'ESC':
+            self.is_cancelled = True
+            progress_update(context, 0, "Canceling...")
+            return {'PASS_THROUGH'}
+
+        # Check if is the timer time
+        if event.type != 'TIMER':
+            return {'PASS_THROUGH'}
+
+        # Force update status bar
+        bpy.context.workspace.status_text_set_internal(None)
+
+        # Check if thread is still running
+        if self.thread.is_alive():
+            return {'PASS_THROUGH'}
+
+        # Release the thread
+        self.thread.join()
+        # Remove the timer
+        context.window_manager.event_timer_remove(self._timer)
+        # Remove the progress bar from status bar
+        bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+
+        # Check if thread is cancelled by user
+        if self.is_cancelled:
+            self.report({"WARNING"}, "Canncelled by user.")
+            return {'CANCELLED'}
+
+        # Check if thread is cancelled by user
+        if self.has_error:
+            raise self.has_error
+
+        # Check if has return
+        if self.meta is None:
+            self.report({"ERROR"}, "Some thing went wrong.")
+            return {'CANCELLED'}
+
+        # If not canncelled...
+        for key, value in self.meta.items():
+            print(f"{key}: {value}")
+
+        orig_shape = self.meta['xyz_shape']
+        orig_spacing = self.meta['spacing']
+        min_size = min(orig_spacing[0],
+                       orig_spacing[1], orig_spacing[2])
+        bioxel_size = max(min_size, 1.0)
+
+        layer_shape = get_layer_shape(1, orig_shape, orig_spacing)
+        layer_size = get_layer_size(layer_shape,
+                                    bioxel_size)
+        log10 = math.floor(math.log10(max(*layer_size)))
+        log10 = max(1, log10)
+        log10 = min(3, log10)
+        scene_scale = math.pow(10, -log10)
+
+        if self.container_obj_name:
+            container_obj = bpy.data.objects.get(self.container_obj_name)
+            container_name = container_obj.name
+        else:
+            container_name = self.meta['name']
+
+        series_id = self.series_id if self.series_id != "empty" else ""
+        bpy.ops.bioxelnodes.import_volumetric_data_dialog(
+            'INVOKE_DEFAULT',
+            filepath=self.filepath,
+            container_name=container_name,
+            layer_name=self.meta['description'],
+            orig_shape=orig_shape,
+            orig_spacing=orig_spacing,
+            bioxel_size=bioxel_size,
+            series_id=series_id,
+            frame_count=self.meta['frame_count'],
+            channel_count=self.meta['channel_count'],
+            container_obj_name=self.container_obj_name,
+            read_as=self.read_as,
+            scene_scale=scene_scale
+        )
+
+        self.report({"INFO"}, "Successfully Readed.")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        if not self.filepath and not self.directory:
+            return {'CANCELLED'}
+
+        data_path = Path(self.filepath).resolve()
+        ext = get_ext(data_path)
+
+        # Series Selection
+        if ext in DICOM_EXTS:
+            data_dirpath = data_path.parent
+            reader = sitk.ImageSeriesReader()
+            reader.MetaDataDictionaryArrayUpdateOn()
+            reader.LoadPrivateTagsOn()
+
+            series_ids = reader.GetGDCMSeriesIDs(str(data_dirpath))
+            series_items = {}
+
+            for series_id in series_ids:
+                series_files = reader.GetGDCMSeriesFileNames(
+                    str(data_dirpath), series_id)
+                single = sitk.ImageFileReader()
+                single.SetFileName(series_files[0])
+                single.LoadPrivateTagsOn()
+                single.ReadImageInformation()
+
+                def get_meta(key):
+                    try:
+                        stirng = single.GetMetaData(key).removesuffix(" ")
+                        if stirng in ["No study description",
+                                      "No series description",
+                                      ""]:
+                            return "Unknown"
+                        else:
+                            return stirng
+                    except:
+                        return "Unknown"
+
+                study_description = get_meta("0008|1030")
+                series_description = get_meta("0008|103e")
+                series_modality = get_meta("0008|0060")
+                size_x = get_meta("0028|0011")
+                size_y = get_meta("0028|0010")
+                count = get_meta("0020|0013")
+                count = count if count != "Unknown" else 1
+
+                # some series image count = 0 ????
+                if int(count) == 0:
+                    continue
+
+                # series_id cannot be "" in blender selection
+                if series_id == "":
+                    series_id = "empty"
+
+                series_items[series_id] = "{:<20} {:>1}".format(f"{study_description}>{series_description}({series_modality})",
+                                                                f"({size_x}x{size_y})x{count}")
+
+            for key, value in series_items.items():
+                series_item = self.series_ids.add()
+                series_item.id = key
+                series_item.label = value
+
+            if len(series_items.keys()) > 1:
+                context.window_manager.invoke_props_dialog(self,
+                                                           width=400,
+                                                           title="Which series to import?")
+                return {'RUNNING_MODAL'}
+            elif len(series_items.keys()) == 1:
+                self.series_id = list(series_items.keys())[0]
+            else:
+                self.report({"ERROR"}, "Get no vaild series.")
+                return {'CANCELLED'}
+
+        self.execute(context)
+        return {'RUNNING_MODAL'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(
+            text='Detect multi-series in DICOM, pick one')
+        layout.prop(self, "series_id")
+
+
+def get_sequence_sources(self, context):
+    items = [("-1", "None (Static)", "")]
+    orig_shape = tuple(self.orig_shape)
+    if self.frame_count > 1:
+        items.append(("0", f"Frame (Get {self.frame_count} frames)", ""))
+    elif self.frame_count == 1 and self.channel_count > 1:
+        items.append(("4", f"Channel (Get {self.channel_count} frames)", ""))
+    elif self.frame_count == 1 and self.channel_count == 1:
+        items.append(("1", f"X (Get {orig_shape[0]} frames)", ""))
+        items.append(("2", f"Y (Get {orig_shape[1]} frames)", ""))
+        items.append(("3", f"Z (Get {orig_shape[2]} frames)", ""))
+
+    return items
+
+
+class ImportVolumetricDataDialog(bpy.types.Operator):
+    bl_idname = "bioxelnodes.import_volumetric_data_dialog"
+    bl_label = "Import Volumetric Data"
+    bl_description = "Import Volumetric Data as Layer"
+    bl_options = {'UNDO'}
+
+    layers = None
+    thread = None
+    _timer = None
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+
+    container_name: bpy.props.StringProperty(
+        name="Container Name")   # type: ignore
+
+    layer_name: bpy.props.StringProperty(name="Layer Name")   # type: ignore
+
+    series_id: bpy.props.StringProperty()   # type: ignore
+
+    container_obj_name: bpy.props.StringProperty()   # type: ignore
+
+    frame_count: bpy.props.IntProperty()  # type: ignore
+
+    channel_count: bpy.props.IntProperty()  # type: ignore
+
+    read_as: bpy.props.EnumProperty(name="Read as",
+                                    default="scalar",
+                                    items=[("scalar", "Scalar", ""),
+                                           ("label", "Labels", "")])  # type: ignore
+
+    bioxel_size: bpy.props.FloatProperty(name="Bioxel Size (Larger size means small resolution)",
+                                         soft_min=0.1, soft_max=10.0,
+                                         min=0.1, max=1e2,
+                                         default=1)  # type: ignore
+
+    orig_spacing: bpy.props.FloatVectorProperty(name="Original Spacing",
+                                                default=(1, 1, 1))  # type: ignore
+
+    orig_shape: bpy.props.IntVectorProperty(name="Original Shape",
+                                            default=(100, 100, 100))  # type: ignore
+
+    scene_scale: bpy.props.FloatProperty(name="Scene Scale (Bioxel Unit pre Blender Unit)",
+                                         soft_min=0.0001, soft_max=10.0,
+                                         min=1e-6, max=1e6,
+                                         default=0.01)  # type: ignore
+
+    split_channels: bpy.props.BoolProperty(name="Split Channels",
+                                           default=False)  # type: ignore
+
+    sequence_source: bpy.props.EnumProperty(name="Time Sequence From",
+                                            items=get_sequence_sources)  # type: ignore
+
+    def execute(self, context):
+        def import_volumetric_data_func(self, context, cancel):
+            progress_update(context, 0.0, "Parsing Volumetirc Data...")
+
+            def progress_callback(factor, text):
+                if cancel():
+                    raise CancelledByUser
+                progress_update(context, factor*0.2, text)
+
+            try:
+                data, meta = parse_volumetric_data(data_file=self.filepath,
+                                                   series_id=self.series_id,
+                                                   progress_callback=progress_callback)
+            except CancelledByUser:
+                return
+            except Exception as e:
+                self.has_error = e
+                return
+
+            if cancel():
+                return
+
+            shape = get_layer_shape(self.bioxel_size,
+                                    self.orig_shape,
+                                    self.orig_spacing)
+
+            mat_scale = transforms3d.zooms.zfdir2aff(self.bioxel_size)
+            affine = np.dot(meta['affine'], mat_scale)
+            kind = self.read_as
+
+            if cancel():
+                return
+
+            # change shape as sequence or not
+            if self.sequence_source == "-1":
+                data = data[0:1, :, :, :, :]
+            elif self.sequence_source == "0":
+                # frame as frame
+                pass
+            elif self.sequence_source == "1":
+                # X as frame
+                data = data.transpose(1, 0, 2, 3, 4)
+                shape = (1, shape[1], shape[2])
+            elif self.sequence_source == "2":
+                # Y as frame
+                data = data.transpose(2, 1, 0, 3, 4)
+                shape = (shape[0], 1, shape[2])
+            elif self.sequence_source == "3":
+                # Z as frame
+                data = data.transpose(3, 1, 2, 0, 4)
+                shape = (shape[0], shape[1], 1)
+            else:
+                # channel as frame
+                data = data.transpose(4, 1, 2, 3, 0)
+
+            def progress_callback_factory(layer_name, progress, progress_step):
+                def progress_callback(frame, total):
+                    if cancel():
+                        raise CancelledByUser
+                    sub_progress_step = progress_step/total
+                    sub_progress = progress + frame * sub_progress_step
+                    progress_update(context, sub_progress,
+                                    f"Processing {layer_name} Frame {frame+1}...")
+                return progress_callback
+
+            layers = []
+            if kind == "label":
+                name = self.layer_name or "Label"
+                data = data.astype(int)
+                label_count = int(np.max(data))
+                progress_step = 0.7/label_count
+
+                for i in range(label_count):
+                    if cancel():
+                        return
+
+                    name_i = f"{name}_{i+1}"
+                    progress = 0.2+i*progress_step
+                    progress_update(context, progress,
+                                    f"Processing {name_i}...")
+
+                    progress_callback = progress_callback_factory(name_i,
+                                                                  progress,
+                                                                  progress_step)
+                    try:
+                        layer = Layer(data=data == np.full_like(data, i+1),
+                                      name=name_i,
+                                      kind=kind,
+                                      affine=affine)
+
+                        layer.resize(shape=shape,
+                                     progress_callback=progress_callback)
+
+                        layers.append(layer)
+                    except CancelledByUser:
+                        return
+                    except Exception as e:
+                        self.has_error = e
+                        return
+
+            elif kind == "scalar":
+                name = self.layer_name or "Scalar"
+
+                if self.split_channels:
+                    progress_step = 0.7/self.channel_count
+
+                    for i in range(self.channel_count):
+                        if cancel():
+                            return
+
+                        name_i = f"{name}_{i+1}"
+                        progress = 0.2 + i*progress_step
+                        progress_update(context, progress,
+                                        f"Processing {name_i}...")
+                        progress_callback = progress_callback_factory(name_i,
+                                                                      progress,
+                                                                      progress_step)
+                        try:
+                            layer = Layer(data=data[:, :, :, :, i:i+1],
+                                          name=name_i,
+                                          kind=kind,
+                                          affine=affine)
+
+                            layer.resize(shape=shape,
+                                         progress_callback=progress_callback)
+
+                            layers.append(layer)
+                        except CancelledByUser:
+                            return
+                        except Exception as e:
+                            self.has_error = e
+                            return
+                else:
+                    if cancel():
+                        return
+
+                    progress_update(context, 0.2,
+                                    f"Processing {name}...")
+                    progress_callback = progress_callback_factory(name,
+                                                                  0.2,
+                                                                  0.7)
+
+                    try:
+                        layer = Layer(data=data,
+                                      name=name,
+                                      kind=kind,
+                                      affine=affine)
+
+                        layer.resize(shape=shape,
+                                     progress_callback=progress_callback)
+
+                        layers.append(layer)
+                    except CancelledByUser:
+                        return
+                    except Exception as e:
+                        self.has_error = e
+                        return
+
+            if cancel():
+                return
+
+            self.layers = layers
+            progress_update(context, 0.9, "Creating Layers...")
+
+        self.is_cancelled = False
+        self.has_error = None
+
+        self.thread = threading.Thread(target=import_volumetric_data_func,
+                                       args=(self, context, lambda: self.is_cancelled))
+
+        self.thread.start()
+        self._timer = context.window_manager.event_timer_add(time_step=0.1,
+                                                             window=context.window)
+        bpy.types.STATUSBAR_HT_header.append(progress_bar)
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if event.type == 'ESC':
+            self.is_cancelled = True
+            progress_update(context, 0, "Canceling...")
+            return {'PASS_THROUGH'}
+
+        if event.type != 'TIMER':
+            return {'PASS_THROUGH'}
+
+        bpy.context.workspace.status_text_set_internal(None)
+        if self.thread.is_alive():
+            return {'PASS_THROUGH'}
+
+        self.thread.join()
+        context.window_manager.event_timer_remove(self._timer)
+        bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+
+        if self.is_cancelled:
+            self.report({"WARNING"}, "Canncelled by user.")
+            return {'CANCELLED'}
+
+        # Check if thread is cancelled by user
+        if self.has_error:
+            raise self.has_error
+
+        # Check if has return
+        if self.layers is None:
+            self.report({"ERROR"}, "Some thing went wrong.")
+            return {'CANCELLED'}
+
+        is_first_import = len(get_all_layer_objs()) == 0
+
+        if self.container_obj_name:
+            container_obj = bpy.data.objects.get(self.container_obj_name)
+            if container_obj is None:
+                raise Exception("Could not find target container")
+
+            container_obj = add_layers(self.layers,
+                                       container_obj=container_obj,
+                                       cache_dir=get_cache_dir(context))
+        else:
+            container = Container(name=self.container_name,
+                                  layers=self.layers)
+
+            container_obj = container_to_obj(container,
+                                             scene_scale=self.scene_scale,
+                                             cache_dir=get_cache_dir(context))
+
+        select_object(container_obj)
+
+        # Change render setting for better result
+        preferences = get_preferences(context)
+        if preferences.do_change_render_setting and is_first_import:
+            bpy.context.scene.render.engine = 'CYCLES'
+            try:
+                bpy.context.scene.cycles.shading_system = True
+                bpy.context.scene.cycles.volume_bounces = 12
+                bpy.context.scene.cycles.transparent_max_bounces = 16
+                bpy.context.scene.cycles.volume_preview_step_rate = 10
+                bpy.context.scene.cycles.volume_step_rate = 10
+            except:
+                pass
+
+            try:
+                bpy.context.scene.eevee.use_taa_reprojection = False
+                bpy.context.scene.eevee.volumetric_tile_size = '2'
+                bpy.context.scene.eevee.volumetric_shadow_samples = 128
+                bpy.context.scene.eevee.volumetric_samples = 256
+                bpy.context.scene.eevee.use_volumetric_shadows = True
+            except:
+                pass
+
+        self.report({"INFO"}, "Successfully Imported")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        if self.read_as == "label":
+            volume_dtype = "Label"
+        elif self.read_as == "scalar":
+            volume_dtype = "Scalar"
+        title = f"As {volume_dtype} Opitons (Add to Container: {self.container_obj_name})" \
+            if self.container_obj_name != "" else f"As {volume_dtype} Options (Init a Container)"
+        context.window_manager.invoke_props_dialog(self,
+                                                   width=500,
+                                                   title=title)
+        return {'RUNNING_MODAL'}
+
+    def draw(self, context):
+        layer_shape = get_layer_shape(self.bioxel_size,
+                                      self.orig_shape,
+                                      self.orig_spacing)
+
+        orig_shape = tuple(self.orig_shape)
+
+        # change shape as sequence or not
+        channel_count = self.channel_count
+        if self.sequence_source == "-1":
+            pass
+        elif self.sequence_source == "0":
+            # frame as frame
+            pass
+        elif self.sequence_source == "1":
+            layer_shape = (1, layer_shape[1], layer_shape[2])
+        elif self.sequence_source == "2":
+            layer_shape = (layer_shape[0], 1, layer_shape[2])
+        elif self.sequence_source == "3":
+            layer_shape = (layer_shape[0], layer_shape[1], 1)
+        else:
+            channel_count = 1
+
+        import_channel = channel_count if self.split_channels or channel_count == 1 else "combined"
+
+        bioxel_count = layer_shape[0] * layer_shape[1] * layer_shape[2]
+        layer_shape_text = f"Shape from {str(orig_shape)} to {str(layer_shape)}"
+        if bioxel_count > 100000000:
+            layer_shape_text += "**TOO LARGE!**"
+
+        layout = self.layout
+        if self.container_obj_name == "":
+            layout.prop(self, "container_name")
+        layout.prop(self, "layer_name")
+
+        panel = layout.box()
+        panel.prop(self, "bioxel_size")
+        row = panel.row()
+        row.prop(self, "orig_spacing")
+        panel.label(text=layer_shape_text)
+
+        panel = layout.box()
+        panel.prop(self, "sequence_source")
+
+        if self.read_as == "scalar":
+            panel = layout.box()
+            panel.prop(self, "split_channels",
+                       text=f"Split Channels (Get {channel_count} channels, import {import_channel} channels)")
+
+        if self.container_obj_name == "":
+            layer_size = get_layer_size(layer_shape,
+                                        self.bioxel_size,
+                                        self.scene_scale)
+            layer_size_text = f"Size will be: ({layer_size[0]:.2f}, {layer_size[1]:.2f}, {layer_size[2]:.2f}) m"
+            panel = layout.box()
+            panel.prop(self, "scene_scale")
+            panel.label(text=layer_size_text)
+
+
+class ExportVolumetricData(bpy.types.Operator):
+    bl_idname = "bioxelnodes.export_volumetric_data"
+    bl_label = "Export Layer as VDB"
+    bl_description = "Export Layer as VDB"
+    bl_options = {'UNDO'}
+
+    filepath: bpy.props.StringProperty(
+        subtype="FILE_PATH"
+    )  # type: ignore
+
+    filename_ext = ".vdb"
+
+    @classmethod
+    def poll(cls, context):
+        layer_obj = get_layer_obj(bpy.context.active_object)
+        return True if layer_obj else False
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        layer_obj = get_layer_obj(bpy.context.active_object)
+
+        filepath = f"{self.filepath.split('.')[0]}.vdb"
+        # "//"
+        source_dir = bpy.path.abspath(layer_obj.data.filepath)
+
+        output_path: Path = Path(filepath).resolve()
+        source_path: Path = Path(source_dir).resolve()
+        # print('output_path', output_path)
+        # print('source_path', source_path)
+        shutil.copy(source_path, output_path)
+
+        self.report({"INFO"}, f"Successfully exported to {output_path}")
+
+        return {'FINISHED'}

@@ -50,33 +50,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  upload_blender_addon:
-    name: Upload Blender Add-on
+  build_blender_add-on:
+    name: Build Blender Extension
     needs: draft_release
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          lfs: "true"
-      - name: Zip Add-on
-        run: |
-          zip -r package.zip bioxelnodes
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.draft_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./package.zip
-          asset_name: BioxelNodes_Addon_${{ needs.draft_release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-  upload_blender_extension:
-    name: Upload Blender Extension
-    needs: draft_release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: ["windows-x64", "linux-x64", "macos-arm64", "macos-x64"]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -86,21 +66,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-      - name: Zip Extension
+      - name: Build Add-on
         run: |
-          pip download SimpleITK==2.3.1 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
-          pip download pyometiff==1.0.0 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
-          pip download mrcfile==1.5.1 --dest wheels --only-binary=:all: --python-version=3.11 --platform=win_amd64
-          mkdir bioxelnodes/wheels
-          cp wheels/SimpleITK-2.3.1-cp311-cp311-win_amd64.whl bioxelnodes/wheels/SimpleITK-2.3.1-cp311-cp311-win_amd64.whl
-          cp wheels/lxml-5.2.2-cp311-cp311-win_amd64.whl bioxelnodes/wheels/lxml-5.2.2-cp311-cp311-win_amd64.whl
-          cp wheels/tifffile-2024.7.21-py3-none-any.whl bioxelnodes/wheels/tifffile-2024.7.21-py3-none-any.whl
-          cp wheels/pyometiff-1.0.0-py3-none-any.whl bioxelnodes/wheels/pyometiff-1.0.0-py3-none-any.whl
-          cp wheels/mrcfile-1.5.1-py2.py3-none-any.whl bioxelnodes/wheels/mrcfile-1.5.1-py2.py3-none-any.whl
-          rm -r bioxelnodes/externalpackage
-          cp extension/__init__.py bioxelnodes/__init__.py
-          cp extension/preferences.py bioxelnodes/preferences.py
-          cp extension/blender_manifest.toml bioxelnodes/blender_manifest.toml
+          pip install tomlkit
+          python build.py ${{ matrix.platform }}
           zip -r package.zip bioxelnodes
       - name: Upload Release Asset
         id: upload-release-asset
@@ -110,5 +79,5 @@ jobs:
         with:
           upload_url: ${{ needs.draft_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./package.zip
-          asset_name: BioxelNodes_Extension_${{ needs.draft_release.outputs.version }}.zip
+          asset_name: BioxelNodes_${{ needs.draft_release.outputs.version }}_${{ matrix.platform }}.zip
           asset_content_type: application/zip

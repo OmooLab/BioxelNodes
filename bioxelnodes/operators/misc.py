@@ -2,8 +2,13 @@ import re
 import bpy
 from pathlib import Path
 import shutil
-from .utils import copy_to_dir, get_all_layers, get_container, get_container_from_selection, get_container_layers
-from .nodes import custom_nodes
+
+
+from ..utils import copy_to_dir
+from .utils import get_cache_dir
+from ..nodes import custom_nodes
+from ..bioxelutils.container import get_container_objs_from_selection
+from ..bioxelutils.layer import get_all_layer_objs, get_container_layer_objs
 
 CLASS_PREFIX = "BIOXELNODES_MT_NODES"
 
@@ -25,6 +30,30 @@ class ReLinkNodes(bpy.types.Operator):
         self.report({"INFO"}, f"Successfully relinked.")
 
         return {'FINISHED'}
+
+
+def save_layer_cache(layer_obj, output_dir):
+    pattern = r'\.\d{4}\.'
+
+    # "//"
+    output_dir = bpy.path.abspath(output_dir)
+    source_dir = bpy.path.abspath(layer_obj.data.filepath)
+
+    source_path: Path = Path(source_dir).resolve()
+    is_sequence = re.search(pattern, source_path.name) is not None
+    name = layer_obj.name if is_sequence else f"{layer_obj.name}.vdb"
+    output_path: Path = Path(output_dir, name, source_path.name).resolve() \
+        if is_sequence else Path(output_dir, name).resolve()
+
+    if output_path != source_path:
+        copy_to_dir(source_path.parent if is_sequence else source_path,
+                    output_path.parent.parent if is_sequence else output_path.parent,
+                    new_name=name)
+
+    blend_path = Path(bpy.path.abspath("//")).resolve()
+
+    layer_obj.data.filepath = bpy.path.relpath(
+        str(output_path), start=str(blend_path))
 
 
 class SaveStagedData(bpy.types.Operator):
@@ -85,7 +114,7 @@ class SaveStagedData(bpy.types.Operator):
 
         if self.save_layer:
             fails = []
-            for layer in get_all_layers():
+            for layer in get_all_layer_objs():
                 try:
                     save_layer(layer, self.cache_dir)
                 except:
@@ -118,35 +147,10 @@ class SaveStagedData(bpy.types.Operator):
         panel.prop(self, "lib_dir")
 
 
-def save_layer(layer, output_dir):
-
-    pattern = r'\.\d{4}\.'
-
-    # "//"
-    output_dir = bpy.path.abspath(output_dir)
-    source_dir = bpy.path.abspath(layer.data.filepath)
-
-    source_path: Path = Path(source_dir).resolve()
-    is_sequence = re.search(pattern, source_path.name) is not None
-    name = layer.name if is_sequence else f"{layer.name}.vdb"
-    output_path: Path = Path(output_dir, name, source_path.name).resolve() \
-        if is_sequence else Path(output_dir, name).resolve()
-
-    if output_path != source_path:
-        copy_to_dir(source_path.parent if is_sequence else source_path,
-                    output_path.parent.parent if is_sequence else output_path.parent,
-                    new_name=name)
-
-    blend_path = Path(bpy.path.abspath("//")).resolve()
-
-    layer.data.filepath = bpy.path.relpath(
-        str(output_path), start=str(blend_path))
-
-
-class SaveLayers(bpy.types.Operator):
+class SaveCaches(bpy.types.Operator):
     bl_idname = "bioxelnodes.save_layers"
-    bl_label = "Save Layers"
-    bl_description = "Save Container Layers to Directory."
+    bl_label = "Save Caches"
+    bl_description = "Save Container's caches to directory."
 
     cache_dir: bpy.props.StringProperty(
         name="Layer Directory",
@@ -156,23 +160,23 @@ class SaveLayers(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        containers = get_container_from_selection()
-        return len(containers) > 0
+        container_objs = get_container_objs_from_selection()
+        return len(container_objs) > 0
 
     def execute(self, context):
-        containers = get_container_from_selection()
+        container_objs = get_container_objs_from_selection()
 
-        if len(containers) == 0:
+        if len(container_objs) == 0:
             self.report({"WARNING"}, "Cannot find any bioxel container.")
             return {'FINISHED'}
 
         fails = []
-        for container in containers:
-            for layer in get_container_layers(container):
+        for container_obj in container_objs:
+            for layer_obj in get_container_layer_objs(container_obj):
                 try:
-                    save_layer(layer, self.cache_dir)
+                    save_layer_cache(layer_obj, self.cache_dir)
                 except:
-                    fails.append(layer)
+                    fails.append(layer_obj)
 
         if len(fails) == 0:
             self.report({"INFO"}, f"Successfully saved bioxel layers.")
@@ -194,8 +198,7 @@ class CleanAllCaches(bpy.types.Operator):
     bl_description = "Clean all caches saved in temp"
 
     def execute(self, context):
-        preferences = context.preferences.addons[__package__].preferences
-        cache_dir = Path(preferences.cache_dir, 'VDBs')
+        cache_dir = get_cache_dir(context)
         try:
             shutil.rmtree(cache_dir)
             self.report({"INFO"}, f"Successfully cleaned caches.")
