@@ -17,7 +17,7 @@ from ..bioxelutils.container import (Container,
                                      get_container_objs_from_selection)
 from ..bioxel.parse import (DICOM_EXTS, SUPPORT_EXTS,
                             get_ext, parse_volumetric_data)
-from .utils import (get_cache_dir, get_preferences,
+from .utils import (change_render_setting, get_cache_dir, get_preferences,
                     progress_update, progress_bar, select_object)
 
 # 3rd-party
@@ -674,26 +674,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         select_object(container_obj)
 
         # Change render setting for better result
-        preferences = get_preferences(context)
-        if preferences.do_change_render_setting and is_first_import:
-            bpy.context.scene.render.engine = 'CYCLES'
-            try:
-                bpy.context.scene.cycles.shading_system = True
-                bpy.context.scene.cycles.volume_bounces = 12
-                bpy.context.scene.cycles.transparent_max_bounces = 16
-                bpy.context.scene.cycles.volume_preview_step_rate = 10
-                bpy.context.scene.cycles.volume_step_rate = 10
-            except:
-                pass
-
-            try:
-                bpy.context.scene.eevee.use_taa_reprojection = False
-                bpy.context.scene.eevee.volumetric_tile_size = '2'
-                bpy.context.scene.eevee.volumetric_shadow_samples = 128
-                bpy.context.scene.eevee.volumetric_samples = 256
-                bpy.context.scene.eevee.use_volumetric_shadows = True
-            except:
-                pass
+        if is_first_import:
+            change_render_setting(context)
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}

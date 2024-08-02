@@ -53,6 +53,11 @@ def build_extension(platform: Platform, python_version="3.11") -> None:
         if any([package in f.name for package in packages_to_remove]):
             f.unlink(missing_ok=True)
 
+        elif platform.blender_tag == "macos-arm64" and \
+                "lxml" in f.name and "universal2" in f.name:
+            f.rename(Path(f.parent,
+                          f.name.replace("universal2", "arm64")))
+
     for ndimage_filepath in scipy_ndimage_dirpath.iterdir():
         to_filepath = Path("./bioxelnodes/bioxel/scipy", ndimage_filepath.name)
         shutil.copy(ndimage_filepath, to_filepath)
@@ -61,14 +66,18 @@ def build_extension(platform: Platform, python_version="3.11") -> None:
     with toml_filepath.open("r") as file:
         manifest = tomlkit.parse(file.read())
 
-    build = tomlkit.table(True)
-    generated = tomlkit.table()
-    generated["platforms"] = [platform.blender_tag]
-    generated["wheels"] = [f"./wheels/{f.name}"
-                                 for f in wheel_dirpath.glob('*.whl')]
+    manifest["platforms"] = [platform.blender_tag]
+    manifest["wheels"] = [f"./wheels/{f.name}"
+                          for f in wheel_dirpath.glob('*.whl')]
 
-    build.append('generated', generated)
-    manifest.append('build', build)
+    # build = tomlkit.table(True)
+    # generated = tomlkit.table()
+    # generated["platforms"] = [platform.blender_tag]
+    # generated["wheels"] = [f"./wheels/{f.name}"
+    #                        for f in wheel_dirpath.glob('*.whl')]
+
+    # build.append('generated', generated)
+    # manifest.append('build', build)
 
     # Write the updated TOML file
     with toml_filepath.open("w") as file:
