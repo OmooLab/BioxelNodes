@@ -1,13 +1,15 @@
 import bpy
 
+
 import bmesh
 
 from ..nodes import custom_nodes
 from ..bioxel.io import load_container, save_container
+from ..bioxelutils.layer import get_all_layer_objs
 from ..bioxelutils.container import (container_to_obj, obj_to_container,
                                      get_container_objs_from_selection)
 from ..bioxelutils.node import get_nodes_by_type, move_node_between_nodes, move_node_to_node
-from .utils import get_cache_dir, select_object
+from .utils import change_render_setting, get_cache_dir, get_preferences, select_object
 
 
 class SaveContainer(bpy.types.Operator):
@@ -59,10 +61,15 @@ class LoadContainer(bpy.types.Operator):
     def execute(self, context):
         load_path = self.filepath
         container = load_container(self.filepath)
+        is_first_import = len(get_all_layer_objs()) == 0
+
         container_obj = container_to_obj(container,
                                          scene_scale=0.01,
                                          cache_dir=get_cache_dir(context))
         select_object(container_obj)
+
+        if is_first_import:
+            change_render_setting(context)
 
         self.report({"INFO"}, f"Successfully load {load_path}")
         return {'FINISHED'}

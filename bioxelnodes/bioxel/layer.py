@@ -77,14 +77,18 @@ class Layer():
                 raise Exception("Mask frame count is not same as ")
             for f in range(self.frame_count):
                 mask_frame = mask[f, :, :, :]
-                mask_frame = scipy.median_filter(
-                    mask_frame.astype(np.float32), size=2)
+                mask_frame = scipy.minimum_filter(
+                    mask_frame.astype(np.float32), size=3)
+                # mask_frame = scipy.median_filter(
+                #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
         elif mask.ndim == 3:
             for f in range(self.frame_count):
                 mask_frame = mask[:, :, :]
-                mask_frame = scipy.median_filter(
-                    mask_frame.astype(np.float32), size=2)
+                mask_frame = scipy.minimum_filter(
+                    mask_frame.astype(np.float32), size=3)
+                # mask_frame = scipy.median_filter(
+                #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
         else:
             raise Exception("Mask shape order should be TXYZ or XYZ")
