@@ -62,7 +62,7 @@ class SaveStagedData(bpy.types.Operator):
     bl_description = "Save all staged data in this file for sharing"
 
     save_layer: bpy.props.BoolProperty(
-        name="Save Layer VDB Cache",
+        name="Save Layer Caches",
         default=True,
     )  # type: ignore
 
@@ -116,7 +116,7 @@ class SaveStagedData(bpy.types.Operator):
             fails = []
             for layer in get_all_layer_objs():
                 try:
-                    save_layer(layer, self.cache_dir)
+                    save_layer_cache(layer, self.cache_dir)
                 except:
                     fails.append(layer)
 
