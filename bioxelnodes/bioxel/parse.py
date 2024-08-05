@@ -29,7 +29,8 @@ SUPPORT_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
                 '.png', '.PNG',
                 '.vtk',
                 '.ome.tiff', '.ome.tif',
-                '.mrc', '.mrc.gz', '.map', '.map.gz']
+                '.mrc', '.mrc.gz', '.map', '.map.gz',
+                '.gz']
 
 OME_EXTS = ['.ome.tiff', '.ome.tif',
             '.tif', '.TIF', '.tiff', '.TIFF']

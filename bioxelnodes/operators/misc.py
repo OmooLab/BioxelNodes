@@ -61,7 +61,7 @@ class SaveStagedData(bpy.types.Operator):
     bl_label = "Save Staged Data"
     bl_description = "Save all staged data in this file for sharing"
 
-    save_layer: bpy.props.BoolProperty(
+    save_cache: bpy.props.BoolProperty(
         name="Save Layer Caches",
         default=True,
     )  # type: ignore
@@ -112,7 +112,7 @@ class SaveStagedData(bpy.types.Operator):
 
                 self.report({"INFO"}, f"Successfully saved to {output_path}")
 
-        if self.save_layer:
+        if self.save_cache:
             fails = []
             for layer in get_all_layer_objs():
                 try:
@@ -140,7 +140,7 @@ class SaveStagedData(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         panel = layout.box()
-        panel.prop(self, "save_layer")
+        panel.prop(self, "save_cache")
         panel.prop(self, "cache_dir")
         panel = layout.box()
         panel.prop(self, "save_lib")
@@ -148,7 +148,7 @@ class SaveStagedData(bpy.types.Operator):
 
 
 class SaveCaches(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_layers"
+    bl_idname = "bioxelnodes.save_caches"
     bl_label = "Save Caches"
     bl_description = "Save Container's caches to directory."
 
