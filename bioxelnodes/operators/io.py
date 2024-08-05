@@ -24,19 +24,6 @@ from .utils import (change_render_setting, get_cache_dir, get_preferences,
 import SimpleITK as sitk
 import transforms3d
 
-FH_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
-           '.gipl', '.gipl.gz',
-           '.mnc', '.MNC',
-           '.mrc', '.rec',
-           '.mha', '.mhd',
-           '.nia', '.nii', '.nii.gz', '.hdr', '.img', '.img.gz',
-           '.hdf', '.h4', '.hdf4', '.he2', '.h5', '.hdf5', '.he5',
-           '.nrrd', '.nhdr',
-           '.vtk',
-           '.gz'
-           '.ome.tiff', '.ome.tif',
-           '.mrc', '.mrc.gz', '.map', '.map.gz']
-
 
 def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
     shape = (int(orig_shape[0] / bioxel_size * orig_spacing[0]),
@@ -69,24 +56,20 @@ class ImportVolumetricData():
     bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
-    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
 
     read_as = "scalar"
 
     def execute(self, context):
-        container_objs = get_container_objs_from_selection()
+        data_path = Path(self.filepath).resolve()
+        ext = get_ext(data_path)
+        if ext not in SUPPORT_EXTS:
+            self.report({"WARNING"}, "Not supported format.")
+            return {'CANCELLED'}
 
-        if len(container_objs) > 0:
-            bpy.ops.bioxelnodes.parse_volumetric_data('INVOKE_DEFAULT',
-                                                      filepath=self.filepath,
-                                                      directory=self.directory,
-                                                      container_obj_name=container_objs[0].name,
-                                                      read_as=self.read_as)
-        else:
-            bpy.ops.bioxelnodes.parse_volumetric_data('INVOKE_DEFAULT',
-                                                      filepath=self.filepath,
-                                                      directory=self.directory,
-                                                      read_as=self.read_as)
+        bpy.ops.bioxelnodes.parse_volumetric_data('INVOKE_DEFAULT',
+                                                  filepath=self.filepath,
+                                                  skip_read_as=True,
+                                                  read_as=self.read_as)
 
         return {'FINISHED'}
 
@@ -113,7 +96,7 @@ class BIOXELNODES_FH_ImportVolumetricData(bpy.types.FileHandler):
     bl_idname = "BIOXELNODES_FH_ImportVolumetricData"
     bl_label = "File handler for dicom import"
     bl_import_operator = "bioxelnodes.parse_volumetric_data"
-    bl_file_extensions = ";".join(FH_EXTS)
+    bl_file_extensions = ";".join(SUPPORT_EXTS)
 
     @classmethod
     def poll_drop(cls, context):
@@ -135,21 +118,26 @@ def get_series_ids(self, context):
 
 class ParseVolumetricData(bpy.types.Operator):
     bl_idname = "bioxelnodes.parse_volumetric_data"
-    bl_label = "Import Volumetric Data"
+    bl_label = "Import Volumetric Data (BioxelNodes)"
     bl_description = "Import Volumetric Data as Layer"
     bl_options = {'UNDO'}
 
     meta = None
     thread = None
     _timer = None
+    container_obj_name = ""
 
     progress: bpy.props.FloatProperty(name="Progress",
                                       options={"SKIP_SAVE"},
                                       default=1)  # type: ignore
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
-    directory: bpy.props.StringProperty(subtype='DIR_PATH')  # type: ignore
-    container_obj_name: bpy.props.StringProperty()   # type: ignore
+
+    skip_read_as: bpy.props.BoolProperty(name="Skip Read As",
+                                         default=False)  # type: ignore
+
+    skip_series_select: bpy.props.BoolProperty(name="Skip Sries Select",
+                                               default=True)  # type: ignore
 
     read_as: bpy.props.EnumProperty(name="Read as",
                                     default="scalar",
@@ -166,7 +154,7 @@ class ParseVolumetricData(bpy.types.Operator):
         data_path = Path(self.filepath).resolve()
         ext = get_ext(data_path)
         if ext not in SUPPORT_EXTS:
-            self.report({"WARNING"}, "Not supported extension.")
+            self.report({"WARNING"}, "Not supported format.")
             return {'CANCELLED'}
 
         print("Collecting Meta Data...")
@@ -297,11 +285,18 @@ class ParseVolumetricData(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        if not self.filepath and not self.directory:
+        if not self.filepath:
             return {'CANCELLED'}
 
         data_path = Path(self.filepath).resolve()
         ext = get_ext(data_path)
+
+        container_objs = get_container_objs_from_selection()
+        if len(container_objs) > 0:
+            self.container_obj_name = container_objs[0].name
+
+        title = f"Add to **{self.container_obj_name}**" \
+            if self.container_obj_name != "" else f"Init a Container"
 
         # Series Selection
         if ext in DICOM_EXTS:
@@ -358,9 +353,10 @@ class ParseVolumetricData(bpy.types.Operator):
                 series_item.label = value
 
             if len(series_items.keys()) > 1:
+                self.skip_series_select = False
                 context.window_manager.invoke_props_dialog(self,
                                                            width=400,
-                                                           title="Which series to import?")
+                                                           title=title)
                 return {'RUNNING_MODAL'}
             elif len(series_items.keys()) == 1:
                 self.series_id = list(series_items.keys())[0]
@@ -368,27 +364,37 @@ class ParseVolumetricData(bpy.types.Operator):
                 self.report({"ERROR"}, "Get no vaild series.")
                 return {'CANCELLED'}
 
-        self.execute(context)
-        return {'RUNNING_MODAL'}
+        if self.skip_read_as:
+            self.execute(context)
+            return {'RUNNING_MODAL'}
+        else:
+            context.window_manager.invoke_props_dialog(self,
+                                                       width=400,
+                                                       title=title)
+            return {'RUNNING_MODAL'}
 
     def draw(self, context):
         layout = self.layout
-        layout.label(
-            text='Detect multi-series in DICOM, pick one')
-        layout.prop(self, "series_id")
+        if not self.skip_read_as:
+            layout.label(
+                text='What kind is the data read as?')
+            layout.prop(self, "read_as")
+        if not self.skip_series_select:
+            layout.label(text='Which series to import?')
+            layout.prop(self, "series_id")
 
 
 def get_sequence_sources(self, context):
-    items = [("-1", "None (Static)", "")]
+    items = [("-1", "None (1 frame)", "")]
     orig_shape = tuple(self.orig_shape)
     if self.frame_count > 1:
-        items.append(("0", f"Frame (Get {self.frame_count} frames)", ""))
+        items.append(("0", f"Frame ({self.frame_count} frames)", ""))
     elif self.frame_count == 1 and self.channel_count > 1:
-        items.append(("4", f"Channel (Get {self.channel_count} frames)", ""))
+        items.append(("4", f"Channel ({self.channel_count} frames)", ""))
     elif self.frame_count == 1 and self.channel_count == 1:
-        items.append(("1", f"X (Get {orig_shape[0]} frames)", ""))
-        items.append(("2", f"Y (Get {orig_shape[1]} frames)", ""))
-        items.append(("3", f"Z (Get {orig_shape[2]} frames)", ""))
+        items.append(("1", f"X ({orig_shape[0]} frames)", ""))
+        items.append(("2", f"Y ({orig_shape[1]} frames)", ""))
+        items.append(("3", f"Z ({orig_shape[2]} frames)", ""))
 
     return items
 
@@ -681,12 +687,9 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        if self.read_as == "label":
-            volume_dtype = "Label"
-        elif self.read_as == "scalar":
-            volume_dtype = "Scalar"
-        title = f"As {volume_dtype} Opitons (Add to Container: {self.container_obj_name})" \
-            if self.container_obj_name != "" else f"As {volume_dtype} Options (Init a Container)"
+        layer_kind = self.read_as.capitalize()
+        title = f"Add to **{self.container_obj_name}**, As {layer_kind}" \
+            if self.container_obj_name != "" else f"Init a Container, As {layer_kind}"
         context.window_manager.invoke_props_dialog(self,
                                                    width=500,
                                                    title=title)
