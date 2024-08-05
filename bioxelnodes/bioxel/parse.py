@@ -14,22 +14,22 @@ Convert any volumetric data to 3D numpy array with order TXYZC
 """
 
 SUPPORT_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA',
+                '.ome.tiff', '.ome.tif',
+                '.tif', '.TIF', '.tiff', '.TIFF',
+                '.mrc', '.mrc.gz', '.map', '.map.gz',
                 '.bmp', '.BMP',
+                '.png', '.PNG',
+                '.jpg', '.JPG', '.jpeg', '.JPEG',
                 '.PIC', '.pic',
                 '.gipl', '.gipl.gz',
-                '.jpg', '.JPG', '.jpeg', '.JPEG',
                 '.lsm', '.LSM',
-                '.tif', '.TIF', '.tiff', '.TIFF',
                 '.mnc', '.MNC',
                 '.mrc', '.rec',
                 '.mha', '.mhd',
                 '.hdf', '.h4', '.hdf4', '.he2', '.h5', '.hdf5', '.he5',
                 '.nia', '.nii', '.nii.gz', '.hdr', '.img', '.img.gz',
                 '.nrrd', '.nhdr',
-                '.png', '.PNG',
                 '.vtk',
-                '.ome.tiff', '.ome.tif',
-                '.mrc', '.mrc.gz', '.map', '.map.gz',
                 '.gz']
 
 OME_EXTS = ['.ome.tiff', '.ome.tif',
@@ -69,7 +69,7 @@ def get_file_name(filepath: Path):
     return filepath.name.removesuffix(ext).replace(" ", "-")
 
 
-def get_file_index(filepath: Path):
+def get_file_number(filepath: Path) -> str:
     name = get_file_name(filepath)
     digits = ""
 
@@ -86,15 +86,18 @@ def get_file_index(filepath: Path):
                 break
 
     # Reverse the digits string to get the correct order
-    last_number = digits[::-1]
-
-    return int(last_number) if last_number != "" else 0
+    return digits[::-1]
 
 
 def get_sequence_name(filepath: Path) -> str:
     name = get_file_name(filepath)
-    index = get_file_index(filepath)
-    return name.removesuffix(str(index))
+    number = get_file_number(filepath)
+    return name.removesuffix(number)
+
+
+def get_sequence_index(filepath: Path) -> int:
+    number = get_file_number(filepath)
+    return int(number) if number != "" else 0
 
 
 def collect_sequence(filepath: Path):
@@ -103,9 +106,10 @@ def collect_sequence(filepath: Path):
         if f.is_file() \
                 and get_ext(filepath) == get_ext(f) \
                 and get_sequence_name(filepath) == get_sequence_name(f):
-            index = get_file_index(f)
+            index = get_sequence_index(f)
             file_dict[index] = f
 
+    # reomve isolated seq file
     for key in file_dict.copy().keys():
         if not file_dict.get(key+1) \
                 and not file_dict.get(key-1):
