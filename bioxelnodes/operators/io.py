@@ -134,10 +134,12 @@ class ParseVolumetricData(bpy.types.Operator):
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
 
     skip_read_as: bpy.props.BoolProperty(name="Skip Read As",
-                                         default=False)  # type: ignore
+                                         default=False,
+                                         options={"SKIP_SAVE"})  # type: ignore
 
     skip_series_select: bpy.props.BoolProperty(name="Skip Sries Select",
-                                               default=True)  # type: ignore
+                                               default=True,
+                                               options={"SKIP_SAVE"})  # type: ignore
 
     read_as: bpy.props.EnumProperty(name="Read as",
                                     default="scalar",
