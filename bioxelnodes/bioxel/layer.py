@@ -3,6 +3,7 @@ import numpy as np
 
 from . import scipy
 from . import skimage as ski
+from . import scipy as ndi
 
 # 3rd-party
 import transforms3d
@@ -97,36 +98,43 @@ class Layer():
         _mask = np.expand_dims(_mask, axis=-1)
         self.data = _mask * value + (1-_mask) * self.data
 
-    def resize(self, shape:tuple, progress_callback=None):
+    def resize(self, shape: tuple, progress_callback=None):
         if len(shape) != 3:
             raise Exception("Shape must be 3 dim")
 
         data = self.data
+        order = 0 if self.dtype == bool else 1
 
         # TXYZC > TXYZ
         if self.kind in ['label', 'scalar']:
             data = np.amax(data, -1)
 
-        if self.kind in ['scalar']:
-            dtype = data.dtype
-            data = data.astype(np.float32)
+        # if self.kind in ['scalar']:
+        #     dtype = data.dtype
+            # data = data.astype(np.float32)
 
         data_frames = ()
         for f in range(self.frame_count):
             if progress_callback:
                 progress_callback(f, self.frame_count)
 
-            frame = ski.resize(data[f, :, :, :],
-                               shape,
-                               preserve_range=True,
-                               anti_aliasing=data.dtype.kind != "b")
+            # frame = ski.resize(data[f, :, :, :],
+            #                    shape,
+            #                    preserve_range=True,
+            #                    anti_aliasing=data.dtype.kind != "b")
+
+            factors = np.divide(self.shape, shape)
+            zoom_factors = [1 / f for f in factors]
+            frame = ndi.zoom(data[f, :, :, :],
+                             zoom_factors,
+                             order=order)
 
             data_frames += (frame,)
 
         data = np.stack(data_frames)
 
-        if self.kind in ['scalar']:
-            data = data.astype(dtype)
+        # if self.kind in ['scalar']:
+        #     data = data.astype(dtype)
 
         # TXYZ > TXYZC
         if self.kind in ['label', 'scalar']:

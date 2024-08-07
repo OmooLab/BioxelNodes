@@ -232,7 +232,6 @@ class CombineLabels(bpy.types.Operator, LabelOperator):
             return {'FINISHED'}
         base_obj = label_objs[0]
         label_objs = label_objs[1:]
-        container_obj = base_obj.parent
 
         base_layer = obj_to_layer(base_obj)
         modified_layer = base_layer.copy()
@@ -241,7 +240,7 @@ class CombineLabels(bpy.types.Operator, LabelOperator):
         for label_obj in label_objs:
             label_layer = obj_to_layer(label_obj)
             label_layer.resize(base_layer.shape)
-            modified_layer.data = np.maximum(base_layer.data, label_layer.data)
+            modified_layer.data = np.maximum(modified_layer.data, label_layer.data)
             label_names.append(label_layer.name)
 
         modified_layer.name = f"{'-'.join(label_names)}-Combined"
