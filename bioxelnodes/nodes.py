@@ -6,32 +6,107 @@ NODE_FILE = "BioxelNodes_4.2"
 
 MENU_ITEMS = [
     {
-        'label': 'Methods',
+        'label': 'Component',
         'icon': 'OUTLINER_DATA_VOLUME',
         'items': [
             {
-                'label': 'Mask by Threshold',
+                'label': 'Cutout by Threshold',
                 'icon': 'EMPTY_SINGLE_ARROW',
-                'node_type': 'BioxelNodes_MaskByThreshold',
+                'node_type': 'BioxelNodes_CutoutByThreshold',
                 'node_description': ''
             },
             {
-                'label': 'Mask by Range',
+                'label': 'Cutout by Range',
                 'icon': 'IPO_CONSTANT',
-                'node_type': 'BioxelNodes_MaskByRange',
+                'node_type': 'BioxelNodes_CutoutByRange',
                 'node_description': ''
             },
             {
-                'label': 'Mask by Label',
-                'icon': 'MESH_CAPSULE',
-                'node_type': 'BioxelNodes_MaskByLabel',
+                'label': 'Cutout by Color',
+                'icon': 'COLOR',
+                'node_type': 'BioxelNodes_CutoutByColor',
                 'node_description': ''
-            }
+            },
+            "separator",
+            {
+                'label': 'To Surface',
+                'icon': 'MESH_DATA',
+                'node_type': 'BioxelNodes_ToSurface',
+                'node_description': ''
+            },
+            {
+                'label': 'Join Component',
+                'icon': 'CONSTRAINT_BONE',
+                'node_type': 'BioxelNodes_JoinComponent',
+                'node_description': ''
+            },
         ]
     },
     {
-        'label': 'Shaders',
-        'icon': 'SHADING_RENDERED',
+        'label': 'Properties',
+        'icon': 'PROPERTIES',
+        'items': [
+            {
+                'label': 'Set Properties',
+                'icon': 'PROPERTIES',
+                'node_type': 'BioxelNodes_SetProperties',
+                'node_description': ''
+            },
+            "separator",
+            {
+                'label': 'Set Color',
+                'icon': 'IPO_SINE',
+                'node_type': 'BioxelNodes_SetColor',
+                'node_description': ''
+            },
+            {
+                'label': 'Set Color by Layer',
+                'icon': 'IPO_QUINT',
+                'node_type': 'BioxelNodes_SetColorByLayer',
+                'node_description': ''
+            },
+            {
+                'label': 'Set Color by Ramp 2',
+                'icon': 'IPO_QUAD',
+                'node_type': 'BioxelNodes_SetColorByRamp2',
+                'node_description': ''
+            },
+            {
+                'label': 'Set Color by Ramp 3',
+                'icon': 'IPO_CUBIC',
+                'node_type': 'BioxelNodes_SetColorByRamp3',
+                'node_description': ''
+            },
+            {
+                'label': 'Set Color by Ramp 4',
+                'icon': 'IPO_QUART',
+                'node_type': 'BioxelNodes_SetColorByRamp4',
+                'node_description': ''
+            },
+            {
+                'label': 'Set Color by Ramp 5',
+                'icon': 'IPO_QUINT',
+                'node_type': 'BioxelNodes_SetColorByRamp5',
+                'node_description': ''
+            },
+            # "separator",
+            # {
+            #     'label': 'Color Presets',
+            #     'icon': 'COLOR',
+            #     'node_type': 'BioxelNodes_ColorPresets',
+            #     'node_description': ''
+            # }
+            # {
+            #     'label': 'Color Presets MRI',
+            #     'icon': 'COLOR',
+            #     'node_type': 'BioxelNodes_ColorPresets_MRI',
+            #     'node_description': ''
+            # },
+        ]
+    },
+    {
+        'label': 'Surface',
+        'icon': 'MESH_DATA',
         'items': [
             {
                 'label': 'Membrane Shader',
@@ -49,142 +124,6 @@ MENU_ITEMS = [
                 'label': 'Slime Shader',
                 'icon': 'OUTLINER_DATA_META',
                 'node_type': 'BioxelNodes_AssignSlimeShader',
-                'node_description': ''
-            },
-            {
-                'label': 'Volume Shader',
-                'icon': 'VOLUME_DATA',
-                'node_type': 'BioxelNodes_AssignVolumeShader',
-                'node_description': ''
-            },
-            {
-                'label': 'Universal Shader',
-                'icon': 'MATSHADERBALL',
-                'node_type': 'BioxelNodes_AssignUniversalShader',
-                'node_description': ''
-            }
-        ]
-    },
-    {
-        'label': 'Colors',
-        'icon': 'COLOR',
-        'items': [
-            {
-                'label': 'Color Presets',
-                'icon': 'COLOR',
-                'node_type': 'BioxelNodes_ColorPresets',
-                'node_description': ''
-            },
-            {
-                'label': 'Color Presets MRI',
-                'icon': 'COLOR',
-                'node_type': 'BioxelNodes_ColorPresets_MRI',
-                'node_description': ''
-            },
-            "separator",
-            {
-                'label': 'Color Ramp 2',
-                'icon': 'IPO_QUAD',
-                'node_type': 'BioxelNodes_SetColorRamp2',
-                'node_description': ''
-            },
-            {
-                'label': 'Color Ramp 3',
-                'icon': 'IPO_CUBIC',
-                'node_type': 'BioxelNodes_SetColorRamp3',
-                'node_description': ''
-            },
-            {
-                'label': 'Color Ramp 4',
-                'icon': 'IPO_QUART',
-                'node_type': 'BioxelNodes_SetColorRamp4',
-                'node_description': ''
-            },
-            {
-                'label': 'Color Ramp 5',
-                'icon': 'IPO_QUINT',
-                'node_type': 'BioxelNodes_SetColorRamp5',
-                'node_description': ''
-            }
-        ]
-    },
-    {
-        'label': 'Cutters',
-        'icon': 'MOD_BEVEL',
-        'items': [
-            {
-                'label': 'Cut',
-                'icon': 'MOD_BEVEL',
-                'node_type': 'BioxelNodes_Cut',
-                'node_description': ''
-            },
-            "separator",
-            {
-                'label': 'Primitive Cutter',
-                'icon': 'MOD_LINEART',
-                'node_type': 'BioxelNodes_PrimitiveCutter',
-                'node_description': ''
-            },
-            "separator",
-            {
-                'label': 'Plane Cutter',
-                'icon': 'MESH_PLANE',
-                'node_type': 'BioxelNodes_PlaneObjectCutter',
-                'node_description': ''
-            },
-            {
-                'label': 'Cylinder Cutter',
-                'icon': 'MESH_CYLINDER',
-                'node_type': 'BioxelNodes_CylinderObjectCutter',
-                'node_description': '',
-            },
-            {
-                'label': 'Cube Cutter',
-                'icon': 'MESH_CUBE',
-                'node_type': 'BioxelNodes_CubeObjectCutter',
-                'node_description': '',
-            },
-            {
-                'label': 'Sphere Cutter',
-                'icon': 'MESH_UVSPHERE',
-                'node_type': 'BioxelNodes_SphereObjectCutter',
-                'node_description': '',
-            },
-            {
-                'label': 'Pie Cutter',
-                'icon': 'MESH_CONE',
-                'node_type': 'BioxelNodes_PieObjectCutter',
-                'node_description': '',
-            }
-        ]
-    },
-    {
-        'label': 'Utils',
-        'icon': 'MODIFIER',
-        'items': [
-            {
-                'label': 'Join Component',
-                'icon': 'CONSTRAINT_BONE',
-                'node_type': 'BioxelNodes_JoinComponent',
-                'node_description': ''
-            },
-            "separator",
-            {
-                'label': 'Pick Mesh',
-                'icon': 'OUTLINER_OB_MESH',
-                'node_type': 'BioxelNodes_PickMesh',
-                'node_description': ''
-            },
-            {
-                'label': 'Pick Volume',
-                'icon': 'OUTLINER_OB_VOLUME',
-                'node_type': 'BioxelNodes_PickVolume',
-                'node_description': ''
-            },
-            {
-                'label': 'Pick Bbox Wire',
-                'icon': 'MESH_CUBE',
-                'node_type': 'BioxelNodes_PickBboxWire',
                 'node_description': ''
             },
             "separator",
@@ -206,6 +145,56 @@ MENU_ITEMS = [
                 'node_type': 'BioxelNodes_M_RemoveSmallIsland',
                 'node_description': ''
             }
+        ]
+    },
+    {
+        'label': 'Cutters',
+        'icon': 'MOD_BEVEL',
+        'items': [
+            {
+                'label': 'Cut',
+                'icon': 'MOD_BEVEL',
+                'node_type': 'BioxelNodes_Cut',
+                'node_description': ''
+            },
+            "separator",
+            {
+                'label': 'Primitive Cutter',
+                'icon': 'MOD_LINEART',
+                'node_type': 'BioxelNodes_PrimitiveCutter',
+                'node_description': ''
+            },
+            {
+                'label': 'Object Cutter',
+                'icon': 'MESH_PLANE',
+                'node_type': 'BioxelNodes_ObjectCutter',
+                'node_description': ''
+            }
+        ]
+    },
+    {
+        'label': 'Utils',
+        'icon': 'MODIFIER',
+        'items': [
+            {
+                'label': 'Pick Mesh',
+                'icon': 'OUTLINER_OB_MESH',
+                'node_type': 'BioxelNodes_PickMesh',
+                'node_description': ''
+            },
+            {
+                'label': 'Pick Volume',
+                'icon': 'OUTLINER_OB_VOLUME',
+                'node_type': 'BioxelNodes_PickVolume',
+                'node_description': ''
+            },
+            {
+                'label': 'Pick Bbox Wire',
+                'icon': 'MESH_CUBE',
+                'node_type': 'BioxelNodes_PickBboxWire',
+                'node_description': ''
+            }
+            
         ]
     }
 ]

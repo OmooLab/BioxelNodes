@@ -25,7 +25,7 @@ class AddCustomNode():
     node_description: bpy.props.StringProperty(
         name="node_description",
         description="",
-        default="Add custom node group.",
+        default="",
         subtype="NONE"
     )  # type: ignore
 
@@ -70,20 +70,10 @@ class AddCustomNode():
 
         node_tree = bpy.data.node_groups.get(node_type)
         if node_tree:
-            # self.recursive_append_material(node_tree)
             return node_tree
         else:
             raise RuntimeError('No custom node found')
 
-    def recursive_append_material(self, node_tree):
-        for child in node_tree.nodes:
-            material_socket = child.inputs.get('Material')
-            if material_socket:
-                print(material_socket.default_value)
-            try:
-                self.recursive_append_material(child.node_tree)
-            except:
-                ...
 
     def add_node(self, node_group):
         # Deselect all nodes first

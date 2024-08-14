@@ -7,7 +7,6 @@ from . import scipy as ndi
 
 # 3rd-party
 import transforms3d
-
 # TODO: turn to dataclasses
 
 
@@ -105,13 +104,13 @@ class Layer():
         data = self.data
         order = 0 if self.dtype == bool else 1
 
-        # TXYZC > TXYZ
-        if self.kind in ['label', 'scalar']:
-            data = np.amax(data, -1)
+        # # TXYZC > TXYZ
+        # if self.kind in ['label', 'scalar']:
+        #     data = np.amax(data, -1)
 
         # if self.kind in ['scalar']:
         #     dtype = data.dtype
-            # data = data.astype(np.float32)
+        # data = data.astype(np.float32)
 
         data_frames = ()
         for f in range(self.frame_count):
@@ -125,8 +124,10 @@ class Layer():
 
             factors = np.divide(self.shape, shape)
             zoom_factors = [1 / f for f in factors]
-            frame = ndi.zoom(data[f, :, :, :],
-                             zoom_factors,
+            frame = ndi.zoom(data[f, :, :, :, :],
+                             zoom_factors+[1.0],
+                             mode="nearest",
+                             grid_mode=False,
                              order=order)
 
             data_frames += (frame,)
@@ -137,7 +138,10 @@ class Layer():
         #     data = data.astype(dtype)
 
         # TXYZ > TXYZC
-        if self.kind in ['label', 'scalar']:
-            data = np.expand_dims(data, axis=-1)  # expend channel
+        # if self.kind in ['label', 'scalar']:
+        #     data = np.expand_dims(data, axis=-1)  # expend channel
 
         self.data = data
+
+        mat_scale = transforms3d.zooms.zfdir2aff(factors[0])
+        self.affine = np.dot(self.affine, mat_scale)

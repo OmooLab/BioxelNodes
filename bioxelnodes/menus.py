@@ -1,21 +1,22 @@
+from pathlib import Path
 import bpy
 
-from .bioxelutils.container import get_container_objs_from_selection
-from .operators.layer import (CombineLabels, SignScalar,
-                              FillByLabel, FillByThreshold, FillByRange)
-from .operators.container import (SaveContainer, LoadContainer,
+from .operators.utils import get_layer_item_label
+from .bioxelutils.utils import (get_container_obj,
+                                get_container_objs_from_selection,
+                                get_container_layer_objs,
+                                get_layer_prop_value)
+from .operators.layer import (FetchLayerMenu, FetchLayer,
+                              RemoveLayer, RemoveMissingLayers, RenameLayer, ResampleScalar, SaveLayerCache,
+                              SignScalar, CombineLabels,
+                              FillByLabel, FillByThreshold, FillByRange, get_selected_objs_in_node_tree)
+from .operators.container import (SaveAllLayerCaches, SaveContainer, LoadContainer,
                                   AddPieCutter, AddPlaneCutter,
                                   AddCylinderCutter, AddCubeCutter, AddSphereCutter,
                                   PickBboxWire, PickMesh, PickVolume)
-from .operators.io import (ExportVolumetricData,
-                           ImportAsLabelLayer, ImportAsScalarLayer)
+from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
 from .operators.misc import (CleanAllCaches,
-                             ReLinkNodes, SaveCaches, SaveStagedData)
-
-
-def container_is_selected():
-    container_objs = get_container_objs_from_selection()
-    return len(container_objs) > 0
+                             ReLinkNodes, RenderSettingPreset, SaveStagedData)
 
 
 class PickFromContainerMenu(bpy.types.Menu):
@@ -29,22 +30,9 @@ class PickFromContainerMenu(bpy.types.Menu):
         layout.operator(PickBboxWire.bl_idname)
 
 
-class ModifyLayerMenu(bpy.types.Menu):
-    bl_idname = "BIOXELNODES_MT_MODIFY_LAYERS"
-    bl_label = "Modify Layer"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator(SignScalar.bl_idname)
-        layout.operator(FillByThreshold.bl_idname)
-        layout.operator(FillByRange.bl_idname)
-        layout.operator(FillByLabel.bl_idname)
-        layout.operator(CombineLabels.bl_idname)
-
-
 class AddCutterMenu(bpy.types.Menu):
     bl_idname = "BIOXELNODES_MT_CUTTERS"
-    bl_label = "Add a Cutter to Container"
+    bl_label = "Add a Object Cutter"
 
     def draw(self, context):
         layout = self.layout
@@ -56,101 +44,78 @@ class AddCutterMenu(bpy.types.Menu):
 
 
 class ImportLayerMenu(bpy.types.Menu):
-    bl_idname = "BIOXELNODES_MT_LAYERS"
-    bl_label = "Import Volumetric Data"
+    bl_idname = "BIOXELNODES_MT_IMPORTLAYER"
+    bl_label = "Import Volumetric Data (Init)"
+    bl_icon = "FILE_NEW"
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(ImportAsScalarLayer.bl_idname, text="as Scalar")
-        layout.operator(ImportAsLabelLayer.bl_idname, text="as Label")
+        layout.operator(ImportAsScalar.bl_idname,
+                        text="as Scalar")
+        layout.operator(ImportAsLabel.bl_idname,
+                        text="as Label")
+        layout.operator(ImportAsColor.bl_idname,
+                        text="as Color")
 
 
-class BioxelNodesView3DMenu(bpy.types.Menu):
-    bl_idname = "BIOXELNODES_MT_VIEW3D"
-    bl_label = "Bioxel Nodes"
-
-    def draw(self, context):
-        layout = self.layout
-        is_selected = container_is_selected()
-        layout.operator(ImportAsScalarLayer.bl_idname,
-                        text=ImportAsScalarLayer.bl_label+" (Add to)"
-                        if is_selected else ImportAsScalarLayer.bl_label+" (Init)")
-        layout.operator(ImportAsLabelLayer.bl_idname,
-                        text=ImportAsLabelLayer.bl_label+" (Add to)"
-                        if is_selected else ImportAsLabelLayer.bl_label+" (Init)")
-        layout.separator()
-        layout.operator(AddPlaneCutter.bl_idname)
-        layout.operator(AddCylinderCutter.bl_idname)
-        layout.operator(AddCubeCutter.bl_idname)
-        layout.operator(AddSphereCutter.bl_idname)
-        layout.operator(AddPieCutter.bl_idname)
-        layout.separator()
-        layout.operator(PickMesh.bl_idname)
-        layout.operator(PickVolume.bl_idname)
-        layout.operator(PickBboxWire.bl_idname)
-        layout.separator()
-        layout.operator(SaveCaches.bl_idname)
-
-
-class BioxelNodesOutlinerMenu(bpy.types.Menu):
-    bl_idname = "BIOXELNODES_MT_OUTLINER"
-    bl_label = "Bioxel Nodes"
+class AddLayerMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_ADDLAYER"
+    bl_label = "Import Volumetric Data (Add to)"
+    bl_icon = "FILE_NEW"
 
     def draw(self, context):
         layout = self.layout
-        is_selected = container_is_selected()
-        layout.operator(ImportAsScalarLayer.bl_idname,
-                        text=ImportAsScalarLayer.bl_label+" (Add to)"
-                        if is_selected else ImportAsScalarLayer.bl_label+" (Init)")
-        layout.operator(ImportAsLabelLayer.bl_idname,
-                        text=ImportAsLabelLayer.bl_label+" (Add to)"
-                        if is_selected else ImportAsLabelLayer.bl_label+" (Init)")
-        layout.separator()
-        layout.operator(AddPlaneCutter.bl_idname)
-        layout.operator(AddCylinderCutter.bl_idname)
-        layout.operator(AddCubeCutter.bl_idname)
-        layout.operator(AddSphereCutter.bl_idname)
-        layout.operator(AddPieCutter.bl_idname)
-        layout.separator()
-        layout.operator(PickMesh.bl_idname)
-        layout.operator(PickVolume.bl_idname)
-        layout.operator(PickBboxWire.bl_idname)
-        layout.separator()
-        layout.operator(SaveCaches.bl_idname)
-        layout.separator()
-        layout.operator(SignScalar.bl_idname)
-        layout.operator(FillByThreshold.bl_idname)
-        layout.operator(FillByRange.bl_idname)
-        layout.operator(FillByLabel.bl_idname)
-        layout.operator(CombineLabels.bl_idname)
+        layout.operator(ImportAsScalar.bl_idname,
+                        text="as Scalar")
+        layout.operator(ImportAsLabel.bl_idname,
+                        text="as Label")
+        layout.operator(ImportAsColor.bl_idname,
+                        text="as Color")
 
 
-def TOPBAR_FILE_IMPORT(self, context):
-    layout = self.layout
-    is_selected = container_is_selected()
+class ModifyLayerMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_MODIFYLAYER"
+    bl_label = "Modify Layer"
+    bl_icon = "FILE_NEW"
 
-    layout.separator()
-    layout.menu(ImportLayerMenu.bl_idname, text="Volumetric Data as Bioxel (Add to)"
-                if is_selected else "Volumetric Data as Bioxel (Init)")
+    def draw(self, context):
+        layer_objs = get_selected_objs_in_node_tree(context)
+        if len(layer_objs) > 0:
+            active_obj_name = layer_objs[0].name
+        else:
+            active_obj_name = ""
+
+        layout = self.layout
+        op = layout.operator(ResampleScalar.bl_idname,
+                             icon=ResampleScalar.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(SignScalar.bl_idname,
+                             icon=SignScalar.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(FillByThreshold.bl_idname,
+                             icon=FillByThreshold.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(FillByRange.bl_idname,
+                             icon=FillByRange.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(FillByLabel.bl_idname,
+                             icon=FillByLabel.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(CombineLabels.bl_idname,
+                             icon=CombineLabels.bl_icon)
+        op.layer_obj_name = active_obj_name
 
 
-def TOPBAR_FILE_EXPORT(self, context):
-    layout = self.layout
-    layout.separator()
-    layout.operator(ExportVolumetricData.bl_idname,
-                    text="Bioxel Layer (.vdb)")
+class RenderSettingMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_RENDER"
+    bl_label = "Render Setting Presets"
 
-
-def VIEW3D_OBJECT(self, context):
-    layout = self.layout
-    layout.separator()
-    layout.menu(BioxelNodesView3DMenu.bl_idname, icon="FILE_VOLUME")
-
-
-def OUTLINER_OBJECT(self, context):
-    layout = self.layout
-    layout.separator()
-    layout.menu(BioxelNodesOutlinerMenu.bl_idname, icon="FILE_VOLUME")
+    def draw(self, context):
+        layout = self.layout
+        for k, v in RenderSettingPreset.PRESETS.items():
+            op = layout.operator(RenderSettingPreset.bl_idname,
+                                 text=v)
+            op.preset = k
 
 
 class BioxelNodesTopbarMenu(bpy.types.Menu):
@@ -159,21 +124,18 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        is_selected = container_is_selected()
 
-        layout.menu(ImportLayerMenu.bl_idname, text=ImportLayerMenu.bl_label+" (Add to)"
-                    if is_selected else ImportLayerMenu.bl_label+" (Init)")
-        layout.separator()
+        layout.menu(ImportLayerMenu.bl_idname,
+                    icon=ImportLayerMenu.bl_icon)
         layout.operator(LoadContainer.bl_idname)
-        layout.operator(SaveContainer.bl_idname)
-        layout.separator()
-        layout.menu(AddCutterMenu.bl_idname)
-        layout.menu(PickFromContainerMenu.bl_idname)
+
         layout.separator()
         layout.operator(SaveStagedData.bl_idname)
         layout.operator(ReLinkNodes.bl_idname)
-        layout.separator()
         layout.operator(CleanAllCaches.bl_idname)
+
+        layout.separator()
+        layout.menu(RenderSettingMenu.bl_idname)
 
 
 def TOPBAR(self, context):
@@ -181,17 +143,155 @@ def TOPBAR(self, context):
     layout.menu(BioxelNodesTopbarMenu.bl_idname)
 
 
+class BioxelNodesNodeMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_NODE"
+    bl_label = "Bioxel Nodes"
+    bl_icon = "FILE_VOLUME"
+
+    def draw(self, context):
+        layer_objs = get_selected_objs_in_node_tree(context)
+        if len(layer_objs) > 0:
+            active_obj_name = layer_objs[0].name
+        else:
+            active_obj_name = ""
+
+        layout = self.layout
+
+        layout.menu(AddLayerMenu.bl_idname,
+                    icon=AddLayerMenu.bl_icon)
+
+        layout.operator(RemoveMissingLayers.bl_idname,
+                        icon=RemoveMissingLayers.bl_icon)
+
+        layout.separator()
+        layout.operator(SaveContainer.bl_idname)
+        layout.menu(AddCutterMenu.bl_idname)
+        layout.menu(PickFromContainerMenu.bl_idname)
+        layout.operator(SaveAllLayerCaches.bl_idname,
+                        icon=SaveAllLayerCaches.bl_icon)
+
+        layout.separator()
+        layout.menu(FetchLayerMenu.bl_idname)
+        op = layout.operator(SaveLayerCache.bl_idname,
+                             icon=SaveLayerCache.bl_icon)
+        op.layer_obj_name = active_obj_name
+        op = layout.operator(RenameLayer.bl_idname,
+                             icon=RenameLayer.bl_icon)
+        op.layer_obj_name = active_obj_name
+
+        op = layout.operator(RemoveLayer.bl_idname,
+                             icon=RemoveLayer.bl_icon)
+        op.layer_obj_name = active_obj_name
+
+        layout.separator()
+        layout.menu(ModifyLayerMenu.bl_idname)
+
+
+def NODE(self, context):
+    container_obj = context.object
+    is_geo_nodes = context.area.ui_type == "GeometryNodeTree"
+    is_container = get_container_obj(container_obj)
+
+    if not is_geo_nodes or not is_container:
+        return
+
+    layout = self.layout
+    layout.separator()
+    layout.menu(BioxelNodesNodeMenu.bl_idname)
+
+
+def NODE_PT(self, context):
+    container_obj = context.object
+    is_geo_nodes = context.area.ui_type == "GeometryNodeTree"
+    is_container = get_container_obj(container_obj)
+    self.bl_label = "Group"
+
+    if not is_geo_nodes or not is_container:
+        return
+
+    if container_obj.modifiers[0].node_group != context.space_data.edit_tree:
+        return
+
+    self.bl_label = "Bioxel Nodes"
+
+    layer_list_UL = bpy.context.window_manager.bioxelnodes_layer_list_UL
+    layer_list = layer_list_UL.layer_list
+    layer_list_active = layer_list_UL.layer_list_active
+    layer_list.clear()
+
+    for layer_obj in get_container_layer_objs(container_obj):
+        layer_item = layer_list.add()
+        layer_item.label = get_layer_item_label(context, layer_obj)
+        layer_item.obj_name = layer_obj.name
+        layer_item.info_text = "\n".join([f"{prop}: {get_layer_prop_value(layer_obj, prop)}"
+                                          for prop in ["kind", "bioxel_size", "shape", "min", "max", ]])
+
+    if len(layer_list) > 0 and layer_list_active != -1 and layer_list_active < len(layer_list):
+        active_obj_name = layer_list[layer_list_active].obj_name
+    else:
+        active_obj_name = ""
+
+    layout = self.layout
+    layout.label(text="Layer List")
+    split = layout.row()
+    split.template_list(listtype_name="BIOXELNODES_UL_layer_list",
+                        list_id="layer_list",
+                        dataptr=layer_list_UL,
+                        propname="layer_list",
+                        active_dataptr=layer_list_UL,
+                        active_propname="layer_list_active",
+                        item_dyntip_propname="info_text",
+                        rows=20)
+
+    sidebar = split.column(align=True)
+    sidebar.menu(AddLayerMenu.bl_idname,
+                 icon=AddLayerMenu.bl_icon, text="")
+
+    sidebar.operator(RemoveMissingLayers.bl_idname,
+                     icon=RemoveMissingLayers.bl_icon, text="")
+
+    sidebar.separator()
+    op = sidebar.operator(FetchLayer.bl_idname,
+                          icon=FetchLayer.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(SaveLayerCache.bl_idname,
+                          icon=SaveLayerCache.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(RenameLayer.bl_idname,
+                          icon=RenameLayer.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(RemoveLayer.bl_idname,
+                          icon=RemoveLayer.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+
+    sidebar.separator()
+    op = sidebar.operator(ResampleScalar.bl_idname,
+                          icon=ResampleScalar.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(SignScalar.bl_idname,
+                          icon=SignScalar.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(FillByThreshold.bl_idname,
+                          icon=FillByThreshold.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(FillByRange.bl_idname,
+                          icon=FillByRange.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+    op = sidebar.operator(FillByLabel.bl_idname,
+                          icon=FillByLabel.bl_icon, text="")
+    op.layer_obj_name = active_obj_name
+
+    sidebar.separator()
+    layout.separator()
+
+
 def add():
-    bpy.types.TOPBAR_MT_file_import.append(TOPBAR_FILE_IMPORT)
-    # bpy.types.TOPBAR_MT_file_export.append(TOPBAR_FILE_EXPORT)
-    bpy.types.OUTLINER_MT_object.append(OUTLINER_OBJECT)
-    bpy.types.VIEW3D_MT_object_context_menu.append(VIEW3D_OBJECT)
+    bpy.types.NODE_PT_node_tree_properties.prepend(NODE_PT)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR)
+    bpy.types.NODE_MT_editor_menus.append(NODE)
 
 
 def remove():
-    bpy.types.TOPBAR_MT_file_import.remove(TOPBAR_FILE_IMPORT)
-    # bpy.types.TOPBAR_MT_file_export.remove(TOPBAR_FILE_EXPORT)
-    bpy.types.OUTLINER_MT_object.remove(OUTLINER_OBJECT)
-    bpy.types.VIEW3D_MT_object_context_menu.remove(VIEW3D_OBJECT)
+    bpy.types.NODE_PT_node_tree_properties.remove(NODE_PT)
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR)
+    bpy.types.NODE_MT_editor_menus.remove(NODE)

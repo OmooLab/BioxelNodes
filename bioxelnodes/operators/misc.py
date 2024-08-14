@@ -1,14 +1,11 @@
-import re
 import bpy
 from pathlib import Path
 import shutil
-
-
-from ..utils import copy_to_dir
 from .utils import get_cache_dir
 from ..nodes import custom_nodes
-from ..bioxelutils.container import get_container_objs_from_selection
-from ..bioxelutils.layer import get_all_layer_objs, get_container_layer_objs
+from ..bioxelutils.utils import (get_container_objs_from_selection,
+                                 get_all_layer_objs,
+                                 get_container_layer_objs)
 
 CLASS_PREFIX = "BIOXELNODES_MT_NODES"
 
@@ -30,30 +27,6 @@ class ReLinkNodes(bpy.types.Operator):
         self.report({"INFO"}, f"Successfully relinked.")
 
         return {'FINISHED'}
-
-
-def save_layer_cache(layer_obj, output_dir):
-    pattern = r'\.\d{4}\.'
-
-    # "//"
-    output_dir = bpy.path.abspath(output_dir)
-    source_dir = bpy.path.abspath(layer_obj.data.filepath)
-
-    source_path: Path = Path(source_dir).resolve()
-    is_sequence = re.search(pattern, source_path.name) is not None
-    name = layer_obj.name if is_sequence else f"{layer_obj.name}.vdb"
-    output_path: Path = Path(output_dir, name, source_path.name).resolve() \
-        if is_sequence else Path(output_dir, name).resolve()
-
-    if output_path != source_path:
-        copy_to_dir(source_path.parent if is_sequence else source_path,
-                    output_path.parent.parent if is_sequence else output_path.parent,
-                    new_name=name)
-
-    blend_path = Path(bpy.path.abspath("//")).resolve()
-
-    layer_obj.data.filepath = bpy.path.relpath(
-        str(output_path), start=str(blend_path))
 
 
 class SaveStagedData(bpy.types.Operator):
@@ -114,17 +87,19 @@ class SaveStagedData(bpy.types.Operator):
 
         if self.save_cache:
             fails = []
-            for layer in get_all_layer_objs():
+            for layer_obj in get_all_layer_objs():
                 try:
-                    save_layer_cache(layer, self.cache_dir)
+                    bpy.ops.bioxelnodes.save_layer_cache('EXEC_DEFAULT',
+                                                         layer_obj_name=layer_obj.name,
+                                                         cache_dir=self.cache_dir)
                 except:
-                    fails.append(layer)
+                    fails.append(layer_obj)
 
             if len(fails) == 0:
                 self.report({"INFO"}, f"Successfully saved bioxel layers.")
             else:
                 self.report(
-                    {"WARNING"}, f"{','.join([layer.name for layer in fails])} fail to save.")
+                    {"WARNING"}, f"{','.join([layer_obj.name for layer_obj in fails])} fail to save.")
 
         return {'FINISHED'}
 
@@ -145,51 +120,6 @@ class SaveStagedData(bpy.types.Operator):
         panel = layout.box()
         panel.prop(self, "save_lib")
         panel.prop(self, "lib_dir")
-
-
-class SaveCaches(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_caches"
-    bl_label = "Save Caches"
-    bl_description = "Save Container's caches to directory."
-
-    cache_dir: bpy.props.StringProperty(
-        name="Layer Directory",
-        subtype='DIR_PATH',
-        default="//"
-    )  # type: ignore
-
-    @classmethod
-    def poll(cls, context):
-        container_objs = get_container_objs_from_selection()
-        return len(container_objs) > 0
-
-    def execute(self, context):
-        container_objs = get_container_objs_from_selection()
-
-        if len(container_objs) == 0:
-            self.report({"WARNING"}, "Cannot find any bioxel container.")
-            return {'FINISHED'}
-
-        fails = []
-        for container_obj in container_objs:
-            for layer_obj in get_container_layer_objs(container_obj):
-                try:
-                    save_layer_cache(layer_obj, self.cache_dir)
-                except:
-                    fails.append(layer_obj)
-
-        if len(fails) == 0:
-            self.report({"INFO"}, f"Successfully saved bioxel layers.")
-        else:
-            self.report(
-                {"WARNING"}, f"{','.join([layer.name for layer in fails])} fail to save.")
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self,
-                                                   width=500)
-        return {'RUNNING_MODAL'}
 
 
 class CleanAllCaches(bpy.types.Operator):
@@ -213,3 +143,71 @@ class CleanAllCaches(bpy.types.Operator):
                                               event,
                                               message="All caches will be cleaned, include other project files, do you still want to clean?")
         return {'RUNNING_MODAL'}
+
+
+class RenderSettingPreset(bpy.types.Operator):
+    bl_idname = "bioxelnodes.render_setting_preset"
+    bl_label = "Render Setting Preset"
+    bl_description = "Render Setting Preset"
+
+    PRESETS = {
+        "slice_viewer": "Slice Viewer",
+        "eevee_preview": "EEVEE Preview",
+        "eevee_production": "EEVEE Production",
+        "cycles_preview": "Cycles Preview",
+        "cycles_production": "Cycles Production"
+    }
+
+    preset: bpy.props.EnumProperty(name="Preset",
+                                   default="eevee_preview",
+                                   items=[(k, v, "")
+                                          for k, v in PRESETS.items()])  # type: ignore
+
+    def execute(self, context):
+        if self.preset == "eevee_preview":
+            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.taa_samples = 16
+            bpy.context.scene.eevee.volumetric_tile_size = '2'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 128
+            bpy.context.scene.eevee.volumetric_samples = 128
+            bpy.context.scene.eevee.volumetric_ray_depth = 16
+            bpy.context.scene.eevee.use_volumetric_shadows = True
+
+        elif self.preset == "eevee_production":
+            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.taa_samples = 16
+            bpy.context.scene.eevee.volumetric_tile_size = '1'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 128
+            bpy.context.scene.eevee.volumetric_samples = 256
+            bpy.context.scene.eevee.volumetric_ray_depth = 16
+            bpy.context.scene.eevee.use_volumetric_shadows = True
+
+        elif self.preset == "cycles_preview":
+            bpy.context.scene.render.engine = 'CYCLES'
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 12
+            bpy.context.scene.cycles.transparent_max_bounces = 16
+            bpy.context.scene.cycles.volume_preview_step_rate = 10
+            bpy.context.scene.cycles.volume_step_rate = 10
+
+        elif self.preset == "cycles_production":
+            bpy.context.scene.render.engine = 'CYCLES'
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 16
+            bpy.context.scene.cycles.transparent_max_bounces = 32
+            bpy.context.scene.cycles.volume_preview_step_rate = 1
+            bpy.context.scene.cycles.volume_step_rate = 1
+
+        elif self.preset == "slice_viewer":
+            # bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.taa_samples = 4
+            bpy.context.scene.eevee.volumetric_tile_size = '2'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 128
+            bpy.context.scene.eevee.volumetric_samples = 128
+            bpy.context.scene.eevee.volumetric_ray_depth = 1
+            bpy.context.scene.eevee.use_volumetric_shadows = False
+
+        return {'FINISHED'}
