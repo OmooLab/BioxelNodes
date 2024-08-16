@@ -9,7 +9,8 @@ from uuid import uuid4
 
 from ..nodes import custom_nodes
 from ..bioxel.layer import Layer
-from .utils import get_layer_prop_value, move_node_between_nodes
+from .utils import (get_layer_prop_value,
+                    move_node_between_nodes, add_direct_driver)
 
 
 def obj_to_layer(layer_obj: bpy.types.Object):
@@ -135,8 +136,13 @@ def layer_to_obj(layer: Layer,
         cache_filepaths = [cache_filepath]
 
     layer_data = bpy.data.volumes.new(layer_display_name)
+    layer_data.render.space = 'WORLD'
+    layer_data.render.step_size = container_obj.scale[0] * layer.bioxel_size[0]
     layer_data.sequence_mode = 'REPEAT'
     layer_data.filepath = str(cache_filepaths[0])
+
+    # add_direct_driver(layer_data, "render.step_size",
+    #                   container_obj, "scale[0]")
 
     if layer.frame_count > 1:
         layer_data.is_sequence = True
@@ -145,7 +151,6 @@ def layer_to_obj(layer: Layer,
         layer_data.is_sequence = False
 
     layer_obj = bpy.data.objects.new(layer_display_name, layer_data)
-
     layer_obj['bioxel_layer'] = True
 
     print(f"Creating Node for {layer.name}...")

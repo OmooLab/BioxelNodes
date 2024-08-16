@@ -94,3 +94,35 @@ def get_all_layer_objs():
             layer_objs.append(obj)
 
     return layer_objs
+
+def add_driver(target, target_prop, var_sources, expression):
+    driver = target.driver_add(target_prop)
+    is_vector = isinstance(driver, list)
+    drivers = driver if is_vector else [driver]
+
+    for i, driver in enumerate(drivers):
+        for j, var_source in enumerate(var_sources):
+
+            source = var_source['source']
+            prop = var_source['prop']
+
+            var = driver.driver.variables.new()
+            var.name = f"var{j}"
+
+            var.targets[0].id_type = source.id_type
+            var.targets[0].id = source
+            var.targets[0].data_path = f'["{prop}"][{i}]'\
+                if is_vector else f'["{prop}"]'
+
+        driver.driver.expression = expression
+
+
+def add_direct_driver(target, target_prop, source, source_prop):
+    drivers = [
+        {
+            "source": source,
+            "prop": source_prop
+        }
+    ]
+    expression = "var0"
+    add_driver(target, target_prop, drivers, expression)

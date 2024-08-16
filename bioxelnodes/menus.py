@@ -13,10 +13,10 @@ from .operators.layer import (FetchLayerMenu, FetchLayer,
 from .operators.container import (SaveAllLayerCaches, SaveContainer, LoadContainer,
                                   AddPieCutter, AddPlaneCutter,
                                   AddCylinderCutter, AddCubeCutter, AddSphereCutter,
-                                  PickBboxWire, PickMesh, PickVolume)
+                                  PickBboxWire, PickMesh, PickVolume, ScaleContainer)
 from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
 from .operators.misc import (CleanAllCaches,
-                             ReLinkNodes, RenderSettingPreset, SaveStagedData)
+                             ReLinkNodes, RenderSettingPreset, SaveStagedData, SliceViewer)
 
 
 class PickFromContainerMenu(bpy.types.Menu):
@@ -156,19 +156,19 @@ class BioxelNodesNodeMenu(bpy.types.Menu):
             active_obj_name = ""
 
         layout = self.layout
-
+        layout.separator()
         layout.menu(AddLayerMenu.bl_idname,
                     icon=AddLayerMenu.bl_icon)
-
-        layout.operator(RemoveMissingLayers.bl_idname,
-                        icon=RemoveMissingLayers.bl_icon)
-
         layout.separator()
         layout.operator(SaveContainer.bl_idname)
+        layout.separator()
+        layout.operator(ScaleContainer.bl_idname)
         layout.menu(AddCutterMenu.bl_idname)
         layout.menu(PickFromContainerMenu.bl_idname)
         layout.operator(SaveAllLayerCaches.bl_idname,
                         icon=SaveAllLayerCaches.bl_icon)
+        layout.operator(RemoveMissingLayers.bl_idname,
+                        icon=RemoveMissingLayers.bl_icon)
 
         layout.separator()
         layout.menu(FetchLayerMenu.bl_idname)
@@ -247,6 +247,8 @@ def NODE_PT(self, context):
     sidebar.menu(AddLayerMenu.bl_idname,
                  icon=AddLayerMenu.bl_icon, text="")
 
+    sidebar.operator(SaveAllLayerCaches.bl_idname,
+                    icon=SaveAllLayerCaches.bl_icon, text="")
     sidebar.operator(RemoveMissingLayers.bl_idname,
                      icon=RemoveMissingLayers.bl_icon, text="")
 
@@ -285,13 +287,21 @@ def NODE_PT(self, context):
     layout.separator()
 
 
+def VIEW3D_TOPBAR(self, context):
+    layout = self.layout
+    layout.operator(SliceViewer.bl_idname,
+                    icon=SliceViewer.bl_icon, text="")
+
+
 def add():
+    bpy.types.VIEW3D_HT_header.append(VIEW3D_TOPBAR)
     bpy.types.NODE_PT_node_tree_properties.prepend(NODE_PT)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR)
     bpy.types.NODE_MT_editor_menus.append(NODE)
 
 
 def remove():
+    bpy.types.VIEW3D_HT_header.remove(VIEW3D_TOPBAR)
     bpy.types.NODE_PT_node_tree_properties.remove(NODE_PT)
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR)
     bpy.types.NODE_MT_editor_menus.remove(NODE)

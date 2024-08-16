@@ -151,20 +151,19 @@ class RenderSettingPreset(bpy.types.Operator):
     bl_description = "Render Setting Preset"
 
     PRESETS = {
-        "slice_viewer": "Slice Viewer",
-        "eevee_preview": "EEVEE Preview",
-        "eevee_production": "EEVEE Production",
-        "cycles_preview": "Cycles Preview",
-        "cycles_production": "Cycles Production"
+        "preview_e": "Preview (EEVEE)",
+        "preview_c": "Preview (Cycles)",
+        "production_e": "Production (EEVEE)",
+        "production_c": "Production (Cycles)"
     }
 
     preset: bpy.props.EnumProperty(name="Preset",
-                                   default="eevee_preview",
+                                   default="preview_c",
                                    items=[(k, v, "")
                                           for k, v in PRESETS.items()])  # type: ignore
 
     def execute(self, context):
-        if self.preset == "eevee_preview":
+        if self.preset == "preview_e":
             bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
             bpy.context.scene.eevee.use_taa_reprojection = False
             bpy.context.scene.eevee.taa_samples = 16
@@ -174,7 +173,7 @@ class RenderSettingPreset(bpy.types.Operator):
             bpy.context.scene.eevee.volumetric_ray_depth = 16
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
-        elif self.preset == "eevee_production":
+        elif self.preset == "production_e":
             bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
             bpy.context.scene.eevee.use_taa_reprojection = False
             bpy.context.scene.eevee.taa_samples = 16
@@ -184,30 +183,46 @@ class RenderSettingPreset(bpy.types.Operator):
             bpy.context.scene.eevee.volumetric_ray_depth = 16
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
-        elif self.preset == "cycles_preview":
+        elif self.preset == "preview_c":
             bpy.context.scene.render.engine = 'CYCLES'
             bpy.context.scene.cycles.shading_system = True
             bpy.context.scene.cycles.volume_bounces = 12
             bpy.context.scene.cycles.transparent_max_bounces = 16
-            bpy.context.scene.cycles.volume_preview_step_rate = 10
-            bpy.context.scene.cycles.volume_step_rate = 10
+            bpy.context.scene.cycles.volume_preview_step_rate = 1
+            bpy.context.scene.cycles.volume_step_rate = 1
 
-        elif self.preset == "cycles_production":
+        elif self.preset == "production_c":
             bpy.context.scene.render.engine = 'CYCLES'
             bpy.context.scene.cycles.shading_system = True
             bpy.context.scene.cycles.volume_bounces = 16
             bpy.context.scene.cycles.transparent_max_bounces = 32
-            bpy.context.scene.cycles.volume_preview_step_rate = 1
-            bpy.context.scene.cycles.volume_step_rate = 1
+            bpy.context.scene.cycles.volume_preview_step_rate = 0.1
+            bpy.context.scene.cycles.volume_step_rate = 0.1
 
-        elif self.preset == "slice_viewer":
-            # bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
-            bpy.context.scene.eevee.use_taa_reprojection = False
-            bpy.context.scene.eevee.taa_samples = 4
-            bpy.context.scene.eevee.volumetric_tile_size = '2'
-            bpy.context.scene.eevee.volumetric_shadow_samples = 128
-            bpy.context.scene.eevee.volumetric_samples = 128
-            bpy.context.scene.eevee.volumetric_ray_depth = 1
-            bpy.context.scene.eevee.use_volumetric_shadows = False
+        return {'FINISHED'}
 
+class SliceViewer(bpy.types.Operator):
+    bl_idname = "bioxelnodes.slice_viewer"
+    bl_label = "Slice Viewer"
+    bl_description = "Slice Viewer"
+    bl_icon = "FILE_VOLUME"
+
+    def execute(self, context):
+        bpy.context.scene.eevee.use_taa_reprojection = False
+        bpy.context.scene.eevee.taa_samples = 4
+        bpy.context.scene.eevee.volumetric_tile_size = '2'
+        bpy.context.scene.eevee.volumetric_shadow_samples = 128
+        bpy.context.scene.eevee.volumetric_samples = 128
+        bpy.context.scene.eevee.volumetric_ray_depth = 1
+        bpy.context.scene.eevee.use_volumetric_shadows = False
+        
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                area.spaces[0].shading.type = 'MATERIAL'
+                area.spaces[0].shading.studio_light = 'studio.exr'
+                area.spaces[0].shading.studiolight_intensity = 2.5
+                area.spaces[0].shading.use_scene_lights = False
+                area.spaces[0].shading.use_scene_world = False
+
+        
         return {'FINISHED'}

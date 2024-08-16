@@ -60,9 +60,9 @@ MENU_ITEMS = [
                 'node_description': ''
             },
             {
-                'label': 'Set Color by Layer',
+                'label': 'Set Color by Color',
                 'icon': 'IPO_QUINT',
-                'node_type': 'BioxelNodes_SetColorByLayer',
+                'node_type': 'BioxelNodes_SetColorByColor',
                 'node_description': ''
             },
             {

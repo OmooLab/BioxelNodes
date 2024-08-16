@@ -782,9 +782,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         # Change render setting for better result
         if is_first_import:
             bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
-                                                      preset="slice_viewer")
-            bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
-                                                      preset="cycles_preview")
+                                                      preset="preview_c")
+            # bpy.ops.bioxelnodes.slice_viewer('EXEC_DEFAULT')
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}

@@ -6,7 +6,8 @@ from ..nodes import custom_nodes
 from ..customnodes.nodes import AddCustomNode
 from ..bioxel.io import load_container, save_container
 from ..bioxelutils.container import container_to_obj, obj_to_container
-from ..bioxelutils.utils import (get_container_layer_objs, get_container_obj, get_nodes_by_type,
+from ..bioxelutils.utils import (get_container_layer_objs, get_container_obj, 
+                                 get_layer_prop_value, get_nodes_by_type,
                                  move_node_between_nodes,
                                  move_node_to_node,
                                  get_all_layer_objs)
@@ -66,7 +67,8 @@ class LoadContainer(bpy.types.Operator):
         select_object(container_obj)
 
         if is_first_import:
-            change_render_setting(context)
+            bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
+                                                      preset="preview_c")
 
         self.report({"INFO"}, f"Successfully load {load_path}")
         return {'FINISHED'}
@@ -158,14 +160,24 @@ class AddCutter():
             bpy.ops.mesh.primitive_ico_sphere_add(
                 radius=1, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         elif self.cutter_type == "pie":
+            bpy.ops.mesh.primitive_plane_add(
+                size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+            pie = bpy.context.active_object
+            pie.name = "Pie"
+            orig_data = pie.data
+
             # Create mesh
             pie_mesh = bpy.data.meshes.new('Pie')
 
-            # Create object
-            pie = bpy.data.objects.new('Pie', pie_mesh)
+            pie.data = pie_mesh
+            bpy.data.meshes.remove(orig_data)
 
-            # Link object to scene
-            bpy.context.scene.collection.objects.link(pie)
+            # # Create object
+            # pie = bpy.data.objects.new('Pie', pie_mesh)
+
+            # # Link object to scene
+            # bpy.context.scene.collection.objects.link(pie)
+
             # Get a BMesh representation
             bm = bmesh.new()   # create an empty BMesh
             bm.from_mesh(pie_mesh)   # fill it in from a Mesh
@@ -189,7 +201,7 @@ class AddCutter():
 
             # Finish up, write the bmesh back to the mesh
             bm.to_mesh(pie_mesh)
-            bpy.context.view_layer.objects.active = pie
+            # bpy.context.view_layer.objects.active = pie
 
         cutter_obj = bpy.context.active_object
         cutter_obj.location = container_obj.location
@@ -323,6 +335,46 @@ class AddPieCutter(bpy.types.Operator, AddCutter):
     bl_description = "Add a Pie Cutter to Container"
     bl_icon = "MESH_CONE"
     cutter_type = "pie"
+
+
+class ScaleContainer(bpy.types.Operator):
+    bl_idname = "bioxelnodes.scale_container"
+    bl_label = "Scale Container"
+    bl_description = "Scale Container."
+    bl_icon = "FILE_TICK"
+
+    scene_scale: bpy.props.FloatProperty(name="Scene Scale",
+                                         soft_min=0.0001, soft_max=10.0,
+                                         min=1e-6, max=1e6,
+                                         default=0.01)  # type: ignore
+
+    def execute(self, context):
+        container_obj = get_container_obj(context.object)
+
+        if container_obj is None:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        container_obj.scale[0] = self.scene_scale
+        container_obj.scale[1] = self.scene_scale
+        container_obj.scale[2] = self.scene_scale
+
+        for layer_obj in get_container_layer_objs(container_obj):
+            bioxel_size = get_layer_prop_value(layer_obj, "bioxel_size")
+            layer_obj.data.render.step_size = self.scene_scale * bioxel_size
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        container_obj = get_container_obj(context.object)
+
+        if container_obj is None:
+            return self.execute(context)
+        else:
+            self.scene_scale = container_obj.scale[0]
+            context.window_manager.invoke_props_dialog(self,
+                                                       width=500)
+            return {'RUNNING_MODAL'}
 
 
 class SaveAllLayerCaches(bpy.types.Operator):
