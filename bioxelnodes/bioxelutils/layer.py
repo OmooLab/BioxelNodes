@@ -7,10 +7,11 @@ import pyopenvdb as vdb
 from pathlib import Path
 from uuid import uuid4
 
-from ..nodes import custom_nodes
 from ..bioxel.layer import Layer
-from .utils import (get_layer_prop_value,
-                    move_node_between_nodes, add_direct_driver)
+from ..utils import get_use_link
+from .node import add_node_to_graph
+from .common import (get_layer_prop_value,
+                     move_node_between_nodes)
 
 
 def obj_to_layer(layer_obj: bpy.types.Object):
@@ -26,7 +27,11 @@ def obj_to_layer(layer_obj: bpy.types.Object):
             grids, base_metadata = vdb.readAll(str(f))
             grid = grids[0]
             metadata = grid.metadata
-            data_frame = np.ndarray(grid["data_shape"], np.float32)
+            if grid["layer_kind"] in ['label', 'scalar']:
+                data_shape = grid["data_shape"]
+            else:
+                data_shape = tuple(list(grid["data_shape"]) + [3])
+            data_frame = np.ndarray(data_shape, np.float32)
             grid.copyToArray(data_frame)
             data_frames += (data_frame,)
         data = np.stack(data_frames)
@@ -34,7 +39,11 @@ def obj_to_layer(layer_obj: bpy.types.Object):
         grids, base_metadata = vdb.readAll(str(cache_filepath))
         grid = grids[0]
         metadata = grid.metadata
-        data = np.ndarray(grid["data_shape"], np.float32)
+        if grid["layer_kind"] in ['label', 'scalar']:
+            data_shape = grid["data_shape"]
+        else:
+            data_shape = tuple(list(grid["data_shape"]) + [3])
+        data = np.ndarray(data_shape, np.float32)
         grid.copyToArray(data)
         data = np.expand_dims(data, axis=0)  # expend frame
 
@@ -137,12 +146,11 @@ def layer_to_obj(layer: Layer,
 
     layer_data = bpy.data.volumes.new(layer_display_name)
     layer_data.render.space = 'WORLD'
-    layer_data.render.step_size = container_obj.scale[0] * layer.bioxel_size[0]
+    scene_scale = container_obj.get("scene_scale") or 0.01
+    step_size = container_obj.get("step_size") or 1
+    layer_data.render.step_size = scene_scale * step_size
     layer_data.sequence_mode = 'REPEAT'
     layer_data.filepath = str(cache_filepaths[0])
-
-    # add_direct_driver(layer_data, "render.step_size",
-    #                   container_obj, "scale[0]")
 
     if layer.frame_count > 1:
         layer_data.is_sequence = True
@@ -164,8 +172,7 @@ def layer_to_obj(layer: Layer,
                                     socket_type="NodeSocketGeometry")
     modifier.node_group = node_group
 
-    layer_node = custom_nodes.add_node(node_group,
-                                       "BioxelNodes__Layer")
+    layer_node = add_node_to_graph("_Layer", node_group, get_use_link())
 
     layer_node.inputs['name'].default_value = layer.name
     layer_node.inputs['shape'].default_value = layer.shape
@@ -176,11 +183,12 @@ def layer_to_obj(layer: Layer,
             affine_key = f"affine{i}{j}"
             layer_node.inputs[affine_key].default_value = layer.affine[j, i]
 
-    layer_node.inputs['id'].default_value = random.randint(-200000000,
-                                                           200000000)
+    layer_node.inputs['unique'].default_value = random.uniform(0, 1)
     layer_node.inputs['bioxel_size'].default_value = layer.bioxel_size[0]
     layer_node.inputs['dtype'].default_value = layer.dtype.str
     layer_node.inputs['dtype_num'].default_value = layer.dtype.num
+    layer_node.inputs['frame_count'].default_value = layer.frame_count
+    layer_node.inputs['channel_count'].default_value = layer.channel_count
     layer_node.inputs['offset'].default_value = max(0, -layer.min)
     layer_node.inputs['min'].default_value = layer.min
     layer_node.inputs['max'].default_value = layer.max

@@ -2,17 +2,16 @@ import bpy
 
 import bmesh
 
-from ..nodes import custom_nodes
-from ..customnodes.nodes import AddCustomNode
+from ..utils import get_cache_dir, get_use_link, select_object
 from ..bioxel.io import load_container, save_container
 from ..bioxelutils.container import container_to_obj, obj_to_container
-from ..bioxelutils.utils import (get_container_layer_objs, get_container_obj, 
-                                 get_layer_prop_value, get_nodes_by_type,
-                                 move_node_between_nodes,
-                                 move_node_to_node,
-                                 get_all_layer_objs)
-
-from .utils import get_cache_dir, select_object
+from ..bioxelutils.node import add_node_to_graph
+from ..bioxelutils.common import (get_container_layer_objs, get_container_obj,
+                                  get_nodes_by_type, is_missing_layer,
+                                  move_node_between_nodes,
+                                  move_node_to_node,
+                                  get_all_layer_objs)
+from .layer import RemoveLayers, SaveLayersCache
 
 
 class SaveContainer(bpy.types.Operator):
@@ -63,7 +62,7 @@ class LoadContainer(bpy.types.Operator):
 
         container_obj = container_to_obj(container,
                                          scene_scale=0.01,
-                                         cache_dir=get_cache_dir(context))
+                                         cache_dir=get_cache_dir())
         select_object(container_obj)
 
         if is_first_import:
@@ -78,7 +77,7 @@ class LoadContainer(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class PickObject():
+class ExtractObject():
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -92,18 +91,19 @@ class PickObject():
             size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         obj = bpy.context.active_object
 
-        obj.name = f"{self.object_type}_{container_obj.name}"
+        obj.name = f"{container_obj.name}_{self.object_type}"
 
         bpy.ops.node.new_geometry_nodes_modifier()
         modifier = obj.modifiers[0]
         node_group = modifier.node_group
 
         output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
-        pick_mesh_node = custom_nodes.add_node(node_group,
-                                               f"BioxelNodes_Pick{self.object_type}")
+        fetch_mesh_node = add_node_to_graph(f"Fetch{self.object_type}",
+                                            node_group,
+                                            get_use_link())
 
-        pick_mesh_node.inputs[0].default_value = container_obj
-        node_group.links.new(pick_mesh_node.outputs[0], output_node.inputs[0])
+        fetch_mesh_node.inputs[0].default_value = container_obj
+        node_group.links.new(fetch_mesh_node.outputs[0], output_node.inputs[0])
 
         select_object(obj)
 
@@ -112,26 +112,34 @@ class PickObject():
         return {'FINISHED'}
 
 
-class PickMesh(bpy.types.Operator, PickObject):
-    bl_idname = "bioxelnodes.pick_mesh"
-    bl_label = "Pick Mesh"
-    bl_description = "Pick Container Mesh"
+class ExtractSurface(bpy.types.Operator, ExtractObject):
+    bl_idname = "bioxelnodes.fetch_mesh"
+    bl_label = "Extract Surface"
+    bl_description = "Extract Surface"
     bl_icon = "OUTLINER_OB_MESH"
-    object_type = "Mesh"
+    object_type = "Surface"
 
 
-class PickVolume(bpy.types.Operator, PickObject):
+class ExtractVolume(bpy.types.Operator, ExtractObject):
     bl_idname = "bioxelnodes.pick_volume"
-    bl_label = "Pick Volume"
-    bl_description = "Pick Container Volume"
+    bl_label = "Extract Volume"
+    bl_description = "Extract Volume"
     bl_icon = "OUTLINER_OB_VOLUME"
     object_type = "Volume"
 
 
-class PickBboxWire(bpy.types.Operator, PickObject):
+class ExtractShapeWire(bpy.types.Operator, ExtractObject):
+    bl_idname = "bioxelnodes.pick_shape_wire"
+    bl_label = "Extract Shape Wire"
+    bl_description = "Extract Shape Wire"
+    bl_icon = "FILE_VOLUME"
+    object_type = "ShapeWire"
+
+
+class ExtractBboxWire(bpy.types.Operator, ExtractObject):
     bl_idname = "bioxelnodes.pick_bbox_wire"
-    bl_label = "Pick Bbox Wire"
-    bl_description = "Pick Container Bbox Wire"
+    bl_label = "Extract Bbox Wire"
+    bl_description = "Extract Bbox Wire"
     bl_icon = "MESH_CUBE"
     object_type = "BboxWire"
 
@@ -162,14 +170,12 @@ class AddCutter():
         elif self.cutter_type == "pie":
             bpy.ops.mesh.primitive_plane_add(
                 size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-            pie = bpy.context.active_object
-            pie.name = "Pie"
-            orig_data = pie.data
+            pie_obj = bpy.context.active_object
+            orig_data = pie_obj.data
 
             # Create mesh
             pie_mesh = bpy.data.meshes.new('Pie')
-
-            pie.data = pie_mesh
+            pie_obj.data = pie_mesh
             bpy.data.meshes.remove(orig_data)
 
             # # Create object
@@ -204,7 +210,19 @@ class AddCutter():
             # bpy.context.view_layer.objects.active = pie
 
         cutter_obj = bpy.context.active_object
-        cutter_obj.location = container_obj.location
+
+        # vcos = [container_obj.matrix_world @
+        #         v.co for v in container_obj.data.vertices]
+
+        # def find_center(l): return (max(l) + min(l)) / 2
+
+        # x, y, z = [[v[i] for v in vcos] for i in range(3)]
+        # center = [find_center(axis) for axis in [x, y, z]]
+
+        # cutter_obj.location = center
+        name = self.cutter_type.capitalize()
+        cutter_obj.name = name
+        cutter_obj.data.name = name
         cutter_obj.visible_camera = False
         cutter_obj.visible_diffuse = False
         cutter_obj.visible_glossy = False
@@ -213,6 +231,7 @@ class AddCutter():
         cutter_obj.visible_shadow = False
         cutter_obj.hide_render = True
         cutter_obj.display_type = 'WIRE'
+        cutter_obj.lineart.usage = 'EXCLUDE'
 
         select_object(container_obj)
 
@@ -222,13 +241,16 @@ class AddCutter():
         cut_nodes = get_nodes_by_type(node_group,
                                       'BioxelNodes_Cut')
         if len(cut_nodes) == 0:
-            cutter_node = custom_nodes.add_node(node_group,
-                                                "BioxelNodes_ObjectCutter")
+            cutter_node = add_node_to_graph("ObjectCutter",
+                                            node_group,
+                                            get_use_link())
             cutter_node.inputs[0].default_value = self.cutter_type.capitalize()
             cutter_node.inputs[1].default_value = cutter_obj
 
-            cut_node = custom_nodes.add_node(node_group,
-                                             'BioxelNodes_Cut')
+            cut_node = add_node_to_graph("Cut",
+                                         node_group,
+                                         get_use_link())
+
             output_node = get_nodes_by_type(node_group,
                                             'NodeGroupOutput')[0]
             if len(output_node.inputs[0].links) == 0:
@@ -249,58 +271,20 @@ class AddCutter():
 
             move_node_to_node(cutter_node, cut_node, (-300, -300))
         else:
-            bpy.ops.bioxelnodes.object_cutter('INVOKE_DEFAULT',
-                                              cutter_obj_name=cutter_obj.name,
-                                              cutter_type=self.cutter_type.capitalize())
+            bpy.ops.bioxelnodes.add_node('EXEC_DEFAULT',
+                                         node_name="ObjectCutter",
+                                         node_label=name)
+            node = bpy.context.active_node
+            node.inputs[0].default_value = name
+            node.inputs[1].default_value = cutter_obj
 
         return {'FINISHED'}
-
-
-class ObjectCutter(bpy.types.Operator, AddCustomNode):
-    bl_idname = "bioxelnodes.object_cutter"
-    bl_label = "Object Cutter"
-    bl_description = "Object Cutter"
-    bl_icon = "NODE"
-    bl_options = {'UNDO'}
-
-    cutter_obj_name: bpy.props.StringProperty()  # type: ignore
-
-    cutter_type: bpy.props.StringProperty()  # type: ignore
-
-    def execute(self, context):
-        cutter_obj = bpy.data.objects.get(self.cutter_obj_name)
-        if cutter_obj == None:
-            self.report({"WARNING"}, "Get no layer.")
-            return {'FINISHED'}
-
-        self.get_node_tree(self.node_type, self.node_link)
-        prev_context = bpy.context.area.type
-        bpy.context.area.type = 'NODE_EDITOR'
-        bpy.ops.node.add_node('INVOKE_DEFAULT',
-                              type='GeometryNodeGroup',
-                              use_transform=True)
-        bpy.context.area.type = prev_context
-        node = bpy.context.active_node
-
-        self.assign_node_tree(node)
-        node.show_options = False
-
-        node.label = "Object Cutter"
-        node.inputs[0].default_value = self.cutter_type
-        node.inputs[1].default_value = cutter_obj
-
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        self.nodes_file = custom_nodes.nodes_file
-        self.node_type = "BioxelNodes_ObjectCutter"
-        return self.execute(context)
 
 
 class AddPlaneCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_plane_cutter"
     bl_label = "Add a Plane Cutter"
-    bl_description = "Add a Plane Cutter to Container"
+    bl_description = "Add a plane cutter to current container"
     bl_icon = "MESH_PLANE"
     cutter_type = "plane"
 
@@ -308,7 +292,7 @@ class AddPlaneCutter(bpy.types.Operator, AddCutter):
 class AddCylinderCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_cylinder_cutter"
     bl_label = "Add a Cylinder Cutter"
-    bl_description = "Add a Cylinder Cutter to Container"
+    bl_description = "Add a cylinder cutter to current container"
     bl_icon = "MESH_CYLINDER"
     cutter_type = "cylinder"
 
@@ -316,7 +300,7 @@ class AddCylinderCutter(bpy.types.Operator, AddCutter):
 class AddCubeCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_cube_cutter"
     bl_label = "Add a Cube Cutter"
-    bl_description = "Add a Cube Cutter to Container"
+    bl_description = "Add a cube cutter to current container"
     bl_icon = "MESH_CUBE"
     cutter_type = "cube"
 
@@ -324,7 +308,7 @@ class AddCubeCutter(bpy.types.Operator, AddCutter):
 class AddSphereCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_sphere_cutter"
     bl_label = "Add a Sphere Cutter"
-    bl_description = "Add a Sphere Cutter to Container"
+    bl_description = "Add a sphere cutter to current container"
     bl_icon = "MESH_UVSPHERE"
     cutter_type = "sphere"
 
@@ -332,21 +316,139 @@ class AddSphereCutter(bpy.types.Operator, AddCutter):
 class AddPieCutter(bpy.types.Operator, AddCutter):
     bl_idname = "bioxelnodes.add_pie_cutter"
     bl_label = "Add a Pie Cutter"
-    bl_description = "Add a Pie Cutter to Container"
+    bl_description = "Add a pie cutter to current container"
     bl_icon = "MESH_CONE"
     cutter_type = "pie"
 
 
-class ScaleContainer(bpy.types.Operator):
-    bl_idname = "bioxelnodes.scale_container"
-    bl_label = "Scale Container"
-    bl_description = "Scale Container."
+class AddSlicer(bpy.types.Operator):
+    bl_idname = "bioxelnodes.add_slicer"
+    bl_label = "Add a Slicer"
+    bl_description = "Add a slicer to current container"
+    bl_icon = "TEXTURE"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        container_obj = get_container_obj(context.object)
+
+        if container_obj is None:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        bpy.ops.mesh.primitive_plane_add(size=2,
+                                         enter_editmode=False,
+                                         align='WORLD',
+                                         location=(0, 0, 0),
+                                         scale=(1, 1, 1))
+
+        slicer_obj = bpy.context.active_object
+        slicer_obj.name = "Slicer"
+        slicer_obj.data.name = "Slicer"
+
+        slicer_obj.visible_camera = False
+        slicer_obj.visible_diffuse = False
+        slicer_obj.visible_glossy = False
+        slicer_obj.visible_transmission = False
+        slicer_obj.visible_volume_scatter = False
+        slicer_obj.visible_shadow = False
+        slicer_obj.hide_render = True
+        slicer_obj.display_type = 'WIRE'
+        slicer_obj.lineart.usage = 'EXCLUDE'
+
+        select_object(container_obj)
+
+        modifier = container_obj.modifiers[0]
+        node_group = modifier.node_group
+
+        slice_node = add_node_to_graph("Slice",
+                                       node_group,
+                                       get_use_link())
+
+        slice_node.inputs[1].default_value = slicer_obj
+
+        output_node = get_nodes_by_type(node_group,
+                                        'NodeGroupOutput')[0]
+        if len(output_node.inputs[0].links) == 0:
+            node_group.links.new(slice_node.outputs[0],
+                                 output_node.inputs[0])
+            move_node_to_node(slice_node, output_node, (-300, 0))
+        else:
+            pre_output_node = output_node.inputs[0].links[0].from_node
+            node_group.links.new(pre_output_node.outputs[0],
+                                 slice_node.inputs[0])
+            node_group.links.new(slice_node.outputs[0],
+                                 output_node.inputs[0])
+            move_node_between_nodes(slice_node,
+                                    [pre_output_node, output_node])
+
+        return {'FINISHED'}
+
+
+class AddLocator(bpy.types.Operator):
+    bl_idname = "bioxelnodes.add_locator"
+    bl_label = "Add a Locator"
+    bl_description = "Add a locator to current container"
+    bl_icon = "EMPTY_AXIS"
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        container_obj = get_container_obj(context.object)
+
+        if container_obj is None:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        bpy.ops.object.empty_add(type='ARROWS',
+                                 align='WORLD',
+                                 location=(0, 0, 0),
+                                 scale=(1, 1, 1))
+
+        locator_obj = bpy.context.active_object
+        locator_obj.name = "Locator"
+        select_object(container_obj)
+
+        modifier = container_obj.modifiers[0]
+        node_group = modifier.node_group
+
+        parent_node = add_node_to_graph("TransformParent",
+                                        node_group,
+                                        get_use_link())
+
+        parent_node.inputs[1].default_value = locator_obj
+
+        output_node = get_nodes_by_type(node_group,
+                                        'NodeGroupOutput')[0]
+        if len(output_node.inputs[0].links) == 0:
+            node_group.links.new(parent_node.outputs[0],
+                                 output_node.inputs[0])
+            move_node_to_node(parent_node, output_node, (-300, 0))
+        else:
+            pre_output_node = output_node.inputs[0].links[0].from_node
+            node_group.links.new(pre_output_node.outputs[0],
+                                 parent_node.inputs[0])
+            node_group.links.new(parent_node.outputs[0],
+                                 output_node.inputs[0])
+            move_node_between_nodes(parent_node,
+                                    [pre_output_node, output_node])
+
+        return {'FINISHED'}
+
+
+class ContainerProps(bpy.types.Operator):
+    bl_idname = "bioxelnodes.container_props"
+    bl_label = "Change Container Properties"
+    bl_description = "Change current ontainer properties"
     bl_icon = "FILE_TICK"
 
     scene_scale: bpy.props.FloatProperty(name="Scene Scale",
                                          soft_min=0.0001, soft_max=10.0,
                                          min=1e-6, max=1e6,
                                          default=0.01)  # type: ignore
+
+    step_size: bpy.props.FloatProperty(name="Step Size",
+                                       soft_min=0.1, soft_max=100.0,
+                                       min=0.1, max=1e2,
+                                       default=1)  # type: ignore
 
     def execute(self, context):
         container_obj = get_container_obj(context.object)
@@ -358,10 +460,12 @@ class ScaleContainer(bpy.types.Operator):
         container_obj.scale[0] = self.scene_scale
         container_obj.scale[1] = self.scene_scale
         container_obj.scale[2] = self.scene_scale
+        container_obj["scene_scale"] = self.scene_scale
+        container_obj["step_size"] = self.step_size
 
         for layer_obj in get_container_layer_objs(container_obj):
-            bioxel_size = get_layer_prop_value(layer_obj, "bioxel_size")
-            layer_obj.data.render.step_size = self.scene_scale * bioxel_size
+            layer_obj.data.render.space = 'WORLD'
+            layer_obj.data.render.step_size = self.scene_scale * self.step_size
 
         return {'FINISHED'}
 
@@ -371,49 +475,51 @@ class ScaleContainer(bpy.types.Operator):
         if container_obj is None:
             return self.execute(context)
         else:
-            self.scene_scale = container_obj.scale[0]
-            context.window_manager.invoke_props_dialog(self,
-                                                       width=500)
+            self.scene_scale = container_obj.get("scene_scale") or 0.01
+            self.step_size = container_obj.get("step_size") or 1
+            context.window_manager.invoke_props_dialog(self)
             return {'RUNNING_MODAL'}
 
 
-class SaveAllLayerCaches(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_all_layer_caches"
-    bl_label = "Save All Layer Caches"
-    bl_description = "Save Container's caches to directory."
+def get_container_layers(context, layer_filter=None):
+    def _layer_filter(layer_obj, context):
+        return True
+
+    layer_filter = layer_filter or _layer_filter
+    container_obj = context.object
+    layer_objs = get_container_layer_objs(container_obj)
+    return [obj for obj in layer_objs if layer_filter(obj, context)]
+
+
+class SaveContainerLayersCache(bpy.types.Operator, SaveLayersCache):
+    bl_idname = "bioxelnodes.save_container_layers_cache"
+    bl_label = "Save Container Layers' Cache"
+    bl_description = "Save all current container layers' cache to directory."
     bl_icon = "FILE_TICK"
 
-    cache_dir: bpy.props.StringProperty(
-        name="Cache Directory",
-        subtype='DIR_PATH',
-        default="//"
-    )  # type: ignore
+    success_msg = "Successfully saved all container layers."
 
-    def execute(self, context):
-        container_obj = get_container_obj(context.object)
+    def get_layers(self, context):
+        def is_not_missing(layer_obj, context):
+            return not is_missing_layer(layer_obj)
+        return get_container_layers(context, is_not_missing)
 
-        if container_obj is None:
-            self.report({"WARNING"}, "Cannot find any bioxel container.")
-            return {'FINISHED'}
 
-        fails = []
-        for layer_obj in get_container_layer_objs(container_obj):
-            try:
-                bpy.ops.bioxelnodes.save_layer_cache('EXEC_DEFAULT',
-                                                     layer_obj_name=layer_obj.name,
-                                                     cache_dir=self.cache_dir)
-            except:
-                fails.append(layer_obj)
+class RemoveContainerMissingLayers(bpy.types.Operator, RemoveLayers):
+    bl_idname = "bioxelnodes.remove_container_missing_layers"
+    bl_label = "Remove Container Missing Layers"
+    bl_description = "Remove all current container missing layers"
+    bl_icon = "BRUSH_DATA"
 
-        if len(fails) == 0:
-            self.report({"INFO"}, f"Successfully saved bioxel layers.")
-        else:
-            self.report(
-                {"WARNING"}, f"{','.join([layer.name for layer in fails])} fail to save.")
+    success_msg = "Successfully removed all container missing layers."
 
-        return {'FINISHED'}
+    def get_layers(self, context):
+        def is_missing(layer_obj, context):
+            return is_missing_layer(layer_obj)
+        return get_container_layers(context, is_missing)
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self,
-                                                   width=500)
+        context.window_manager.invoke_confirm(self,
+                                              event,
+                                              message=f"Are you sure to remove all **Missing** layers?")
         return {'RUNNING_MODAL'}

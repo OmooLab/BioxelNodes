@@ -2,7 +2,6 @@ import copy
 import numpy as np
 
 from . import scipy
-from . import skimage as ski
 from . import scipy as ndi
 
 # 3rd-party
@@ -70,23 +69,27 @@ class Layer():
     def copy(self):
         return copy.deepcopy(self)
 
-    def fill(self, value: float, mask: np.ndarray):
+    def fill(self, value: float, mask: np.ndarray, smooth: int = 0):
         mask_frames = ()
         if mask.ndim == 4:
             if mask.shape[0] != self.frame_count:
                 raise Exception("Mask frame count is not same as ")
             for f in range(self.frame_count):
                 mask_frame = mask[f, :, :, :]
-                mask_frame = scipy.minimum_filter(
-                    mask_frame.astype(np.float32), size=3)
+                if smooth > 0:
+                    mask_frame = scipy.minimum_filter(mask_frame.astype(np.float32),
+                                                      mode="nearest",
+                                                      size=smooth)
                 # mask_frame = scipy.median_filter(
                 #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
         elif mask.ndim == 3:
             for f in range(self.frame_count):
                 mask_frame = mask[:, :, :]
-                mask_frame = scipy.minimum_filter(
-                    mask_frame.astype(np.float32), size=3)
+                if smooth > 0:
+                    mask_frame = scipy.minimum_filter(mask_frame.astype(np.float32),
+                                                      mode="nearest",
+                                                      size=smooth)
                 # mask_frame = scipy.median_filter(
                 #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
@@ -97,12 +100,11 @@ class Layer():
         _mask = np.expand_dims(_mask, axis=-1)
         self.data = _mask * value + (1-_mask) * self.data
 
-    def resize(self, shape: tuple, progress_callback=None):
+    def resize(self, shape: tuple, smooth: int = 0, progress_callback=None):
         if len(shape) != 3:
             raise Exception("Shape must be 3 dim")
 
         data = self.data
-        order = 0 if self.dtype == bool else 1
 
         # # TXYZC > TXYZ
         # if self.kind in ['label', 'scalar']:
@@ -121,15 +123,22 @@ class Layer():
             #                    shape,
             #                    preserve_range=True,
             #                    anti_aliasing=data.dtype.kind != "b")
+            frame = data[f, :, :, :, :]
+            if smooth > 0:
+                frame = scipy.median_filter(frame.astype(np.float32),
+                                            mode="nearest",
+                                            size=smooth)
 
             factors = np.divide(self.shape, shape)
             zoom_factors = [1 / f for f in factors]
-            frame = ndi.zoom(data[f, :, :, :, :],
+            order = 0 if frame.dtype == bool else 1
+            frame = ndi.zoom(frame,
                              zoom_factors+[1.0],
                              mode="nearest",
                              grid_mode=False,
                              order=order)
-
+            if smooth > 0:
+                frame = frame.astype(self.dtype)
             data_frames += (frame,)
 
         data = np.stack(data_frames)

@@ -1,6 +1,6 @@
 import bpy
 
-from .bioxelutils.utils import get_node_type
+from .bioxelutils.common import get_node_type
 
 
 class BIOXELNODES_UL_layer_list(bpy.types.UIList):
@@ -26,6 +26,8 @@ def select_layer(self, context):
             if get_node_type(node) == "BioxelNodes_FetchLayer":
                 if node.inputs[0].default_value == layer_obj:
                     node.select = True
+
+    layer_list_UL.layer_list_active = -1
 
 
 class BIOXELNODES_Layer(bpy.types.PropertyGroup):

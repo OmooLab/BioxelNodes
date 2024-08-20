@@ -1,6 +1,5 @@
 from pathlib import Path
 import numpy as np
-from .layer import Layer
 
 # 3rd-party
 import SimpleITK as sitk
@@ -166,7 +165,7 @@ def remove_end_str(string: str, end: str):
     return string
 
 
-def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) -> Layer:
+def parse_volumetric_data(data_file: str, series_id="", progress_callback=None):
     """Parse any volumetric data to numpy with shap (T,X,Y,Z,C)
 
     Args:
