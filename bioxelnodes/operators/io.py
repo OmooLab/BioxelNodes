@@ -5,20 +5,20 @@ import threading
 import numpy as np
 from pathlib import Path
 
-
 from ..exceptions import CancelledByUser
 from ..props import BIOXELNODES_Series
-from ..bioxel.layer import Layer
-from ..bioxelutils.layer import (get_all_layer_objs,
-                                 get_layer_obj)
+from ..bioxelutils.common import (get_all_layer_objs, get_container_obj,
+                                  get_layer_obj, is_incompatible)
 from ..bioxelutils.container import (Container,
                                      add_layers,
-                                     container_to_obj,
-                                     get_container_objs_from_selection)
+                                     container_to_obj)
+from ..bioxel.layer import Layer
 from ..bioxel.parse import (DICOM_EXTS, SUPPORT_EXTS,
                             get_ext, parse_volumetric_data)
-from .utils import (change_render_setting, get_cache_dir, get_preferences,
-                    progress_update, progress_bar, select_object)
+
+from ..utils import (get_cache_dir,
+                     progress_update, progress_bar,
+                     select_object)
 
 # 3rd-party
 import SimpleITK as sitk
@@ -57,7 +57,7 @@ class ImportVolumetricData():
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
 
-    read_as = "scalar"
+    read_as = "SCALAR"
 
     def execute(self, context):
         data_path = Path(self.filepath).resolve()
@@ -78,18 +78,28 @@ class ImportVolumetricData():
         return {'RUNNING_MODAL'}
 
 
-class ImportAsScalarLayer(bpy.types.Operator, ImportVolumetricData):
-    bl_idname = "bioxelnodes.import_as_scalar_layer"
+class ImportAsScalar(bpy.types.Operator, ImportVolumetricData):
+    bl_idname = "bioxelnodes.import_as_scalar"
     bl_label = "Import as Scalar"
     bl_description = "Import Volumetric Data to Container as Scalar"
-    read_as = "scalar"
+    bl_icon = "EVENT_S"
+    read_as = "SCALAR"
 
 
-class ImportAsLabelLayer(bpy.types.Operator, ImportVolumetricData):
-    bl_idname = "bioxelnodes.import_as_label_layer"
+class ImportAsLabel(bpy.types.Operator, ImportVolumetricData):
+    bl_idname = "bioxelnodes.import_as_label"
     bl_label = "Import as Label"
     bl_description = "Import Volumetric Data to Container as Label"
-    read_as = "label"
+    bl_icon = "EVENT_L"
+    read_as = "LABEL"
+
+
+class ImportAsColor(bpy.types.Operator, ImportVolumetricData):
+    bl_idname = "bioxelnodes.import_as_color"
+    bl_label = "Import as Label"
+    bl_description = "Import Volumetric Data to Container as Label"
+    bl_icon = "EVENT_C"
+    read_as = "COLOR"
 
 
 class BIOXELNODES_FH_ImportVolumetricData(bpy.types.FileHandler):
@@ -100,7 +110,16 @@ class BIOXELNODES_FH_ImportVolumetricData(bpy.types.FileHandler):
 
     @classmethod
     def poll_drop(cls, context):
-        return (context.area and context.area.type == 'VIEW_3D')
+        if not context.area:
+            return False
+
+        if context.area.type == 'VIEW_3D':
+            return True
+        elif context.area.type == 'NODE_EDITOR':
+            container_obj = get_container_obj(context.object)
+            return container_obj is not None
+        else:
+            return False
 
 
 def get_series_ids(self, context):
@@ -123,9 +142,10 @@ class ParseVolumetricData(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     meta = None
+    label_count = 0
+    dtype = None
     thread = None
     _timer = None
-    container_obj_name = ""
 
     progress: bpy.props.FloatProperty(name="Progress",
                                       options={"SKIP_SAVE"},
@@ -142,9 +162,10 @@ class ParseVolumetricData(bpy.types.Operator):
                                                options={"SKIP_SAVE"})  # type: ignore
 
     read_as: bpy.props.EnumProperty(name="Read as",
-                                    default="scalar",
-                                    items=[("scalar", "Scalar", ""),
-                                           ("label", "Labels", "")])  # type: ignore
+                                    default="SCALAR",
+                                    items=[("SCALAR", "Scalar", ""),
+                                           ("LABEL", "Labels", ""),
+                                           ("COLOR", "Color", "")])  # type: ignore
 
     series_id: bpy.props.EnumProperty(name="Select Series",
                                       items=get_series_ids)  # type: ignore
@@ -153,6 +174,15 @@ class ParseVolumetricData(bpy.types.Operator):
         type=BIOXELNODES_Series)  # type: ignore
 
     def execute(self, context):
+        if is_incompatible():
+            self.report({"ERROR"},
+                        "Current addon verison is not compatible to this file. If you insist on editing this file please keep the same addon version")
+            return {'CANCELLED'}
+
+        if not self.filepath:
+            self.report({"WARNING"}, "No file selected.")
+            return {'CANCELLED'}
+
         data_path = Path(self.filepath).resolve()
         ext = get_ext(data_path)
         if ext not in SUPPORT_EXTS:
@@ -182,6 +212,8 @@ class ParseVolumetricData(bpy.types.Operator):
                 return
 
             self.meta = meta
+            self.label_count = int(np.max(data))
+            self.dtype = data.dtype
 
         # Init cancel flag
         self.is_cancelled = False
@@ -207,7 +239,7 @@ class ParseVolumetricData(bpy.types.Operator):
         # Check if user press 'ESC'
         if event.type == 'ESC':
             self.is_cancelled = True
-            progress_update(context, 0, "Canceling...")
+            progress_update(context, 0.0, "Canceling...")
             return {'PASS_THROUGH'}
 
         # Check if is the timer time
@@ -227,6 +259,7 @@ class ParseVolumetricData(bpy.types.Operator):
         context.window_manager.event_timer_remove(self._timer)
         # Remove the progress bar from status bar
         bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+        progress_update(context, 1.0)
 
         # Check if thread is cancelled by user
         if self.is_cancelled:
@@ -246,25 +279,57 @@ class ParseVolumetricData(bpy.types.Operator):
         for key, value in self.meta.items():
             print(f"{key}: {value}")
 
+        if self.read_as == "LABEL":
+            if self.label_count > 100 or self.dtype.kind not in ["i", "u"]:
+                self.report({"ERROR"}, "Invaild label data.")
+                return {'CANCELLED'}
+
         orig_shape = self.meta['xyz_shape']
         orig_spacing = self.meta['spacing']
-        min_size = min(orig_spacing[0],
-                       orig_spacing[1], orig_spacing[2])
-        bioxel_size = max(min_size, 1.0)
 
-        layer_shape = get_layer_shape(1, orig_shape, orig_spacing)
+        min_log10 = math.floor(math.log10(min(*orig_spacing)))
+        max_log10 = math.floor(math.log10(max(*orig_spacing)))
+        # min_space = min(*orig_spacing)
+        # max_space = max(*orig_spacing)
+
+        if orig_spacing[2] == 1 and min_log10 < -1:
+            orig_spacing = (orig_spacing[0] * math.pow(10, -min_log10-2),
+                            orig_spacing[1] * math.pow(10, -min_log10-2),
+                            1)
+        elif min_log10 > 0:
+            orig_spacing = (orig_spacing[0] * math.pow(10, -min_log10-1),
+                            orig_spacing[1] * math.pow(10, -min_log10-1),
+                            orig_spacing[2] * math.pow(10, -min_log10-1))
+        elif max_log10 < 0:
+            orig_spacing = (orig_spacing[0] * math.pow(10, -max_log10-1),
+                            orig_spacing[1] * math.pow(10, -max_log10-1),
+                            orig_spacing[2] * math.pow(10, -max_log10-1))
+
+        bioxel_size = max(min(*orig_spacing), 1.0)
+
+        layer_shape = get_layer_shape(bioxel_size,
+                                      orig_shape,
+                                      orig_spacing)
         layer_size = get_layer_size(layer_shape,
-                                    bioxel_size)
-        log10 = math.floor(math.log10(max(*layer_size)))
-        log10 = max(1, log10)
-        log10 = min(3, log10)
-        scene_scale = math.pow(10, -log10)
+                                    bioxel_size,
+                                    0.01)
+        min_log10 = math.floor(math.log10(min(*layer_size)))
+        max_log10 = math.floor(math.log10(max(*layer_size)))
 
-        if self.container_obj_name:
-            container_obj = bpy.data.objects.get(self.container_obj_name)
+        if min_log10 > 0:
+            scene_scale = math.pow(10, -min_log10-2)
+        elif max_log10 < 0:
+            scene_scale = math.pow(10, -max_log10-2)
+        else:
+            scene_scale = 0.01
+
+        if context.area.type == "NODE_EDITOR":
+            container_obj = context.object
             container_name = container_obj.name
+            container_obj_name = container_name
         else:
             container_name = self.meta['name']
+            container_obj_name = ""
 
         series_id = self.series_id if self.series_id != "empty" else ""
         bpy.ops.bioxelnodes.import_volumetric_data_dialog(
@@ -278,8 +343,9 @@ class ParseVolumetricData(bpy.types.Operator):
             series_id=series_id,
             frame_count=self.meta['frame_count'],
             channel_count=self.meta['channel_count'],
-            container_obj_name=self.container_obj_name,
+            container_obj_name=container_obj_name,
             read_as=self.read_as,
+            label_count=self.label_count,
             scene_scale=scene_scale
         )
 
@@ -287,18 +353,22 @@ class ParseVolumetricData(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        if not self.filepath:
+        # why not report in execute?
+        # If this operator is executing, a new execute will when pre-one done.
+        if context.window_manager.bioxelnodes_progress_factor < 1:
+            print("A process is executing, please wait for it to finish.")
             return {'CANCELLED'}
+
+        if not self.filepath:
+            return self.execute(context)
 
         data_path = Path(self.filepath).resolve()
         ext = get_ext(data_path)
 
-        container_objs = get_container_objs_from_selection()
-        if len(container_objs) > 0:
-            self.container_obj_name = container_objs[0].name
-
-        title = f"Add to **{self.container_obj_name}**" \
-            if self.container_obj_name != "" else f"Init a Container"
+        if context.area.type == "NODE_EDITOR":
+            title = f"Add to **{context.object.name}**"
+        else:
+            title = "Init a Container"
 
         # Series Selection
         if ext in DICOM_EXTS:
@@ -367,8 +437,7 @@ class ParseVolumetricData(bpy.types.Operator):
                 return {'CANCELLED'}
 
         if self.skip_read_as:
-            self.execute(context)
-            return {'RUNNING_MODAL'}
+            return self.execute(context)
         else:
             context.window_manager.invoke_props_dialog(self,
                                                        width=400,
@@ -386,17 +455,17 @@ class ParseVolumetricData(bpy.types.Operator):
             layout.prop(self, "series_id")
 
 
-def get_sequence_sources(self, context):
-    items = [("-1", "None (1 frame)", "")]
+def get_frame_sources(self, context):
+    items = [("-1", "First Frame (1 frame)", "")]
     orig_shape = tuple(self.orig_shape)
     if self.frame_count > 1:
-        items.append(("0", f"Frame ({self.frame_count} frames)", ""))
+        items.append(("0", f"Frames ({self.frame_count} frames)", ""))
     elif self.frame_count == 1 and self.channel_count > 1:
-        items.append(("4", f"Channel ({self.channel_count} frames)", ""))
+        items.append(("4", f"Channels ({self.channel_count} frames)", ""))
     elif self.frame_count == 1 and self.channel_count == 1:
-        items.append(("1", f"X ({orig_shape[0]} frames)", ""))
-        items.append(("2", f"Y ({orig_shape[1]} frames)", ""))
-        items.append(("3", f"Z ({orig_shape[2]} frames)", ""))
+        items.append(("1", f"X-axis ({orig_shape[0]} frames)", ""))
+        items.append(("2", f"Y-axis ({orig_shape[1]} frames)", ""))
+        items.append(("3", f"Z-axis ({orig_shape[2]} frames)", ""))
 
     return items
 
@@ -426,10 +495,13 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
     channel_count: bpy.props.IntProperty()  # type: ignore
 
+    label_count: bpy.props.IntProperty()  # type: ignore
+
     read_as: bpy.props.EnumProperty(name="Read as",
-                                    default="scalar",
-                                    items=[("scalar", "Scalar", ""),
-                                           ("label", "Labels", "")])  # type: ignore
+                                    default="SCALAR",
+                                    items=[("SCALAR", "Scalar", ""),
+                                           ("LABEL", "Labels", ""),
+                                           ("COLOR", "Color", "")])  # type: ignore
 
     bioxel_size: bpy.props.FloatProperty(name="Bioxel Size (Larger size means small resolution)",
                                          soft_min=0.1, soft_max=10.0,
@@ -447,11 +519,14 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                                          min=1e-6, max=1e6,
                                          default=0.01)  # type: ignore
 
-    split_channels: bpy.props.BoolProperty(name="Split Channels",
-                                           default=False)  # type: ignore
+    remap: bpy.props.BoolProperty(name="Remap to 0~1",
+                                  default=False)  # type: ignore
 
-    sequence_source: bpy.props.EnumProperty(name="Time Sequence From",
-                                            items=get_sequence_sources)  # type: ignore
+    split_channel: bpy.props.BoolProperty(name="Split Channels",
+                                          default=False)  # type: ignore
+
+    frame_source: bpy.props.EnumProperty(name="Frame From",
+                                         items=get_frame_sources)  # type: ignore
 
     def execute(self, context):
         def import_volumetric_data_func(self, context, cancel):
@@ -481,26 +556,26 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
             mat_scale = transforms3d.zooms.zfdir2aff(self.bioxel_size)
             affine = np.dot(meta['affine'], mat_scale)
-            kind = self.read_as
+            kind = self.read_as.lower()
 
             if cancel():
                 return
 
             # change shape as sequence or not
-            if self.sequence_source == "-1":
+            if self.frame_source == "-1":
                 data = data[0:1, :, :, :, :]
-            elif self.sequence_source == "0":
+            elif self.frame_source == "0":
                 # frame as frame
                 pass
-            elif self.sequence_source == "1":
+            elif self.frame_source == "1":
                 # X as frame
                 data = data.transpose(1, 0, 2, 3, 4)
                 shape = (1, shape[1], shape[2])
-            elif self.sequence_source == "2":
+            elif self.frame_source == "2":
                 # Y as frame
                 data = data.transpose(2, 1, 0, 3, 4)
                 shape = (shape[0], 1, shape[2])
-            elif self.sequence_source == "3":
+            elif self.frame_source == "3":
                 # Z as frame
                 data = data.transpose(3, 1, 2, 0, 4)
                 shape = (shape[0], shape[1], 1)
@@ -516,6 +591,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                     sub_progress = progress + frame * sub_progress_step
                     progress_update(context, sub_progress,
                                     f"Processing {layer_name} Frame {frame+1}...")
+                    print(f"Processing {layer_name} Frame {frame+1}...")
                 return progress_callback
 
             layers = []
@@ -540,11 +616,12 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                     try:
                         layer = Layer(data=data == np.full_like(data, i+1),
                                       name=name_i,
-                                      kind=kind,
-                                      affine=affine)
+                                      kind=kind)
 
                         layer.resize(shape=shape,
                                      progress_callback=progress_callback)
+
+                        layer.affine = affine
 
                         layers.append(layer)
                     except CancelledByUser:
@@ -553,10 +630,82 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                         self.has_error = e
                         return
 
+            if kind == "color":
+                if np.issubdtype(np.uint8, data.dtype):
+                    data = np.multiply(data, 1.0 / 256,
+                                       dtype=np.float32)
+                elif data.dtype.kind in ['u', 'i']:
+                    # Convert the normalized array to float dtype
+                    data = data.astype(np.float32)
+
+                    min_val = data.min()
+                    max_val = data.max()
+                    # Avoid division by zero if all values are the same
+                    if max_val != min_val:
+                        # Normalize the array to the range (0,1)
+                        data = (data - min_val) / (max_val - min_val)
+                    else:
+                        # If all values are the same, the normalized array will be all zeros
+                        data = np.zeros_like(data, dtype=np.float32)
+
+                else:
+                    data = data.astype(np.float32)
+
+                name = self.layer_name or "Color"
+                if data.shape[4] == 1:
+                    data = np.repeat(data, repeats=3, axis=4)
+                elif data.shape[4] == 2:
+                    d_shape = list(data.shape)
+                    d_shape = d_shape[:4] + [1]
+                    zore = np.zeros(tuple(d_shape), dtype=np.float32)
+                    data = np.concatenate((data, zore), axis=-1)
+                elif data.shape[4] > 3:
+                    data = data[:, :, :, :, :3]
+
+                if cancel():
+                    return
+
+                progress_update(context, 0.2,
+                                f"Processing {name}...")
+                progress_callback = progress_callback_factory(name,
+                                                              0.2,
+                                                              0.7)
+
+                try:
+                    layer = Layer(data=data,
+                                  name=name,
+                                  kind=kind)
+
+                    layer.resize(shape=shape,
+                                 progress_callback=progress_callback)
+
+                    layer.affine = affine
+
+                    layers.append(layer)
+                except CancelledByUser:
+                    return
+                except Exception as e:
+                    self.has_error = e
+                    return
+
             elif kind == "scalar":
                 name = self.layer_name or "Scalar"
 
-                if self.split_channels:
+                if self.remap:
+                    # Convert the normalized array to float dtype
+                    data = data.astype(np.float32)
+
+                    min_val = data.min()
+                    max_val = data.max()
+                    # Avoid division by zero if all values are the same
+                    if max_val != min_val:
+                        # Normalize the array to the range (0,1)
+                        data = (data - min_val) / (max_val - min_val)
+                    else:
+                        # If all values are the same, the normalized array will be all zeros
+                        data = np.zeros_like(data, dtype=np.float32)
+
+                if self.split_channel:
                     progress_step = 0.7/self.channel_count
 
                     for i in range(self.channel_count):
@@ -573,11 +722,12 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                         try:
                             layer = Layer(data=data[:, :, :, :, i:i+1],
                                           name=name_i,
-                                          kind=kind,
-                                          affine=affine)
+                                          kind=kind)
 
                             layer.resize(shape=shape,
                                          progress_callback=progress_callback)
+
+                            layer.affine = affine
 
                             layers.append(layer)
                         except CancelledByUser:
@@ -598,11 +748,12 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                     try:
                         layer = Layer(data=data,
                                       name=name,
-                                      kind=kind,
-                                      affine=affine)
+                                      kind=kind)
 
                         layer.resize(shape=shape,
                                      progress_callback=progress_callback)
+
+                        layer.affine = affine
 
                         layers.append(layer)
                     except CancelledByUser:
@@ -634,7 +785,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
     def modal(self, context, event):
         if event.type == 'ESC':
             self.is_cancelled = True
-            progress_update(context, 0, "Canceling...")
+            progress_update(context, 0.0, "Canceling...")
             return {'PASS_THROUGH'}
 
         if event.type != 'TIMER':
@@ -647,6 +798,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         self.thread.join()
         context.window_manager.event_timer_remove(self._timer)
         bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+        progress_update(context, 1.0)
 
         if self.is_cancelled:
             self.report({"WARNING"}, "Canncelled by user.")
@@ -670,20 +822,25 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
             container_obj = add_layers(self.layers,
                                        container_obj=container_obj,
-                                       cache_dir=get_cache_dir(context))
+                                       cache_dir=get_cache_dir())
         else:
-            container = Container(name=self.container_name,
+            name = self.container_name or "Container"
+            container = Container(name=name,
                                   layers=self.layers)
 
+            step_size = container.layers[0].bioxel_size[0]*5
             container_obj = container_to_obj(container,
                                              scene_scale=self.scene_scale,
-                                             cache_dir=get_cache_dir(context))
+                                             step_size=step_size,
+                                             cache_dir=get_cache_dir())
 
         select_object(container_obj)
 
         # Change render setting for better result
         if is_first_import:
-            change_render_setting(context)
+            bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
+                                                      preset="preview_c")
+            # bpy.ops.bioxelnodes.slice_viewer('EXEC_DEFAULT')
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}
@@ -706,54 +863,69 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
         # change shape as sequence or not
         channel_count = self.channel_count
-        if self.sequence_source == "-1":
+        frame_count = self.frame_count
+        if self.frame_source == "-1":
+            frame_count = 1
             pass
-        elif self.sequence_source == "0":
+        elif self.frame_source == "0":
             # frame as frame
             pass
-        elif self.sequence_source == "1":
+        elif self.frame_source == "1":
+            frame_count = orig_shape[0]
             layer_shape = (1, layer_shape[1], layer_shape[2])
-        elif self.sequence_source == "2":
+        elif self.frame_source == "2":
+            frame_count = orig_shape[1]
             layer_shape = (layer_shape[0], 1, layer_shape[2])
-        elif self.sequence_source == "3":
+        elif self.frame_source == "3":
+            frame_count = orig_shape[2]
             layer_shape = (layer_shape[0], layer_shape[1], 1)
         else:
             channel_count = 1
 
-        import_channel = channel_count if self.split_channels or channel_count == 1 else "combined"
+        if self.read_as == "SCALAR":
+            layer_count = channel_count if self.split_channel else 1
+            channel_count = 1
+        elif self.read_as == "LABEL":
+            layer_count = self.label_count
+            channel_count = 1
+        else:
+            layer_count = 1
+            channel_count = 3
 
         bioxel_count = layer_shape[0] * layer_shape[1] * layer_shape[2]
-        layer_shape_text = f"Shape from {str(orig_shape)} to {str(layer_shape)}"
+        orig_shape_text = f"[{self.frame_count}, ({orig_shape[0]},{orig_shape[1]},{orig_shape[2]}), {self.channel_count}]"
+        layer_shape_text = f"{layer_count} x [{frame_count}, ({layer_shape[0]},{layer_shape[1]},{layer_shape[2]}), {channel_count}]"
+
         if bioxel_count > 100000000:
             layer_shape_text += "**TOO LARGE!**"
 
+        layer_size = get_layer_size(layer_shape,
+                                    self.bioxel_size,
+                                    self.scene_scale)
+        layer_size_text = f"Size will be: ({layer_size[0]:.2f}, {layer_size[1]:.2f}, {layer_size[2]:.2f}) m"
+
         layout = self.layout
         if self.container_obj_name == "":
-            layout.prop(self, "container_name")
-        layout.prop(self, "layer_name")
+            panel = layout.box()
+            panel.prop(self, "container_name")
+            panel.prop(self, "scene_scale")
+            panel.label(text=layer_size_text)
 
         panel = layout.box()
+        panel.prop(self, "layer_name")
         panel.prop(self, "bioxel_size")
         row = panel.row()
         row.prop(self, "orig_spacing")
-        panel.label(text=layer_shape_text)
+        panel.prop(self, "frame_source")
 
-        panel = layout.box()
-        panel.prop(self, "sequence_source")
+        if self.read_as == "SCALAR":
+            panel.prop(self, "split_channel",
+                       text=f"Split Channel as Multi Layer")
 
-        if self.read_as == "scalar":
-            panel = layout.box()
-            panel.prop(self, "split_channels",
-                       text=f"Split Channels (Get {channel_count} channels, import {import_channel} channels)")
-
-        if self.container_obj_name == "":
-            layer_size = get_layer_size(layer_shape,
-                                        self.bioxel_size,
-                                        self.scene_scale)
-            layer_size_text = f"Size will be: ({layer_size[0]:.2f}, {layer_size[1]:.2f}, {layer_size[2]:.2f}) m"
-            panel = layout.box()
-            panel.prop(self, "scene_scale")
-            panel.label(text=layer_size_text)
+        panel.label(
+            text="Dimension Order: [Frame, (X-axis,Y-axis,Z-axis), Channel]")
+        panel.label(
+            text=f"Shape from {orig_shape_text} to {layer_shape_text}")
 
 
 class ExportVolumetricData(bpy.types.Operator):

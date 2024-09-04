@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bioxelnodes"
-version = "0.3.3"
+version = "1.0.0"
 name = "Bioxel Nodes"
 tagline = "For scientific volumetric data visualization in Blender"
 maintainer = "Ma Nan <icrdr2010@outlook.com>"
@@ -30,9 +30,8 @@ wheels = [
   "./wheels/tifffile-2024.7.24-py3-none-any.whl",
   "./wheels/pyometiff-1.0.0-py3-none-any.whl",
   "./wheels/mrcfile-1.5.1-py2.py3-none-any.whl",
-  "./wheels/transforms3d-0.4.2-py3-none-any.whl",
+  "./wheels/transforms3d-0.4.2-py3-none-any.whl"
 ]
 
 [permissions]
 files = "Import/export volume data from/to disk"
-

@@ -5,10 +5,13 @@ from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix, Vector
 
 
-from .layer import Layer, get_container_layer_objs, layer_to_obj, obj_to_layer
-from ..nodes import custom_nodes
-from .node import get_nodes_by_type, move_node_to_node
-
+from .layer import Layer, layer_to_obj, obj_to_layer
+from .common import (get_container_layer_objs,
+                     get_layer_prop_value,
+                     get_nodes_by_type,
+                     move_node_to_node)
+from .node import add_node_to_graph
+from ..utils import get_use_link
 
 NODE_TYPE = {
     "label": "BioxelNodes_MaskByLabel",
@@ -66,51 +69,6 @@ def calc_bbox_verts(origin: tuple, size: tuple):
     return bbox_verts
 
 
-def get_container_objs_from_selection():
-    container_objs = []
-    for obj in bpy.context.selected_objects:
-        if get_container_obj(obj):
-            container_objs.append(obj)
-
-    return list(set(container_objs))
-
-
-def get_container_obj(current_obj):
-    if current_obj:
-        if current_obj.get('bioxel_container'):
-            return current_obj
-        elif current_obj.get('bioxel_layer'):
-            parent = current_obj.parent
-            return parent if parent.get('bioxel_container') else None
-    return None
-
-
-def add_layers(layers: list[Layer],
-               container_obj: bpy.types.Object,
-               cache_dir: str):
-
-    container_node_group = container_obj.modifiers[0].node_group
-
-    for i, layer in enumerate(layers):
-        layer_obj = layer_to_obj(layer, container_obj, cache_dir)
-        mask_node = custom_nodes.add_node(container_node_group,
-                                          NODE_TYPE[layer.kind])
-        mask_node.label = layer_obj.name
-        mask_node.inputs[0].default_value = layer_obj
-
-        # Connect to output if no output linked
-        output_node = get_nodes_by_type(container_node_group,
-                                        'NodeGroupOutput')[0]
-        if len(output_node.inputs[0].links) == 0:
-            container_node_group.links.new(mask_node.outputs[0],
-                                           output_node.inputs[0])
-            move_node_to_node(mask_node, output_node, (-300, 0))
-        else:
-            move_node_to_node(mask_node, output_node, (0, -100 * (i+1)))
-
-    return container_obj
-
-
 def obj_to_container(container_obj: bpy.types.Object):
     layer_objs = get_container_layer_objs(container_obj)
     layers = [obj_to_layer(obj) for obj in layer_objs]
@@ -119,8 +77,38 @@ def obj_to_container(container_obj: bpy.types.Object):
     return container
 
 
+def add_layers(layers: list[Layer],
+               container_obj: bpy.types.Object,
+               cache_dir: str):
+
+    node_group = container_obj.modifiers[0].node_group
+    try:
+        output_node = get_nodes_by_type(node_group,
+                                        'NodeGroupOutput')[0]
+    except:
+        output_node = node_group.nodes.new("NodeGroupOutput")
+
+    for i, layer in enumerate(layers):
+        layer_obj = layer_to_obj(layer, container_obj, cache_dir)
+        fetch_node = add_node_to_graph("FetchLayer",
+                                       node_group,
+                                       get_use_link())
+        fetch_node.label = get_layer_prop_value(layer_obj, "name")
+        fetch_node.inputs[0].default_value = layer_obj
+
+        if len(output_node.inputs[0].links) == 0:
+            node_group.links.new(fetch_node.outputs[0],
+                                 output_node.inputs[0])
+            move_node_to_node(fetch_node, output_node, (-600, 0))
+        else:
+            move_node_to_node(fetch_node, output_node, (0, -100 * (i+1)))
+
+    return container_obj
+
+
 def container_to_obj(container: Container,
                      scene_scale: float,
+                     step_size: float,
                      cache_dir: str):
     # Wrapper a Container
 
@@ -151,30 +139,33 @@ def container_to_obj(container: Container,
     container_obj.name = container.name
     container_obj.data.name = container.name
     container_obj.show_in_front = True
+
+    container_obj.lock_location[0] = True
+    container_obj.lock_location[1] = True
+    container_obj.lock_location[2] = True
+
+    container_obj.lock_rotation[0] = True
+    container_obj.lock_rotation[1] = True
+    container_obj.lock_rotation[2] = True
+
+    container_obj.lock_scale[0] = True
+    container_obj.lock_scale[1] = True
+    container_obj.lock_scale[2] = True
+
     container_obj['bioxel_container'] = True
+    container_obj["scene_scale"] = scene_scale
+    container_obj["step_size"] = step_size
 
-    bpy.ops.node.new_geometry_nodes_modifier()
-    container_node_group = container_obj.modifiers[0].node_group
-    input_node = get_nodes_by_type(container_node_group,
-                                   'NodeGroupInput')[0]
-    container_node_group.links.remove(
-        input_node.outputs[0].links[0])
+    modifier = container_obj.modifiers.new("GeometryNodes", 'NODES')
+    node_group = bpy.data.node_groups.new('GeometryNodes', 'GeometryNodeTree')
+    node_group.interface.new_socket(name="Output",
+                                    in_out="OUTPUT",
+                                    socket_type="NodeSocketGeometry")
+    modifier.node_group = node_group
+    node_group.nodes.new("NodeGroupOutput")
 
-    for i, layer in enumerate(container.layers):
-        layer_obj = layer_to_obj(layer, container_obj, cache_dir)
-        mask_node = custom_nodes.add_node(container_node_group,
-                                          NODE_TYPE[layer.kind])
-        mask_node.label = layer_obj.name
-        mask_node.inputs[0].default_value = layer_obj
-
-        # Connect to output if no output linked
-        output_node = get_nodes_by_type(container_node_group,
-                                        'NodeGroupOutput')[0]
-        if len(output_node.inputs[0].links) == 0:
-            container_node_group.links.new(mask_node.outputs[0],
-                                           output_node.inputs[0])
-            move_node_to_node(mask_node, output_node, (-300, 0))
-        else:
-            move_node_to_node(mask_node, output_node, (0, -100 * (i+1)))
+    container_obj = add_layers(container.layers,
+                               container_obj=container_obj,
+                               cache_dir=cache_dir)
 
     return container_obj

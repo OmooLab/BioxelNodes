@@ -133,4 +133,6 @@ blendcache_*
 
 .secrets
 
+.vdb
+
 !scipy_ndimage/*/**

@@ -1,6 +1,5 @@
 from pathlib import Path
 import numpy as np
-from .layer import Layer
 
 # 3rd-party
 import SimpleITK as sitk
@@ -42,7 +41,8 @@ DICOM_EXTS = ['', '.dcm', '.DCM', '.DICOM', '.ima', '.IMA']
 SEQUENCE_EXTS = ['.bmp', '.BMP',
                  '.jpg', '.JPG', '.jpeg', '.JPEG',
                  '.tif', '.TIF', '.tiff', '.TIFF',
-                 '.png', '.PNG']
+                 '.png', '.PNG',
+                 '.mrc']
 
 
 def get_ext(filepath: Path) -> str:
@@ -64,18 +64,40 @@ def get_ext(filepath: Path) -> str:
         return filepath.suffix
 
 
-def get_file_name(filepath: Path):
+def get_filename(filepath: Path):
     ext = get_ext(filepath)
-    return filepath.name.removesuffix(ext).replace(" ", "-")
+    return filepath.name.removesuffix(ext)
 
 
-def get_file_number(filepath: Path) -> str:
-    name = get_file_name(filepath)
+def get_filename_parts(filepath: Path) -> str:
+    def has_digits(s):
+        return any(char.isdigit() for char in s)
+
+    name = get_filename(filepath)
+    parts = name.replace(".", " ").replace("_", " ").split(" ")
+    skip_prefixs = ["CH", "ch", "channel"]
+    number_part = None
+    number_part_i = None
+
+    for i, part in enumerate(parts[::-1]):
+        if has_digits(part):
+            if not any([part.startswith(prefix) for prefix in skip_prefixs]):
+                number_part = part
+                number_part_i = len(parts)-i
+                break
+
+    if number_part is None:
+        return name, "", ""
+
+    prefix_parts = parts[:number_part_i-1]
+    prefix_parts_count = sum([len(part)+1 for part in prefix_parts])
+
     digits = ""
+    suffix = ""
 
     # Iterate through the characters in reverse order
     started = False
-    for char in name[::-1]:
+    for char in number_part[::-1]:
         if char.isdigit():
             started = True
             # If the character is a digit, add it to the digits string
@@ -84,20 +106,33 @@ def get_file_number(filepath: Path) -> str:
             if started:
                 # If a non-digit character is encountered, stop the loop
                 break
+            else:
+                suffix += char
+
+    digits = digits[::-1]
+
+    prefix_parts_count += len(number_part) - \
+        len(digits) - len(suffix)
 
     # Reverse the digits string to get the correct order
-    return digits[::-1]
+    prefix = name[:prefix_parts_count]
+    suffix = name[prefix_parts_count+len(digits):]
+
+    return prefix, digits, suffix
 
 
-def get_sequence_name(filepath: Path) -> str:
-    name = get_file_name(filepath)
-    number = get_file_number(filepath)
-    return name.removesuffix(number)
+def get_file_no_digits_name(filepath: Path) -> str:
+    prefix, digits, suffix = get_filename_parts(filepath)
+    prefix = remove_end_str(prefix, "_")
+    prefix = remove_end_str(prefix, ".")
+    prefix = remove_end_str(prefix, "-")
+    prefix = remove_end_str(prefix, " ")
+    return prefix + suffix
 
 
-def get_sequence_index(filepath: Path) -> int:
-    number = get_file_number(filepath)
-    return int(number) if number != "" else 0
+def get_file_index(filepath: Path) -> int:
+    prefix, digits, suffix = get_filename_parts(filepath)
+    return int(digits) if digits != "" else 0
 
 
 def collect_sequence(filepath: Path):
@@ -105,8 +140,8 @@ def collect_sequence(filepath: Path):
     for f in filepath.parent.iterdir():
         if f.is_file() \
                 and get_ext(filepath) == get_ext(f) \
-                and get_sequence_name(filepath) == get_sequence_name(f):
-            index = get_sequence_index(f)
+                and get_file_no_digits_name(filepath) == get_file_no_digits_name(f):
+            index = get_file_index(f)
             file_dict[index] = f
 
     # reomve isolated seq file
@@ -124,7 +159,13 @@ def collect_sequence(filepath: Path):
     return sequence
 
 
-def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) -> Layer:
+def remove_end_str(string: str, end: str):
+    while string.endswith(end) and len(string) > 0:
+        string = string.removesuffix(end)
+    return string
+
+
+def parse_volumetric_data(data_file: str, series_id="", progress_callback=None):
     """Parse any volumetric data to numpy with shap (T,X,Y,Z,C)
 
     Args:
@@ -139,7 +180,7 @@ def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) 
     ext = get_ext(data_path)
 
     if progress_callback:
-        progress_callback(0, "Reading the Data...")
+        progress_callback(0.0, "Reading the Data...")
 
     is_sequence = False
     if ext in SEQUENCE_EXTS:
@@ -181,7 +222,7 @@ def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) 
             elif mrc.is_volume_stack():
                 data = np.expand_dims(data, axis=-1)  # expend channel
 
-            name = get_file_name(data_path)
+            name = get_file_no_digits_name(data_path)
             spacing = (mrc.voxel_size.x,
                        mrc.voxel_size.y,
                        mrc.voxel_size.z)
@@ -245,7 +286,7 @@ def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) 
             except:
                 ...
 
-            name = get_file_name(data_path)
+            name = get_file_no_digits_name(data_path)
         except:
             ...
 
@@ -297,10 +338,10 @@ def parse_volumetric_data(data_file: str, series_id="", progress_callback=None) 
 
         elif ext in SEQUENCE_EXTS and is_sequence:
             itk_image = sitk.ReadImage(sequence)
-            name = get_sequence_name(data_path)
+            name = get_file_no_digits_name(data_path)
         else:
             itk_image = sitk.ReadImage(data_path)
-            name = get_file_name(data_path)
+            name = get_filename(data_path)
 
         # for key in itk_image.GetMetaDataKeys():
         #     print(f"{key},{itk_image.GetMetaData(key)}")

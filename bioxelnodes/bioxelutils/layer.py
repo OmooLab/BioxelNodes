@@ -7,35 +7,11 @@ import pyopenvdb as vdb
 from pathlib import Path
 from uuid import uuid4
 
-from ..nodes import custom_nodes
 from ..bioxel.layer import Layer
-from .node import get_nodes_by_type, move_node_between_nodes
-
-
-def get_layer_obj(current_obj: bpy.types.Object):
-    if current_obj:
-        if current_obj.get('bioxel_layer') and current_obj.parent:
-            if current_obj.parent.get('bioxel_container'):
-                return current_obj
-    return None
-
-
-def get_container_layer_objs(container_obj: bpy.types.Object):
-    layer_objs = []
-    for obj in bpy.context.scene.objects:
-        if obj.parent == container_obj and get_layer_obj(obj):
-            layer_objs.append(obj)
-
-    return layer_objs
-
-
-def get_all_layer_objs():
-    layer_objs = []
-    for obj in bpy.context.scene.objects:
-        if get_layer_obj(obj):
-            layer_objs.append(obj)
-
-    return layer_objs
+from ..utils import get_use_link
+from .node import add_node_to_graph
+from .common import (get_layer_prop_value,
+                     move_node_between_nodes)
 
 
 def obj_to_layer(layer_obj: bpy.types.Object):
@@ -51,7 +27,11 @@ def obj_to_layer(layer_obj: bpy.types.Object):
             grids, base_metadata = vdb.readAll(str(f))
             grid = grids[0]
             metadata = grid.metadata
-            data_frame = np.ndarray(grid["data_shape"], np.float32)
+            if grid["layer_kind"] in ['label', 'scalar']:
+                data_shape = grid["data_shape"]
+            else:
+                data_shape = tuple(list(grid["data_shape"]) + [3])
+            data_frame = np.ndarray(data_shape, np.float32)
             grid.copyToArray(data_frame)
             data_frames += (data_frame,)
         data = np.stack(data_frames)
@@ -59,15 +39,24 @@ def obj_to_layer(layer_obj: bpy.types.Object):
         grids, base_metadata = vdb.readAll(str(cache_filepath))
         grid = grids[0]
         metadata = grid.metadata
-        data = np.ndarray(grid["data_shape"], np.float32)
+        if grid["layer_kind"] in ['label', 'scalar']:
+            data_shape = grid["data_shape"]
+        else:
+            data_shape = tuple(list(grid["data_shape"]) + [3])
+        data = np.ndarray(data_shape, np.float32)
         grid.copyToArray(data)
         data = np.expand_dims(data, axis=0)  # expend frame
 
-    name = metadata["layer_name"]
-    kind = metadata["layer_kind"]
+    name = get_layer_prop_value(layer_obj, "name") \
+        or metadata["layer_name"]
+    kind = get_layer_prop_value(layer_obj, "kind") \
+        or metadata["layer_kind"]
     affine = metadata["layer_affine"]
-    dtype = metadata.get("data_dtype") or "float32"
-    offset = metadata.get("data_offset") or 0
+    dtype = get_layer_prop_value(layer_obj, "dtype") \
+        or metadata.get("data_dtype") or "float32"
+    offset = get_layer_prop_value(layer_obj, "offset") \
+        or metadata.get("data_offset") or 0
+
     data = data - np.full_like(data, offset)
     data = data.astype(dtype)
 
@@ -110,6 +99,7 @@ def layer_to_obj(layer: Layer,
         "data_offset": offset
     }
 
+    layer_display_name = f"{container_obj.name}_{layer.name}"
     if layer.frame_count > 1:
         print(f"Saving the Cache of {layer.name}...")
         vdb_name = str(uuid4())
@@ -118,8 +108,14 @@ def layer_to_obj(layer: Layer,
 
         cache_filepaths = []
         for f in range(layer.frame_count):
-            grid = vdb.FloatGrid()
-            grid.copyFromArray(data[f, :, :, :].copy().astype(np.float32))
+            if layer.kind in ['label', 'scalar']:
+                grid = vdb.FloatGrid()
+                grid.copyFromArray(data[f, :, :, :].copy().astype(np.float32))
+            else:
+                # color
+                grid = vdb.Vec3SGrid()
+                grid.copyFromArray(
+                    data[f, :, :, :, :].copy().astype(np.float32))
             grid.transform = vdb.createLinearTransform(
                 layer.affine.transpose())
             grid.metadata = metadata
@@ -130,17 +126,14 @@ def layer_to_obj(layer: Layer,
             vdb.write(str(cache_filepath), grids=[grid])
             cache_filepaths.append(cache_filepath)
 
-        print(f"Loading the Cache of {layer.name}...")
-        files = [{"name": str(cache_filepath.name), "name": str(cache_filepath.name)}
-                 for cache_filepath in cache_filepaths]
-
-        bpy.ops.object.volume_import(filepath=str(cache_filepaths[0]),
-                                     directory=str(cache_filepaths[0].parent),
-                                     files=files, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-
     else:
-        grid = vdb.FloatGrid()
-        grid.copyFromArray(data[0, :, :, :].copy().astype(np.float32))
+        if layer.kind in ['label', 'scalar']:
+            grid = vdb.FloatGrid()
+            grid.copyFromArray(data[0, :, :, :].copy().astype(np.float32))
+        else:
+            # color
+            grid = vdb.Vec3SGrid()
+            grid.copyFromArray(data[0, :, :, :, :].copy().astype(np.float32))
         grid.transform = vdb.createLinearTransform(
             layer.affine.transpose())
         grid.metadata = metadata
@@ -151,52 +144,35 @@ def layer_to_obj(layer: Layer,
         vdb.write(str(cache_filepath), grids=[grid])
         cache_filepaths = [cache_filepath]
 
-        print(f"Loading the Cache of {layer.name}...")
-        bpy.ops.object.volume_import(filepath=str(cache_filepaths[0]),
-                                     align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+    layer_data = bpy.data.volumes.new(layer_display_name)
+    layer_data.render.space = 'WORLD'
+    scene_scale = container_obj.get("scene_scale") or 0.01
+    step_size = container_obj.get("step_size") or 1
+    layer_data.render.step_size = scene_scale * step_size
+    layer_data.sequence_mode = 'REPEAT'
+    layer_data.filepath = str(cache_filepaths[0])
 
-    layer_obj = bpy.context.active_object
-    layer_obj.data.sequence_mode = 'REPEAT'
+    if layer.frame_count > 1:
+        layer_data.is_sequence = True
+        layer_data.frame_duration = layer.frame_count
+    else:
+        layer_data.is_sequence = False
 
-    # Set props to VDB object
-    layer_obj.name = f"{container_obj.name}_{layer.name}"
-    layer_obj.data.name = f"{container_obj.name}_{layer.name}"
-
-    layer_obj.lock_location[0] = True
-    layer_obj.lock_location[1] = True
-    layer_obj.lock_location[2] = True
-    layer_obj.lock_rotation[0] = True
-    layer_obj.lock_rotation[1] = True
-    layer_obj.lock_rotation[2] = True
-    layer_obj.lock_scale[0] = True
-    layer_obj.lock_scale[1] = True
-    layer_obj.lock_scale[2] = True
-
-    layer_obj.visible_camera = False
-    layer_obj.visible_diffuse = False
-    layer_obj.visible_glossy = False
-    layer_obj.visible_transmission = False
-    layer_obj.visible_volume_scatter = False
-    layer_obj.visible_shadow = False
-
-    layer_obj.hide_select = True
-    layer_obj.hide_render = True
-    layer_obj.hide_viewport = True
-
+    layer_obj = bpy.data.objects.new(layer_display_name, layer_data)
     layer_obj['bioxel_layer'] = True
-    layer_obj.parent = container_obj
-
-    for collection in layer_obj.users_collection:
-        collection.objects.unlink(layer_obj)
-
-    for collection in container_obj.users_collection:
-        collection.objects.link(layer_obj)
 
     print(f"Creating Node for {layer.name}...")
-    bpy.ops.node.new_geometry_nodes_modifier()
-    node_group = layer_obj.modifiers[0].node_group
-    layer_node = custom_nodes.add_node(node_group,
-                                          "BioxelNodes__Layer")
+    modifier = layer_obj.modifiers.new("GeometryNodes", 'NODES')
+    node_group = bpy.data.node_groups.new('GeometryNodes', 'GeometryNodeTree')
+    node_group.interface.new_socket(name="Cache",
+                                    in_out="INPUT",
+                                    socket_type="NodeSocketGeometry")
+    node_group.interface.new_socket(name="Layer",
+                                    in_out="OUTPUT",
+                                    socket_type="NodeSocketGeometry")
+    modifier.node_group = node_group
+
+    layer_node = add_node_to_graph("_Layer", node_group, get_use_link())
 
     layer_node.inputs['name'].default_value = layer.name
     layer_node.inputs['shape'].default_value = layer.shape
@@ -207,19 +183,18 @@ def layer_to_obj(layer: Layer,
             affine_key = f"affine{i}{j}"
             layer_node.inputs[affine_key].default_value = layer.affine[j, i]
 
-    layer_node.inputs['id'].default_value = random.randint(-200000000,
-                                                              200000000)
+    layer_node.inputs['unique'].default_value = random.uniform(0, 1)
     layer_node.inputs['bioxel_size'].default_value = layer.bioxel_size[0]
     layer_node.inputs['dtype'].default_value = layer.dtype.str
     layer_node.inputs['dtype_num'].default_value = layer.dtype.num
+    layer_node.inputs['frame_count'].default_value = layer.frame_count
+    layer_node.inputs['channel_count'].default_value = layer.channel_count
     layer_node.inputs['offset'].default_value = max(0, -layer.min)
     layer_node.inputs['min'].default_value = layer.min
     layer_node.inputs['max'].default_value = layer.max
 
-    input_node = get_nodes_by_type(node_group,
-                                   'NodeGroupInput')[0]
-    output_node = get_nodes_by_type(node_group,
-                                    'NodeGroupOutput')[0]
+    input_node = node_group.nodes.new("NodeGroupInput")
+    output_node = node_group.nodes.new("NodeGroupOutput")
 
     node_group.links.new(input_node.outputs[0],
                          layer_node.inputs[0])
@@ -228,5 +203,7 @@ def layer_to_obj(layer: Layer,
 
     move_node_between_nodes(
         layer_node, [input_node, output_node])
+
+    layer_obj.parent = container_obj
 
     return layer_obj

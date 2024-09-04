@@ -1,81 +1,51 @@
-import re
 import bpy
 from pathlib import Path
 import shutil
 
+from ..bioxelutils.common import get_all_layer_objs, is_missing_layer, set_file_prop
+from .layer import RemoveLayers, SaveLayersCache
 
-from ..utils import copy_to_dir
-from .utils import get_cache_dir
-from ..nodes import custom_nodes
-from ..bioxelutils.container import get_container_objs_from_selection
-from ..bioxelutils.layer import get_all_layer_objs, get_container_layer_objs
-
-CLASS_PREFIX = "BIOXELNODES_MT_NODES"
+from ..constants import NODE_LIB_FILEPATH, VERSION
+from ..utils import get_cache_dir
 
 
-class ReLinkNodes(bpy.types.Operator):
-    bl_idname = "bioxelnodes.relink_nodes"
-    bl_label = "Relink Nodes to Addon"
-    bl_description = "Relink all nodes to addon source"
+class ReLinkNodeLib(bpy.types.Operator):
+    bl_idname = "bioxelnodes.relink_node_lib"
+    bl_label = "Relink Node Library"
+    bl_description = "Relink all nodes to addon library source"
+    bl_options = {'UNDO'}
+
+    node_lib_filename: bpy.props.StringProperty(
+        default=""
+    )  # type: ignore
 
     def execute(self, context):
-        file_name = Path(custom_nodes.nodes_file).name
-        for lib in bpy.data.libraries:
-            lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
-            lib_name = lib_path.name
-            if lib_name == file_name:
-                if str(lib_path) != custom_nodes.nodes_file:
-                    lib.filepath = custom_nodes.nodes_file
+        lib_filepath = Path(NODE_LIB_FILEPATH.parent,
+                            f"{self.node_lib_filename}.blend")
+        node_libs = []
+        for node_group in bpy.data.node_groups:
+            if node_group.name.startswith("BioxelNodes"):
+                node_lib = node_group.library
+                if node_lib:
+                    node_libs.append(node_lib)
+
+        node_libs = list(set(node_libs))
+
+        for node_lib in node_libs:
+            node_lib.filepath = str(lib_filepath)
+            # FIXME: may cause crash
+            node_lib.reload()
 
         self.report({"INFO"}, f"Successfully relinked.")
 
         return {'FINISHED'}
 
 
-def save_layer_cache(layer_obj, output_dir):
-    pattern = r'\.\d{4}\.'
-
-    # "//"
-    output_dir = bpy.path.abspath(output_dir)
-    source_dir = bpy.path.abspath(layer_obj.data.filepath)
-
-    source_path: Path = Path(source_dir).resolve()
-    is_sequence = re.search(pattern, source_path.name) is not None
-    name = layer_obj.name if is_sequence else f"{layer_obj.name}.vdb"
-    output_path: Path = Path(output_dir, name, source_path.name).resolve() \
-        if is_sequence else Path(output_dir, name).resolve()
-
-    if output_path != source_path:
-        copy_to_dir(source_path.parent if is_sequence else source_path,
-                    output_path.parent.parent if is_sequence else output_path.parent,
-                    new_name=name)
-
-    blend_path = Path(bpy.path.abspath("//")).resolve()
-
-    layer_obj.data.filepath = bpy.path.relpath(
-        str(output_path), start=str(blend_path))
-
-
-class SaveStagedData(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_staged_data"
-    bl_label = "Save Staged Data"
-    bl_description = "Save all staged data in this file for sharing"
-
-    save_cache: bpy.props.BoolProperty(
-        name="Save Layer Caches",
-        default=True,
-    )  # type: ignore
-
-    cache_dir: bpy.props.StringProperty(
-        name="Cache Directory",
-        subtype='DIR_PATH',
-        default="//"
-    )  # type: ignore
-
-    save_lib: bpy.props.BoolProperty(
-        name="Save Node Library File",
-        default=True,
-    )  # type: ignore
+class SaveNodeLib(bpy.types.Operator):
+    bl_idname = "bioxelnodes.save_node_lib"
+    bl_label = "Save Node Library"
+    bl_description = "Save node library file to local"
+    bl_options = {'UNDO'}
 
     lib_dir: bpy.props.StringProperty(
         name="Library Directory",
@@ -84,132 +54,185 @@ class SaveStagedData(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
-        if self.save_lib:
-            files = []
-            for classname in dir(bpy.types):
-                if CLASS_PREFIX in classname:
-                    cls = getattr(bpy.types, classname)
-                    files.append(cls.nodes_file)
-            files = list(set(files))
+        lib_dir = bpy.path.abspath(self.lib_dir)
+        local_lib_path: Path = Path(lib_dir, NODE_LIB_FILEPATH.name).resolve()
+        addon_lib_path: Path = NODE_LIB_FILEPATH
+        blend_path = Path(bpy.path.abspath("//")).resolve()
 
-            for file in files:
-                file_name = Path(file).name
-                # "//"
-                lib_dir = bpy.path.abspath(self.lib_dir)
+        if local_lib_path != addon_lib_path:
+            shutil.copy(addon_lib_path, local_lib_path)
 
-                output_path: Path = Path(lib_dir, file_name).resolve()
-                source_path: Path = Path(file).resolve()
+        libs = []
+        for node_group in bpy.data.node_groups:
+            if node_group.name.startswith("BioxelNodes"):
+                if node_group.library:
+                    libs.append(node_group.library)
 
-                if output_path != source_path:
-                    shutil.copy(source_path, output_path)
+        libs = list(set(libs))
+        for lib in libs:
+            lib.filepath = bpy.path.relpath(str(local_lib_path),
+                                            start=str(blend_path))
 
-                for lib in bpy.data.libraries:
-                    lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
-                    if lib_path == source_path:
-                        blend_path = Path(bpy.path.abspath("//")).resolve()
-                        lib.filepath = bpy.path.relpath(
-                            str(output_path), start=str(blend_path))
-
-                self.report({"INFO"}, f"Successfully saved to {output_path}")
-
-        if self.save_cache:
-            fails = []
-            for layer in get_all_layer_objs():
-                try:
-                    save_layer_cache(layer, self.cache_dir)
-                except:
-                    fails.append(layer)
-
-            if len(fails) == 0:
-                self.report({"INFO"}, f"Successfully saved bioxel layers.")
-            else:
-                self.report(
-                    {"WARNING"}, f"{','.join([layer.name for layer in fails])} fail to save.")
+        set_file_prop("addon_version", VERSION)
 
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self,
-                                                   width=500)
+        context.window_manager.invoke_props_dialog(self)
         return {'RUNNING_MODAL'}
 
     @classmethod
     def poll(cls, context):
         return bpy.data.is_saved
 
-    def draw(self, context):
-        layout = self.layout
-        panel = layout.box()
-        panel.prop(self, "save_cache")
-        panel.prop(self, "cache_dir")
-        panel = layout.box()
-        panel.prop(self, "save_lib")
-        panel.prop(self, "lib_dir")
 
-
-class SaveCaches(bpy.types.Operator):
-    bl_idname = "bioxelnodes.save_caches"
-    bl_label = "Save Caches"
-    bl_description = "Save Container's caches to directory."
-
-    cache_dir: bpy.props.StringProperty(
-        name="Layer Directory",
-        subtype='DIR_PATH',
-        default="//"
-    )  # type: ignore
-
-    @classmethod
-    def poll(cls, context):
-        container_objs = get_container_objs_from_selection()
-        return len(container_objs) > 0
+class CleanTemp(bpy.types.Operator):
+    bl_idname = "bioxelnodes.clear_temp"
+    bl_label = "Clean Temp"
+    bl_description = "Clean all cache in temp (include other project cache)"
 
     def execute(self, context):
-        container_objs = get_container_objs_from_selection()
-
-        if len(container_objs) == 0:
-            self.report({"WARNING"}, "Cannot find any bioxel container.")
-            return {'FINISHED'}
-
-        fails = []
-        for container_obj in container_objs:
-            for layer_obj in get_container_layer_objs(container_obj):
-                try:
-                    save_layer_cache(layer_obj, self.cache_dir)
-                except:
-                    fails.append(layer_obj)
-
-        if len(fails) == 0:
-            self.report({"INFO"}, f"Successfully saved bioxel layers.")
-        else:
-            self.report(
-                {"WARNING"}, f"{','.join([layer.name for layer in fails])} fail to save.")
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self,
-                                                   width=500)
-        return {'RUNNING_MODAL'}
-
-
-class CleanAllCaches(bpy.types.Operator):
-    bl_idname = "bioxelnodes.clear_all_caches"
-    bl_label = "Clean All Caches in Temp"
-    bl_description = "Clean all caches saved in temp"
-
-    def execute(self, context):
-        cache_dir = get_cache_dir(context)
+        cache_dir = get_cache_dir()
         try:
             shutil.rmtree(cache_dir)
-            self.report({"INFO"}, f"Successfully cleaned caches.")
+            self.report({"INFO"}, f"Successfully cleaned temp.")
             return {'FINISHED'}
         except:
             self.report({"WARNING"},
-                        "Fail to clean caches, you may do it manually.")
+                        "Fail to clean temp, you may do it manually.")
             return {'CANCELLED'}
 
     def invoke(self, context, event):
         context.window_manager.invoke_confirm(self,
                                               event,
-                                              message="All caches will be cleaned, include other project files, do you still want to clean?")
+                                              message="All temp files will be removed, include other project cache, do you still want to clean?")
+        return {'RUNNING_MODAL'}
+
+
+class RenderSettingPreset(bpy.types.Operator):
+    bl_idname = "bioxelnodes.render_setting_preset"
+    bl_label = "Render Setting Presets"
+    bl_description = "Render setting presets for bioxel"
+    bl_options = {'UNDO'}
+
+    PRESETS = {
+        "preview_e": "Preview (EEVEE)",
+        "preview_c": "Preview (Cycles)",
+        "production_e": "Production (EEVEE)",
+        "production_c": "Production (Cycles)"
+    }
+
+    preset: bpy.props.EnumProperty(name="Preset",
+                                   default="preview_c",
+                                   items=[(k, v, "")
+                                          for k, v in PRESETS.items()])  # type: ignore
+
+    def execute(self, context):
+        if self.preset == "preview_e":
+            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.taa_samples = 16
+            bpy.context.scene.eevee.volumetric_tile_size = '2'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 128
+            bpy.context.scene.eevee.volumetric_samples = 128
+            bpy.context.scene.eevee.volumetric_ray_depth = 16
+            bpy.context.scene.eevee.use_volumetric_shadows = True
+
+        elif self.preset == "production_e":
+            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.taa_samples = 16
+            bpy.context.scene.eevee.volumetric_tile_size = '1'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 128
+            bpy.context.scene.eevee.volumetric_samples = 256
+            bpy.context.scene.eevee.volumetric_ray_depth = 16
+            bpy.context.scene.eevee.use_volumetric_shadows = True
+
+        elif self.preset == "preview_c":
+            bpy.context.scene.render.engine = 'CYCLES'
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 12
+            bpy.context.scene.cycles.transparent_max_bounces = 16
+            bpy.context.scene.cycles.volume_preview_step_rate = 1
+            bpy.context.scene.cycles.volume_step_rate = 1
+            # bpy.context.scene.cycles.use_fast_gi = True
+
+        elif self.preset == "production_c":
+            bpy.context.scene.render.engine = 'CYCLES'
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 16
+            bpy.context.scene.cycles.transparent_max_bounces = 32
+            bpy.context.scene.cycles.volume_preview_step_rate = 0.5
+            bpy.context.scene.cycles.volume_step_rate = 0.5
+            # bpy.context.scene.cycles.use_fast_gi = False
+
+        return {'FINISHED'}
+
+
+class SliceViewer(bpy.types.Operator):
+    bl_idname = "bioxelnodes.slice_viewer"
+    bl_label = "Slice Viewer"
+    bl_description = "A preview scene setting for viewing slicers"
+    bl_icon = "FILE_VOLUME"
+
+    def execute(self, context):
+        bpy.context.scene.eevee.use_taa_reprojection = False
+        bpy.context.scene.eevee.taa_samples = 4
+        bpy.context.scene.eevee.volumetric_tile_size = '2'
+        bpy.context.scene.eevee.volumetric_shadow_samples = 128
+        bpy.context.scene.eevee.volumetric_samples = 128
+        bpy.context.scene.eevee.volumetric_ray_depth = 1
+        bpy.context.scene.eevee.use_volumetric_shadows = False
+
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                area.spaces[0].shading.type = 'MATERIAL'
+                area.spaces[0].shading.studio_light = 'studio.exr'
+                area.spaces[0].shading.studiolight_intensity = 2.5
+                area.spaces[0].shading.use_scene_lights = False
+                area.spaces[0].shading.use_scene_world = False
+
+        return {'FINISHED'}
+
+
+def get_all_layers(layer_filter=None):
+    def _layer_filter(layer_obj):
+        return True
+
+    layer_filter = layer_filter or _layer_filter
+    layer_objs = get_all_layer_objs()
+    return [obj for obj in layer_objs if layer_filter(obj)]
+
+
+class SaveAllLayersCache(bpy.types.Operator, SaveLayersCache):
+    bl_idname = "bioxelnodes.save_all_layers_cache"
+    bl_label = "Save All Layers Cache"
+    bl_description = "Save all cache of this file"
+    bl_icon = "FILE_TICK"
+
+    success_msg = "Successfully saved all layers."
+
+    def get_layers(self, context):
+        def is_not_missing(layer_obj):
+            return not is_missing_layer(layer_obj)
+        return get_all_layers(is_not_missing)
+
+
+class RemoveAllMissingLayers(bpy.types.Operator, RemoveLayers):
+    bl_idname = "bioxelnodes.remove_all_missing_layers"
+    bl_label = "Remove All Missing Layers"
+    bl_description = "Remove all current container missing layers"
+    bl_icon = "BRUSH_DATA"
+
+    success_msg = "Successfully removed all missing layers."
+
+    def get_layers(self, context):
+        def is_missing(layer_obj):
+            return is_missing_layer(layer_obj)
+        return get_all_layers(is_missing)
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_confirm(self,
+                                              event,
+                                              message=f"Are you sure to remove all **Missing** layers?")
         return {'RUNNING_MODAL'}
