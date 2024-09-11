@@ -2,10 +2,10 @@ import bpy
 from pathlib import Path
 import shutil
 
-from ..bioxelutils.common import get_all_layer_objs, is_missing_layer, set_file_prop
+from ..bioxelutils.common import get_all_layer_objs, get_node_lib_path, get_node_version, is_missing_layer, set_file_prop
 from .layer import RemoveLayers, SaveLayersCache
 
-from ..constants import NODE_LIB_FILEPATH, VERSION
+from ..constants import NODE_LIB_DIRPATH, VERSIONS
 from ..utils import get_cache_dir
 
 
@@ -15,13 +15,12 @@ class ReLinkNodeLib(bpy.types.Operator):
     bl_description = "Relink all nodes to addon library source"
     bl_options = {'UNDO'}
 
-    node_lib_filename: bpy.props.StringProperty(
-        default=""
-    )  # type: ignore
+    index: bpy.props.IntProperty()  # type: ignore
 
     def execute(self, context):
-        lib_filepath = Path(NODE_LIB_FILEPATH.parent,
-                            f"{self.node_lib_filename}.blend")
+        node_version = VERSIONS[self.index]['node_version']
+        lib_path = get_node_lib_path(node_version)
+
         node_libs = []
         for node_group in bpy.data.node_groups:
             if node_group.name.startswith("BioxelNodes"):
@@ -32,9 +31,11 @@ class ReLinkNodeLib(bpy.types.Operator):
         node_libs = list(set(node_libs))
 
         for node_lib in node_libs:
-            node_lib.filepath = str(lib_filepath)
+            node_lib.filepath = str(lib_path)
             # FIXME: may cause crash
             node_lib.reload()
+
+        set_file_prop("node_version", node_version)
 
         self.report({"INFO"}, f"Successfully relinked.")
 
@@ -54,13 +55,22 @@ class SaveNodeLib(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
+        node_version = get_node_version()
+        if node_version is None:
+            node_version = VERSIONS[0]["node_version"]
+        else:
+            if node_version not in [v["node_version"] for v in VERSIONS]:
+                node_version = VERSIONS[0]["node_version"]
+                
+        lib_path = get_node_lib_path(node_version)
+        
         lib_dir = bpy.path.abspath(self.lib_dir)
-        local_lib_path: Path = Path(lib_dir, NODE_LIB_FILEPATH.name).resolve()
-        addon_lib_path: Path = NODE_LIB_FILEPATH
+        local_lib_path: Path = Path(lib_dir, lib_path.name).resolve()
+        node_lib_path: Path = lib_path
         blend_path = Path(bpy.path.abspath("//")).resolve()
 
-        if local_lib_path != addon_lib_path:
-            shutil.copy(addon_lib_path, local_lib_path)
+        if local_lib_path != node_lib_path:
+            shutil.copy(node_lib_path, local_lib_path)
 
         libs = []
         for node_group in bpy.data.node_groups:
@@ -72,8 +82,6 @@ class SaveNodeLib(bpy.types.Operator):
         for lib in libs:
             lib.filepath = bpy.path.relpath(str(local_lib_path),
                                             start=str(blend_path))
-
-        set_file_prop("addon_version", VERSION)
 
         return {'FINISHED'}
 
@@ -116,55 +124,64 @@ class RenderSettingPreset(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     PRESETS = {
-        "preview_e": "Preview (EEVEE)",
-        "preview_c": "Preview (Cycles)",
-        "production_e": "Production (EEVEE)",
-        "production_c": "Production (Cycles)"
+        "performance": "Performance",
+        "balance": "Balance",
+        "quality": "Quality",
     }
 
     preset: bpy.props.EnumProperty(name="Preset",
-                                   default="preview_c",
+                                   default="balance",
                                    items=[(k, v, "")
                                           for k, v in PRESETS.items()])  # type: ignore
 
     def execute(self, context):
-        if self.preset == "preview_e":
-            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+        if self.preset == "performance":
+            # EEVEE
             bpy.context.scene.eevee.use_taa_reprojection = False
-            bpy.context.scene.eevee.taa_samples = 16
             bpy.context.scene.eevee.volumetric_tile_size = '2'
-            bpy.context.scene.eevee.volumetric_shadow_samples = 128
-            bpy.context.scene.eevee.volumetric_samples = 128
-            bpy.context.scene.eevee.volumetric_ray_depth = 16
+            bpy.context.scene.eevee.volumetric_shadow_samples = 32
+            bpy.context.scene.eevee.volumetric_samples = 64
+            bpy.context.scene.eevee.volumetric_ray_depth = 1
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
-        elif self.preset == "production_e":
-            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            # Cycles
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 0
+            bpy.context.scene.cycles.transparent_max_bounces = 4
+            bpy.context.scene.cycles.volume_preview_step_rate = 4
+            bpy.context.scene.cycles.volume_step_rate = 4
+
+        elif self.preset == "balance":
+            # EEVEE
             bpy.context.scene.eevee.use_taa_reprojection = False
-            bpy.context.scene.eevee.taa_samples = 16
-            bpy.context.scene.eevee.volumetric_tile_size = '1'
+            bpy.context.scene.eevee.volumetric_tile_size = '2'
+            bpy.context.scene.eevee.volumetric_shadow_samples = 64
+            bpy.context.scene.eevee.volumetric_samples = 128
+            bpy.context.scene.eevee.volumetric_ray_depth = 8
+            bpy.context.scene.eevee.use_volumetric_shadows = True
+
+            # Cycles
+            bpy.context.scene.cycles.shading_system = True
+            bpy.context.scene.cycles.volume_bounces = 4
+            bpy.context.scene.cycles.transparent_max_bounces = 8
+            bpy.context.scene.cycles.volume_preview_step_rate = 1
+            bpy.context.scene.cycles.volume_step_rate = 1
+
+        elif self.preset == "quality":
+            # EEVEE
+            bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 128
             bpy.context.scene.eevee.volumetric_samples = 256
             bpy.context.scene.eevee.volumetric_ray_depth = 16
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
-        elif self.preset == "preview_c":
-            bpy.context.scene.render.engine = 'CYCLES'
+            # Cycles
             bpy.context.scene.cycles.shading_system = True
-            bpy.context.scene.cycles.volume_bounces = 12
+            bpy.context.scene.cycles.volume_bounces = 8
             bpy.context.scene.cycles.transparent_max_bounces = 16
-            bpy.context.scene.cycles.volume_preview_step_rate = 1
-            bpy.context.scene.cycles.volume_step_rate = 1
-            # bpy.context.scene.cycles.use_fast_gi = True
-
-        elif self.preset == "production_c":
-            bpy.context.scene.render.engine = 'CYCLES'
-            bpy.context.scene.cycles.shading_system = True
-            bpy.context.scene.cycles.volume_bounces = 16
-            bpy.context.scene.cycles.transparent_max_bounces = 32
             bpy.context.scene.cycles.volume_preview_step_rate = 0.5
             bpy.context.scene.cycles.volume_step_rate = 0.5
-            # bpy.context.scene.cycles.use_fast_gi = False
 
         return {'FINISHED'}
 
@@ -177,7 +194,6 @@ class SliceViewer(bpy.types.Operator):
 
     def execute(self, context):
         bpy.context.scene.eevee.use_taa_reprojection = False
-        bpy.context.scene.eevee.taa_samples = 4
         bpy.context.scene.eevee.volumetric_tile_size = '2'
         bpy.context.scene.eevee.volumetric_shadow_samples = 128
         bpy.context.scene.eevee.volumetric_samples = 128

@@ -2,7 +2,7 @@ from ast import literal_eval
 from pathlib import Path
 import bpy
 
-from ..constants import NODE_LIB_FILEPATH, VERSION
+from ..constants import NODE_LIB_DIRPATH, VERSIONS
 from ..utils import get_cache_dir
 
 
@@ -215,31 +215,46 @@ def get_file_prop(prop):
     return props.get(prop)
 
 
+def get_node_version():
+    node_version = get_file_prop("node_version")
+    return literal_eval(node_version) if node_version else None
+
+
 def is_incompatible():
-    if get_file_prop("addon_version") is None:
+    node_version = get_node_version()
+    if node_version is None:
         for node_group in bpy.data.node_groups:
             if node_group.name.startswith("BioxelNodes"):
                 return True
     else:
-        addon_version = literal_eval(get_file_prop("addon_version"))
-        if addon_version[0] != VERSION[0]\
-                or addon_version[1] != VERSION[1]:
+        addon_version = VERSIONS[0]["node_version"]
+        if node_version[0] != addon_version[0]\
+                or node_version[1] != addon_version[1]:
             return True
 
     return False
 
+
+def get_node_lib_path(node_version):
+    version_str = "v"+".".join([str(i) for i in list(node_version)])
+    lib_filename = f"BioxelNodes_{version_str}.blend"
+    return Path(NODE_LIB_DIRPATH,
+                lib_filename).resolve()
+
+
 def local_lib_not_updated():
+    addon_version = VERSIONS[0]["node_version"]
+    addon_lib_path = get_node_lib_path(addon_version)
+
     use_local = False
     for node_group in bpy.data.node_groups:
         if node_group.name.startswith("BioxelNodes"):
-            node_group_lib = node_group.library
-            if node_group_lib:
-                abs_filepath = bpy.path.abspath(node_group_lib.filepath)
-                _local_lib_file = Path(abs_filepath).resolve().as_posix()
-                if _local_lib_file != NODE_LIB_FILEPATH.as_posix():
+            lib = node_group.library
+            if lib:
+                lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
+                if lib_path != addon_lib_path:
                     use_local = True
                     break
-    
-    addon_version = literal_eval(get_file_prop("addon_version"))
-    not_update = addon_version != VERSION
+
+    not_update = get_node_version() != addon_version
     return use_local and not_update

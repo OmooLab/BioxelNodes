@@ -1,11 +1,10 @@
 from pathlib import Path
-import shutil
 import bpy
 
-from .common import get_file_prop, set_file_prop
+from .common import get_file_prop, get_node_lib_path, set_file_prop
 from ..exceptions import Incompatible, NoFound
 
-from ..constants import NODE_LIB_FILEPATH, VERSION
+from ..constants import VERSIONS
 
 
 def get_node_group(node_type: str, use_link=True):
@@ -13,26 +12,27 @@ def get_node_group(node_type: str, use_link=True):
     # node_group = bpy.data.node_groups[node_type]
     # return node_group
 
-    if get_file_prop("addon_version") is None:
-        set_file_prop("addon_version", VERSION)
+    # added node is always from latest node version
+    addon_version = VERSIONS[0]["node_version"]
+    addon_lib_path = get_node_lib_path(addon_version)
 
-    local_lib_file = None
-    addon_lib_file = NODE_LIB_FILEPATH.as_posix()
+    if get_file_prop("node_version") is None:
+        set_file_prop("node_version", addon_version)
 
+    local_lib_path = None
     for node_group in bpy.data.node_groups:
         if node_group.name.startswith("BioxelNodes"):
-            node_group_lib = node_group.library
-            if node_group_lib:
-                abs_filepath = bpy.path.abspath(node_group_lib.filepath)
-                _local_lib_file = Path(abs_filepath).resolve().as_posix()
-                if _local_lib_file != addon_lib_file:
-                    local_lib_file = _local_lib_file
+            lib = node_group.library
+            if lib:
+                lib_path = Path(bpy.path.abspath(lib.filepath)).resolve()
+                if lib_path != addon_lib_path:
+                    local_lib_path = lib_path
                     break
 
     # local lib first
-    lib_file = local_lib_file or addon_lib_file
+    lib_path = local_lib_path or addon_lib_path
     bpy.ops.wm.append('EXEC_DEFAULT',
-                      directory=f"{lib_file}/NodeTree",
+                      directory=f"{lib_path.as_posix()}/NodeTree",
                       filename=node_type,
                       link=use_link,
                       use_recursive=True,
@@ -52,8 +52,9 @@ def assign_node_group(node, node_type: str):
     return node
 
 
-def add_node_to_graph(node_name: str, node_group, use_link=True):
+def add_node_to_graph(node_name: str, node_group, node_label=None, use_link=True):
     node_type = f"BioxelNodes_{node_name}"
+    node_label = node_label or node_name
 
     # Deselect all nodes first
     for node in node_group.nodes:
@@ -64,5 +65,6 @@ def add_node_to_graph(node_name: str, node_group, use_link=True):
     node = node_group.nodes.new("GeometryNodeGroup")
     assign_node_group(node, node_type)
 
+    node.label = node_label
     node.show_options = False
     return node

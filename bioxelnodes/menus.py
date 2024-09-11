@@ -1,11 +1,11 @@
 import bpy
 
-from .constants import MENU_ITEMS, NODE_LIB_FILENAME
+from .constants import MENU_ITEMS, VERSIONS
 from .node_menu import NodeMenu
 
 from .bioxelutils.common import (get_container_obj,
                                  get_container_layer_objs, get_layer_label,
-                                 get_layer_prop_value)
+                                 get_layer_prop_value, get_node_version, is_incompatible)
 from .operators.layer import (FetchLayer, RelocateLayer, RetimeLayer, RenameLayer,
                               RemoveSelectedLayers, SaveSelectedLayersCache,
                               ResampleLayer, SignScalar, CombineLabels,
@@ -20,6 +20,39 @@ from .operators.container import (AddLocator, AddSlicer, ExtractShapeWire,
 from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
 from .operators.misc import (CleanTemp,
                              ReLinkNodeLib, RemoveAllMissingLayers, RenderSettingPreset, SaveAllLayersCache, SaveNodeLib, SliceViewer)
+
+
+class IncompatibleMenu(bpy.types.Menu):
+    bl_idname = "BIOXELNODES_MT_INCOMPATIBLE"
+    bl_label = "Bioxel Nodes"
+
+    def draw(self, context):
+        tip_text = "please downgrade addon version."
+        node_version = get_node_version()
+        if node_version:
+            version_str = "v"+".".join([str(i) for i in list(node_version)])
+            tip_text = f"please downgrade addon version to {version_str}."
+
+        layout = self.layout
+        layout.label(text="Incompatible node version detected.")
+        layout.separator()
+        layout.label(
+            text="If you still want to edit this file with bioxel nodes, ")
+        layout.label(text=tip_text)
+        layout.separator()
+        layout.label(text="If this file is archived, "
+                     "please relink node library, ")
+        layout.label(text="check if it still works, "
+                     "then save node library.")
+        layout.separator()
+        layout.menu(ReLinkNodeLibMenu.bl_idname)
+        layout.operator(SaveNodeLib.bl_idname)
+
+        layout.separator()
+        layout.menu(DangerZoneMenu.bl_idname)
+
+        layout.separator()
+        layout.menu(RenderSettingMenu.bl_idname)
 
 
 class FetchLayerMenu(bpy.types.Menu):
@@ -122,18 +155,11 @@ class ReLinkNodeLibMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        versions = [{"label": "v0.3.x", "filename": "BioxelNodes_v0.3.x"},
-                    {"label": "v0.2.x", "filename": "BioxelNodes_v0.2.x"},
-                    {"label": "v0.1.x", "filename": "BioxelNodes_v0.1.x"}]
 
-        op = layout.operator(ReLinkNodeLib.bl_idname,
-                             text="Current Version")
-        op.node_lib_filename = NODE_LIB_FILENAME
-        layout.separator()
-        for version in versions:
+        for index, version in enumerate(VERSIONS):
             op = layout.operator(ReLinkNodeLib.bl_idname,
                                  text=version["label"])
-            op.node_lib_filename = version["filename"]
+            op.index = index
 
 
 class RenderSettingMenu(bpy.types.Menu):
@@ -185,7 +211,11 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
 
 def TOPBAR(self, context):
     layout = self.layout
-    layout.menu(BioxelNodesTopbarMenu.bl_idname)
+
+    if is_incompatible():
+        layout.menu(IncompatibleMenu.bl_idname)
+    else:
+        layout.menu(BioxelNodesTopbarMenu.bl_idname)
 
 
 class NodeHeadMenu(bpy.types.Menu):
@@ -248,6 +278,9 @@ class NodeContextMenu(bpy.types.Menu):
 
 
 def NODE_CONTEXT(self, context):
+    if is_incompatible():
+        return
+
     container_obj = context.object
     is_geo_nodes = context.area.ui_type == "GeometryNodeTree"
     is_container = get_container_obj(container_obj)
@@ -261,6 +294,9 @@ def NODE_CONTEXT(self, context):
 
 
 def NODE_HEAD(self, context):
+    if is_incompatible():
+        return
+
     container_obj = context.object
     is_geo_nodes = context.area.ui_type == "GeometryNodeTree"
     is_container = get_container_obj(container_obj)
@@ -274,6 +310,9 @@ def NODE_HEAD(self, context):
 
 
 def NODE_PROP(self, context):
+    if is_incompatible():
+        return
+
     container_obj = context.object
     is_geo_nodes = context.area.ui_type == "GeometryNodeTree"
     is_container = get_container_obj(container_obj)
@@ -354,8 +393,7 @@ def NODE_PROP(self, context):
 
 def VIEW3D_TOPBAR(self, context):
     layout = self.layout
-    layout.operator(SliceViewer.bl_idname,
-                    icon=SliceViewer.bl_icon, text="")
+    layout.operator(SliceViewer.bl_idname)
 
 
 node_menu = NodeMenu(

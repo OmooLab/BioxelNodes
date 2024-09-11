@@ -828,7 +828,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
             container = Container(name=name,
                                   layers=self.layers)
 
-            step_size = container.layers[0].bioxel_size[0]*5
+            step_size = container.layers[0].bioxel_size[0]*10
             container_obj = container_to_obj(container,
                                              scene_scale=self.scene_scale,
                                              step_size=step_size,
@@ -839,8 +839,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         # Change render setting for better result
         if is_first_import:
             bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
-                                                      preset="preview_c")
-            # bpy.ops.bioxelnodes.slice_viewer('EXEC_DEFAULT')
+                                                      preset="balance")
+            bpy.context.scene.render.engine = 'CYCLES'
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}

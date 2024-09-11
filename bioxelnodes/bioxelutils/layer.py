@@ -172,7 +172,9 @@ def layer_to_obj(layer: Layer,
                                     socket_type="NodeSocketGeometry")
     modifier.node_group = node_group
 
-    layer_node = add_node_to_graph("_Layer", node_group, get_use_link())
+    layer_node = add_node_to_graph("_Layer",
+                                   node_group,
+                                   use_link=get_use_link())
 
     layer_node.inputs['name'].default_value = layer.name
     layer_node.inputs['shape'].default_value = layer.shape
