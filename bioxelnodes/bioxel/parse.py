@@ -61,7 +61,8 @@ def get_ext(filepath: Path) -> str:
     elif filepath.name.endswith(".map.gz"):
         return ".map.gz"
     else:
-        return filepath.suffix
+        suffix = filepath.suffix
+        return "" if len(suffix) > 5 else suffix
 
 
 def get_filename(filepath: Path):
@@ -310,6 +311,7 @@ def parse_volumetric_data(data_file: str, series_id="", progress_callback=None):
             def get_meta(key):
                 try:
                     stirng = reader.GetMetaData(0, key).removesuffix(" ")
+                    stirng.encode('utf-8')
                     if stirng in ["No study description",
                                   "No series description",
                                   ""]:
