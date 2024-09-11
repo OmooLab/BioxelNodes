@@ -100,7 +100,8 @@ class ExtractObject():
         output_node = get_nodes_by_type(node_group, 'NodeGroupOutput')[0]
         fetch_mesh_node = add_node_to_graph(f"Fetch{self.object_type}",
                                             node_group,
-                                            get_use_link())
+                                            node_label=f"Fetch {self.object_type}",
+                                            use_link=get_use_link())
 
         fetch_mesh_node.inputs[0].default_value = container_obj
         node_group.links.new(fetch_mesh_node.outputs[0], output_node.inputs[0])
@@ -220,7 +221,7 @@ class AddCutter():
         # center = [find_center(axis) for axis in [x, y, z]]
 
         # cutter_obj.location = center
-        name = self.cutter_type.capitalize()
+        name = f"{self.cutter_type.capitalize()}_Cutter"
         cutter_obj.name = name
         cutter_obj.data.name = name
         cutter_obj.visible_camera = False
@@ -243,13 +244,14 @@ class AddCutter():
         if len(cut_nodes) == 0:
             cutter_node = add_node_to_graph("ObjectCutter",
                                             node_group,
-                                            get_use_link())
+                                            node_label=name,
+                                            use_link=get_use_link())
             cutter_node.inputs[0].default_value = self.cutter_type.capitalize()
             cutter_node.inputs[1].default_value = cutter_obj
 
             cut_node = add_node_to_graph("Cut",
                                          node_group,
-                                         get_use_link())
+                                         use_link=get_use_link())
 
             output_node = get_nodes_by_type(node_group,
                                             'NodeGroupOutput')[0]
@@ -362,7 +364,7 @@ class AddSlicer(bpy.types.Operator):
 
         slice_node = add_node_to_graph("Slice",
                                        node_group,
-                                       get_use_link())
+                                       use_link=get_use_link())
 
         slice_node.inputs[1].default_value = slicer_obj
 
@@ -412,7 +414,8 @@ class AddLocator(bpy.types.Operator):
 
         parent_node = add_node_to_graph("TransformParent",
                                         node_group,
-                                        get_use_link())
+                                        node_label="Transform Parent",
+                                        use_link=get_use_link())
 
         parent_node.inputs[1].default_value = locator_obj
 

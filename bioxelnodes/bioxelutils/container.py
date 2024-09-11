@@ -92,7 +92,7 @@ def add_layers(layers: list[Layer],
         layer_obj = layer_to_obj(layer, container_obj, cache_dir)
         fetch_node = add_node_to_graph("FetchLayer",
                                        node_group,
-                                       get_use_link())
+                                       use_link=get_use_link())
         fetch_node.label = get_layer_prop_value(layer_obj, "name")
         fetch_node.inputs[0].default_value = layer_obj
 

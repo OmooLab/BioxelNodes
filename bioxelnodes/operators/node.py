@@ -1,8 +1,6 @@
 import bpy
 
-from ..bioxelutils.common import get_file_prop, is_incompatible, local_lib_not_updated
-from ..constants import VERSION
-from ast import literal_eval
+from ..bioxelutils.common import is_incompatible, local_lib_not_updated
 from ..bioxelutils.node import assign_node_group, get_node_group
 from ..utils import get_use_link
 
@@ -57,6 +55,6 @@ class AddNode(bpy.types.Operator):
 
         if local_lib_not_updated():
             self.report({"WARNING"},
-                        "Local library version does not match the current addon version, which may cause problems, please save the node library again.")
+                        "Local node library version does not match the current addon version, which may cause problems, please save the node library again.")
 
         return {"FINISHED"}

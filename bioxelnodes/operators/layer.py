@@ -3,14 +3,17 @@ import bpy
 
 import numpy as np
 
+
+
 from ..exceptions import NoContent
 from ..bioxel.layer import Layer
+from ..bioxelutils.node import add_node_to_graph
 from ..bioxelutils.common import (get_container_obj, get_layer_kind, get_layer_label, get_layer_name,
                                   get_layer_prop_value,
                                   get_container_layer_objs,
-                                  get_node_type, is_missing_layer, set_layer_prop_value)
+                                  get_node_type, is_missing_layer, move_node_to_node, set_layer_prop_value)
 from ..bioxelutils.layer import layer_to_obj, obj_to_layer
-from ..utils import get_cache_dir, copy_to_dir
+from ..utils import get_cache_dir, copy_to_dir, get_use_link
 
 
 def get_label_layer_selection(self, context):
@@ -105,12 +108,17 @@ class OutputLayerOperator():
         return orig_layer
 
     def add_layer_node(self, context, layer):
+        orig_node = context.selected_nodes[0]
         layer_obj = layer_to_obj(layer,
                                  container_obj=context.object,
                                  cache_dir=get_cache_dir())
-
-        bpy.ops.bioxelnodes.fetch_layer('INVOKE_DEFAULT',
-                                        layer_obj_name=layer_obj.name)
+        node_group = context.space_data.edit_tree
+        fetch_node = add_node_to_graph("FetchLayer",
+                                       node_group,
+                                       use_link=get_use_link())
+        fetch_node.label = get_layer_prop_value(layer_obj, "name")
+        fetch_node.inputs[0].default_value = layer_obj
+        move_node_to_node(fetch_node, orig_node, (0, -100))
 
     def execute(self, context):
         layer_obj = get_selected_layer(context)

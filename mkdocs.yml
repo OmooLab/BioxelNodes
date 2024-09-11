@@ -10,21 +10,11 @@ nav:
   - index.md
   - Getting Started:
       - Installation: installation.md
-      - Prepare Your Data: prepare_data.md
       - Step by Step: step_by_step.md
-      - Concepts & Pipeline: concept.md
-  - Visualizing any Bio-structure:
-      - Import & Preprocess: import.md
-      - Mask Methods: mask.md
-      - Assgin a Shader: shader.md
-      - Cut the Component: cut.md
-      - Set Colors: color.md
-      - Integration into Other Pipeline: intergration.md
-      - Render Tips: render.md
-  - Reference:
-      - Terms: terms.md
-      - Nodes: nodes.md
-      - Benchmark: benchmark.md
+      - Support Format: support_format.md
+      - Improve Performance: improve_performance.md
+      - Advanced: advanced.md
+      - Q & A: qa.md
 
 theme:
   name: material

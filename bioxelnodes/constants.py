@@ -1,9 +1,11 @@
 from pathlib import Path
 
-VERSION = (1, 0, 0)
-NODE_LIB_FILENAME = "BioxelNodes_v1.0.x"
-NODE_LIB_FILEPATH = Path(Path(__file__).parent,
-                         f"assets/Nodes/{NODE_LIB_FILENAME}.blend").resolve()
+VERSIONS = [{"label": "Current", "node_version": (1, 0, 0)},
+            {"label": "v0.3.x", "node_version": (0, 3, 3)},
+            {"label": "v0.2.x", "node_version": (0, 2, 9)}]
+
+NODE_LIB_DIRPATH = Path(Path(__file__).parent,
+                        "assets/Nodes").resolve()
 
 MENU_ITEMS = [
     {
@@ -23,9 +25,9 @@ MENU_ITEMS = [
                 'description': ''
             },
             {
-                'label': 'Cutout by Color',
+                'label': 'Cutout by Hue',
                 'icon': 'COLOR',
-                'name': 'CutoutByColor',
+                'name': 'CutoutByHue',
                 'description': ''
             },
             "separator",
@@ -50,7 +52,7 @@ MENU_ITEMS = [
         ]
     },
     {
-        'label': 'Properties',
+        'label': 'Property',
         'icon': 'PROPERTIES',
         'items': [
             {
@@ -148,7 +150,7 @@ MENU_ITEMS = [
         ]
     },
     {
-        'label': 'Cutters',
+        'label': 'Cut',
         'icon': 'MOD_BEVEL',
         'items': [
             {
@@ -173,31 +175,31 @@ MENU_ITEMS = [
         ]
     },
     {
-        'label': 'Utils',
+        'label': 'Extra',
         'icon': 'MODIFIER',
         'items': [
             {
-                'label': 'Pick Surface',
+                'label': 'Fetch Surface',
                 'icon': 'OUTLINER_OB_MESH',
-                'name': 'PickSurface',
+                'name': 'FetchSurface',
                 'description': ''
             },
             {
-                'label': 'Pick Volume',
+                'label': 'Fetch Volume',
                 'icon': 'OUTLINER_OB_VOLUME',
-                'name': 'PickVolume',
+                'name': 'FetchVolume',
                 'description': ''
             },
             {
-                'label': 'Pick Shape Wire',
+                'label': 'Fetch Shape Wire',
                 'icon': 'FILE_VOLUME',
-                'name': 'PickShapeWire',
+                'name': 'FetchShapeWire',
                 'description': ''
             },
             {
-                'label': 'Pick Bbox Wire',
+                'label': 'Fetch Bbox Wire',
                 'icon': 'MESH_CUBE',
-                'name': 'PickBboxWire',
+                'name': 'FetchBboxWire',
                 'description': ''
             },
             "separator",

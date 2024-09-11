@@ -1,4 +1,4 @@
-[中文文档](https://uj6xfhbzp0.feishu.cn/wiki/Qx3VwHuNPimeI8kr6nDcvl1DnHf?from=from_copylink)
+[中文文档](https://uj6xfhbzp0.feishu.cn/wiki/LPKEwjooSivxjskWHlCcQznjnNf?from=from_copylink)
 
 # Bioxel Nodes
 
@@ -26,18 +26,18 @@ Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any 
 
 ## Support Multiple Formats
 
-| Format | EXT                                      | Test    |
-| ------ | ---------------------------------------- | ------- |
-| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           | ✅ pass |
-| BMP    | .bmp, .BMP                               | ✅ pass |
-| JPEG   | .jpg, .JPG, .jpeg, .JPEG                 | ✅ pass |
-| PNG    | .png, .PNG                               | ✅ pass |
-| TIFF   | .tif, .TIF, .tiff, .TIFF                 | ✅ pass |
-| Nifti  | .nia, .nii, .nii.gz, .hdr, .img, .img.gz | ✅ pass |
-| Nrrd   | .nrrd, .nhdr                             | ✅ pass |
-| HDF5   | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 | ✅ pass |
-| OME    | .ome.tiff, .ome.tif                      | ✅ pass |
-| MRC    | .mrc, .mrc.gz, .map, .map.gz             | ✅ pass |
+| Format | EXT                                      |
+| ------ | ---------------------------------------- |
+| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           |
+| BMP    | .bmp, .BMP                               |
+| JPEG   | .jpg, .JPG, .jpeg, .JPEG                 |
+| PNG    | .png, .PNG                               |
+| TIFF   | .tif, .TIF, .tiff, .TIFF                 |
+| Nifti  | .nia, .nii, .nii.gz, .hdr, .img, .img.gz |
+| Nrrd   | .nrrd, .nhdr                             |
+| HDF5   | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 |
+| OME    | .ome.tiff, .ome.tif                      |
+| MRC    | .mrc, .mrc.gz, .map, .map.gz             |
 
 ## Support 4D volumetric data
 
@@ -58,16 +58,6 @@ Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any 
 
 -   Only works with Cycles CPU , Cycles GPU (OptiX), EEVEE
 -   Section surface cannot be generated when convert to mesh (will be supported soon)
-
-## Compatible to Newer Version
-
-**v0.3.x is not compatible to v0.2.x, Updating this addon may break old files. Read the following carefully before upgradation**
-
-Before upgradation, you need to ask yourself whether this project file will be modified again or not, if it's an archived project file, I would recommend that you run **Bioxel Nodes > Save Staged Data** to make the addon nodes permanent. In this way, there will be no potential problem with the nodes not functioning due to the addon update.
-
-After the addon update, your old project files may not work either, this may be because you had executed **Save Staged Data**. If so, you need to execute **Bioxel Nodes > Relink Nodes to Addon** to relink them to make sure that the addon's new functionality and the addon nodes are synchronized.
-
-Also, the older shaders are not based on OSL, so if you find that you can't render volumes, you need to turn on **Open Shading Language (OSL)** in the Render Settings.
 
 ## Roadmap
 

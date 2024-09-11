@@ -1,1 +1,0 @@
-This type of node is responsible for culling out the extent of the component that does not need to be rendered, forming the interface between the object and the object, or the surface of the object (i.e., the interface between the object and the air)
