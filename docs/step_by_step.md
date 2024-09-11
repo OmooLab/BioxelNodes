@@ -76,7 +76,7 @@ A mesh, made up of vertexs and faces, is the "greatest common" in the 3D world. 
 
 As shown below, you can connect "Slime Shader" node (Add > Bioxel Nodes > Surface > Slime Shader) after the "To Surface" node to give the surface a shader, or connect "Transform" nodes.
 
-![alt text](assets/step_by_step/assets/image-7.png)
+![alt text](assets/step_by_step/image-7.png)
 
 If you want to edit the mesh, click **Bioxel Nodes > Extract from Container > Extract Surface** in the Geometry Nodes panel menu of the container. The addon will create a new object with Geometry Nodes, in which a "Fetch Surface" node to read the surface mesh. You can apply this geometry node to edit the mesh as usual. Or you can leave the geometry node in place and keep it connected to the original container in real time.
 
