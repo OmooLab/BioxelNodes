@@ -777,7 +777,7 @@
 <h2 id="surface-mesh">Surface Mesh</h2>
 <p>A mesh, made up of vertexs and faces, is the "greatest common" in the 3D world. Therefore, in order to be compatible with other 3D workflow, the addon provides the "To Surface" node (Add &gt; Bioxel Nodes &gt; Component &gt; ToSurface), which converts the component into a mesh. Note that the surface mesh is not editable in the container's geometry node, and can only be connected to "Transform" and "Shader" nodes.</p>
 <p>As shown below, you can connect "Slime Shader" node (Add &gt; Bioxel Nodes &gt; Surface &gt; Slime Shader) after the "To Surface" node to give the surface a shader, or connect "Transform" nodes.</p>
-<p><img alt="alt text" src="assets/step_by_step/assets/image-7.png" /></p>
+<p><img alt="alt text" src="../assets/step_by_step/image-7.png" /></p>
 <p>If you want to edit the mesh, click <strong>Bioxel Nodes &gt; Extract from Container &gt; Extract Surface</strong> in the Geometry Nodes panel menu of the container. The addon will create a new object with Geometry Nodes, in which a "Fetch Surface" node to read the surface mesh. You can apply this geometry node to edit the mesh as usual. Or you can leave the geometry node in place and keep it connected to the original container in real time.</p>
 <p><img alt="alt text" src="../assets/step_by_step/image-8.png" /></p>
 <p>(To show it better, I made an X-axis offset to the newly created mesh, otherwise the container and the mesh are perfectly overlapping.)</p>
