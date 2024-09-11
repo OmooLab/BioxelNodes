@@ -391,6 +391,7 @@ class ParseVolumetricData(bpy.types.Operator):
                 def get_meta(key):
                     try:
                         stirng = single.GetMetaData(key).removesuffix(" ")
+                        stirng.encode('utf-8')
                         if stirng in ["No study description",
                                       "No series description",
                                       ""]:
@@ -416,13 +417,15 @@ class ParseVolumetricData(bpy.types.Operator):
                 if series_id == "":
                     series_id = "empty"
 
-                series_items[series_id] = "{:<20} {:>1}".format(f"{study_description}>{series_description}({series_modality})",
+                label = "{:<20} {:>1}".format(f"{study_description}>{series_description}({series_modality})",
                                                                 f"({size_x}x{size_y})x{count}")
+                
+                series_items[series_id] = label
 
-            for key, value in series_items.items():
+            for series_id, label in series_items.items():
                 series_item = self.series_ids.add()
-                series_item.id = key
-                series_item.label = value
+                series_item.id = series_id
+                series_item.label = label
 
             if len(series_items.keys()) > 1:
                 self.skip_series_select = False
