@@ -1,0 +1,892 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bioxel Nodes is a Blender add-on for scientific volumetric data visualization.">
+      
+      
+        <meta name="author" content="OmooLab">
+      
+      
+        <link rel="canonical" href="https://omoolab.github.io/BioxelNodes/1.0.x/step_by_step/">
+      
+      
+        <link rel="prev" href="../installation/">
+      
+      
+        <link rel="next" href="../support_format/">
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+    
+    
+      
+        <title>Step by Step - Bioxel Nodes Handbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i%7CCascadia+Code:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Open Sans";--md-code-font:"Cascadia Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#step-by-step" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Bioxel Nodes Handbook" class="md-header__button md-logo" aria-label="Bioxel Nodes Handbook" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Bioxel Nodes Handbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Step by Step
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M448 256c0-106-86-192-192-192v384c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0 256 256 0 1 1-512 0z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M144.7 98.7c-21 34.1-33.1 74.3-33.1 117.3 0 98 62.8 181.4 150.4 211.7-12.4 2.8-25.3 4.3-38.6 4.3C126.6 432 48 353.3 48 256c0-68.9 39.4-128.4 96.8-157.3zm62.1-66C91.1 41.2 0 137.9 0 256c0 123.7 100 224 223.5 224 47.8 0 92-15 128.4-40.6 1.9-1.3 3.7-2.7 5.5-4 4.8-3.6 9.4-7.4 13.9-11.4 2.7-2.4 5.3-4.8 7.9-7.3 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-3.7.6-7.4 1.2-11.1 1.6-5 .5-10.1.9-15.3 1h-4c-96.8-.2-175.2-78.9-175.2-176 0-54.8 24.9-103.7 64.1-136 1-.9 2.1-1.7 3.2-2.6 4-3.2 8.2-6.2 12.5-9 3.1-2 6.3-4 9.6-5.8 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-3.6-.3-7.1-.5-10.7-.6-2.7-.1-5.5-.1-8.2-.1-3.3 0-6.5.1-9.8.2-2.3.1-4.6.2-6.9.4z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M223.5 32C100 32 0 132.3 0 256s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/OmooLab/BioxelNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OmooLab/BioxelNodes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Bioxel Nodes Handbook" class="md-nav__button md-logo" aria-label="Bioxel Nodes Handbook" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    Bioxel Nodes Handbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/OmooLab/BioxelNodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OmooLab/BioxelNodes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Step by Step
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Step by Step
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#download-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#import-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cutout-the-skull" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cutout the skull
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cut-and-color" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cut and Color
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transformation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transformation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Surface Mesh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#save-temporary-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Save Temporary Files
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../support_format/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Support Format
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../improve_performance/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Improve Performance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../qa/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Q & A
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#download-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#import-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cutout-the-skull" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cutout the skull
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cut-and-color" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cut and Color
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transformation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transformation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Surface Mesh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#save-temporary-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Save Temporary Files
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="step-by-step">Step by Step</h1>
+<h2 id="download-data">Download Data</h2>
+<p>Here is the open data from <a href="https://www.nlm.nih.gov/research/visible/visible_human.html">Visible Human Project (VHP)</a> for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to any location for later usage.</p>
+<p><a href="https://drive.google.com/file/d/1kcnEwwDj-5X4U8330G_FNfWFS8f-892R/view?usp=sharing">VHP_M_CT_Head.zip</a></p>
+<p>VHP original radiology data was shared in the proprietary format that predated DICOM, complicating its use. Now all data has been harmonized to standard DICOM and released in <a href="https://portal.imaging.datacommons.cancer.gov/">NCI Imaging Data Commons (IDC)</a>, you also can download data from IDC by yourself.</p>
+<h2 id="import-data">Import Data</h2>
+<p>In the top menu, click <strong>Bioxel Nodes &gt; Import Volumetric Data (Init) &gt; as Scalar</strong>, locate to the unzipped folder, select any DICOM file (don't select more than one, and don't select the folder either), and click <strong>Import as Scalar</strong>.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image.png" /></p>
+<p>You can also choose to import data by dragging one DICOM file into the 3D viewport (some DICOM files don't have extension suffix and can't be dragged in).</p>
+<p>The process of reading the data may take a while, the bottom right corner of the Blender interface will show you the progress of the reading, and a dialog box will pop up when the reading is successful. Ignore all the options for now and just click OK, I will explain the purpose of these options later.</p>
+<p>The import process involves data conversion, so there is more waiting time, and the progress of the import is displayed in the lower right corner of the interface. After importing, the addon will create a new object, with a new geometry nodes that will serve as a "workbench" for manipulating the data, the new object is called the <strong>Container</strong>. The newly imported data is stored in the Container as a <strong>Layer</strong>, which is loaded into the Container's Geometry node via the "Fetch Layer" node (the red one), and be converted into a <strong>Component</strong> that can be rendered.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-1.png" /></p>
+<p>Next, let's preview the data in Blender.</p>
+<p>In the container's geometry nodes panel menu, click <strong>Bioxel Nodes &gt; Add a Slicer</strong>. The addon will insert a node named "Slice" between the "Fetch Layer" and the "Output" and create a new plane object named "Slicer". Click the "Slice Viewer" button in the upper right corner of the 3D viewport to enter the preview mode, then move and rotate the "Slicer" object. You will see a slice image of the data, which should be familiar to anyone who has used any DICOM viewing software.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-2.png" /></p>
+<p>(If the volume disappears when you click the "Slice Viewer" button, save the file and restart Blender, it should be fixed, or you can turn on the Cycles rendering to see the slicer plane as well. The issue is caused by EEVEE's failure of reloading the shaders.)</p>
+<p>The "Slicer" node is used to display the slices of the data, with an external object as the location of the slice plane. This step is not necessary for visualization, but it provides a quick way to preview the data in Blender for user perception. Next, let's turn the volumetric data into a renderable object.</p>
+<h2 id="cutout-the-skull">Cutout the skull</h2>
+<p>Bone tends to have much higher CT values than soft tissue, so you can split bone and soft tissue by setting a threshold. In the Geometry Nodes panel menu of the container, click <strong>Add &gt; Bioxel Nodes &gt; Component &gt; Cutout by Threshold</strong> to add a "Cutout" node and connect it between the "Fetch Layer" node and the "Output", and then set the "Threshold" parameter of the "Cutout by Threshold" node to 0.3 and turn on the "With Surface" option. Switch to viewport shading to "Render Preview". The node graph and the render result are shown below.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-3.png" /></p>
+<p>If you want the render result to be consistent with the above image, you also need to change the default light object type from "Point" to "Area" to increase the brightness, and change the Look in Color Management to "High Contrast".</p>
+<p>You can understand the role of the "Threshold" parameter in shaping the output by changing it. If you feel very laggy while draging the parameter, you can temporarily turn off the "With Surface" option in the "Cutout" node. When you are satisfied, turn it on again. In addition, the volume rendering is very computationally intensive, which is also a major cause of the lag, so you can adjust the parameters in "Slice Viewer" mode first, and then do the Cycles rendering when you are satisfied.</p>
+<p>You may consider using GPU for faster rendering, but please note that Bioxel Nodes only supports Optix GPUs due to its dependency on OSL (Open shader language), and the first time you turn on GPU rendering, you may need to wait for Blender to load the appropriate dependencies (the screen will get stuck), so please be patient.</p>
+<p>Although the output component looks like a mesh object, it retains its internal information through its volume, so when you cut through the component, you should see an inhomogeneous cross-section made up of volume, rather than just an empty shell like any mesh object. Let's cut the skull to see its complex internal structure.</p>
+<h2 id="cut-and-color">Cut and Color</h2>
+<p>In the container's geometry nodes panel menu, click <strong>Bioxel Nodes &gt; Add a Cutter &gt; Plane Cutter</strong>, the addon will insert a "Cut" node and a "Object Cutter" node. Also, it will create a new plane object named "Plane Cutter" to the scene, at this point you should be able to see that the skull has been cut through as expected.</p>
+<p>Just like the "Slicer" object, move and rotate the "Plane Cutter" and the position and direction of the cut will change accordingly. Please adjust the Cutter object to a vertical orientation so that it cuts the skull vertically, as shown below.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-4.png" /></p>
+<p>The CT value of the skull is inhomogeneous, which reflects the difference in substance density of the bone. We can enhance the display of this difference by coloring. In the Geometry Nodes panel menu of the container, click <strong>Add &gt; Bioxel Nodes &gt; Propetry &gt; Set Color by Ramp 5</strong> to add the "Set Color" node and connect it after any node. Set the node's parameters "From Min" to 0.3 and "From Max" to 0.5, as shown below.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-5.png" /></p>
+<p>When rendering is turned on, you can clearly see that the calvaria and teeth are colored red, meaning that the bone in these areas is denser. You can try to adjust the parameters of the "Set Color" node to recognize their roles. If you feel laggy when draging the parameters, you can temporarily turn off "With Surface" and switch to "Slice Viewer" mode.</p>
+<h2 id="transformation">Transformation</h2>
+<p>You may find that the position of the skull is a bit off the origin, this is due to the fact that the addon keeps the position information from the original data record during the import process. If you need to change the position, do not move the container (object) directly as you would in 3D viewport; the addon provides dedicated "Transform" node to handle transformations.</p>
+<p>In the Geometry Nodes panel menu of the container, click <strong>Bioxel Nodes &gt; Add a Locator</strong>, the addon will insert the "Transform Parent" node and create a new empty object named "Locator". If you move, rotate, or scale the "Locator", the skull will Transform as well. If you also want the origin of the rotational transformation to be set at the geometric center of the skull, just add a "ReCenter" node (Add &gt; Bioxel Nodes &gt; Transform &gt; ReCenter) in front of the "Transform Parent" node, as shown below.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-6.png" /></p>
+<p>Being used to moving objects directly in the 3D viewport, you may find it strange to have an extra step to transform component like this. This is in consideration of the fact that there may be multiple components involved in one container with different transform needs, as well as future development plans for resampling mechanism, which I'll explain in more detail later.</p>
+<h2 id="surface-mesh">Surface Mesh</h2>
+<p>A mesh, made up of vertexs and faces, is the "greatest common" in the 3D world. Therefore, in order to be compatible with other 3D workflow, the addon provides the "To Surface" node (Add &gt; Bioxel Nodes &gt; Component &gt; ToSurface), which converts the component into a mesh. Note that the surface mesh is not editable in the container's geometry node, and can only be connected to "Transform" and "Shader" nodes.</p>
+<p>As shown below, you can connect "Slime Shader" node (Add &gt; Bioxel Nodes &gt; Surface &gt; Slime Shader) after the "To Surface" node to give the surface a shader, or connect "Transform" nodes.</p>
+<p><img alt="alt text" src="assets/step_by_step/assets/image-7.png" /></p>
+<p>If you want to edit the mesh, click <strong>Bioxel Nodes &gt; Extract from Container &gt; Extract Surface</strong> in the Geometry Nodes panel menu of the container. The addon will create a new object with Geometry Nodes, in which a "Fetch Surface" node to read the surface mesh. You can apply this geometry node to edit the mesh as usual. Or you can leave the geometry node in place and keep it connected to the original container in real time.</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-8.png" /></p>
+<p>(To show it better, I made an X-axis offset to the newly created mesh, otherwise the container and the mesh are perfectly overlapping.)</p>
+<h2 id="save-temporary-files">Save Temporary Files</h2>
+<p>The layers cache is stored in a temporary folder, while the addon's custom nodes are linked to the node library file in addon directory. Both of them are exist locally by default, and if you only deliver the Blender file to other devices, the file will not work properly because the resources are missing.</p>
+<p>Therefore, you need to save all temporary files before you deliver the Blender file. The procedure is simple:</p>
+<ol>
+<li>Save the Blender file.</li>
+<li>in the top menu, click <strong>Bioxel Nodes &gt; Save Node Library</strong>, and set the relative path.</li>
+<li>in the top menu, click <strong>Bioxel Nodes &gt; Save All Layers Cache</strong> and set the relative path.</li>
+</ol>
+<p>Zip the Blender file together with the local node library file and the layer cache files (there may be more than one).</p>
+<p><img alt="alt text" src="../assets/step_by_step/image-9.png" /></p>
+<p>🤗 If you can follow the documentation up to this point, you're already started!</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Installation
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../support_format/" class="md-footer__link md-footer__link--next" aria-label="Next: Support Format">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Support Format
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2020 - 2024 Omoolab
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["header.autohide", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "content.code.copy", "content.code.select"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      
+    
+  </body>
+</html>
