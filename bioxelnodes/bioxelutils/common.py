@@ -2,7 +2,7 @@ from ast import literal_eval
 from pathlib import Path
 import bpy
 
-from ..constants import NODE_LIB_DIRPATH, VERSIONS
+from ..constants import LATEST_NODE_LIB_PATH, NODE_LIB_DIRPATH, VERSIONS
 from ..utils import get_cache_dir
 
 
@@ -244,7 +244,7 @@ def get_node_lib_path(node_version):
 
 def local_lib_not_updated():
     addon_version = VERSIONS[0]["node_version"]
-    addon_lib_path = get_node_lib_path(addon_version)
+    addon_lib_path = LATEST_NODE_LIB_PATH
 
     use_local = False
     for node_group in bpy.data.node_groups:
@@ -258,3 +258,12 @@ def local_lib_not_updated():
 
     not_update = get_node_version() != addon_version
     return use_local and not_update
+
+def get_output_node(node_group):
+    try:
+        output_node = get_nodes_by_type(node_group,
+                                        'NodeGroupOutput')[0]
+    except:
+        output_node = node_group.nodes.new("NodeGroupOutput")
+        
+    return output_node

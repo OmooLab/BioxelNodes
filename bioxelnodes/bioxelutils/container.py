@@ -8,7 +8,7 @@ from mathutils import Matrix, Vector
 from .layer import Layer, layer_to_obj, obj_to_layer
 from .common import (get_container_layer_objs,
                      get_layer_prop_value,
-                     get_nodes_by_type,
+                     get_nodes_by_type, get_output_node,
                      move_node_to_node)
 from .node import add_node_to_graph
 from ..utils import get_use_link
@@ -82,11 +82,7 @@ def add_layers(layers: list[Layer],
                cache_dir: str):
 
     node_group = container_obj.modifiers[0].node_group
-    try:
-        output_node = get_nodes_by_type(node_group,
-                                        'NodeGroupOutput')[0]
-    except:
-        output_node = node_group.nodes.new("NodeGroupOutput")
+    output_node = get_output_node(node_group)
 
     for i, layer in enumerate(layers):
         layer_obj = layer_to_obj(layer, container_obj, cache_dir)

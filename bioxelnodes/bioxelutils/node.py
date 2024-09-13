@@ -4,7 +4,7 @@ import bpy
 from .common import get_file_prop, get_node_lib_path, set_file_prop
 from ..exceptions import Incompatible, NoFound
 
-from ..constants import VERSIONS
+from ..constants import LATEST_NODE_LIB_PATH, VERSIONS
 
 
 def get_node_group(node_type: str, use_link=True):
@@ -14,7 +14,7 @@ def get_node_group(node_type: str, use_link=True):
 
     # added node is always from latest node version
     addon_version = VERSIONS[0]["node_version"]
-    addon_lib_path = get_node_lib_path(addon_version)
+    addon_lib_path = LATEST_NODE_LIB_PATH
 
     if get_file_prop("node_version") is None:
         set_file_prop("node_version", addon_version)

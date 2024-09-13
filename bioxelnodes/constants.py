@@ -1,11 +1,30 @@
 from pathlib import Path
 
-VERSIONS = [{"label": "Current", "node_version": (1, 0, 0)},
+VERSIONS = [{"label": "Latest", "node_version": (1, 0, 1)},
             {"label": "v0.3.x", "node_version": (0, 3, 3)},
             {"label": "v0.2.x", "node_version": (0, 2, 9)}]
 
 NODE_LIB_DIRPATH = Path(Path(__file__).parent,
                         "assets/Nodes").resolve()
+
+LATEST_NODE_LIB_PATH = lib_path = Path(NODE_LIB_DIRPATH,
+                                  "BioxelNodes_latest.blend").resolve()
+
+COMPONENT_OUTPUT_NODES = [
+    "CutoutByThreshold",
+    "CutoutByRange",
+    "CutoutByHue",
+    "JoinComponent",
+    "SetProperties",
+    "SetColor",
+    "SetColorByColor",
+    "SetColorByColor",
+    "SetColorByRamp2",
+    "SetColorByRamp3",
+    "SetColorByRamp4",
+    "SetColorByRamp5",
+    "Cut",
+]
 
 MENU_ITEMS = [
     {
@@ -179,9 +198,9 @@ MENU_ITEMS = [
         'icon': 'MODIFIER',
         'items': [
             {
-                'label': 'Fetch Surface',
+                'label': 'Fetch Mesh',
                 'icon': 'OUTLINER_OB_MESH',
-                'name': 'FetchSurface',
+                'name': 'FetchMesh',
                 'description': ''
             },
             {

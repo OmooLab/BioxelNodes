@@ -1,13 +1,15 @@
 import bpy
 
+
 import bmesh
 
+from ..constants import COMPONENT_OUTPUT_NODES
 from ..utils import get_cache_dir, get_use_link, select_object
 from ..bioxel.io import load_container, save_container
 from ..bioxelutils.container import container_to_obj, obj_to_container
 from ..bioxelutils.node import add_node_to_graph
-from ..bioxelutils.common import (get_container_layer_objs, get_container_obj,
-                                  get_nodes_by_type, is_missing_layer,
+from ..bioxelutils.common import (get_container_layer_objs, get_container_obj, get_node_type,
+                                  get_nodes_by_type, get_output_node, is_missing_layer,
                                   move_node_between_nodes,
                                   move_node_to_node,
                                   get_all_layer_objs)
@@ -77,7 +79,7 @@ class LoadContainer(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class ExtractObject():
+class ExtractNodeObject():
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -86,6 +88,26 @@ class ExtractObject():
         if container_obj is None:
             self.report({"WARNING"}, "Cannot find any bioxel container.")
             return {'FINISHED'}
+
+        # nodes = [node for node in context.selected_nodes
+        #          if get_node_type(node).removeprefix("BioxelNodes_") in COMPONENT_OUTPUT_NODES]
+
+        if len(context.selected_nodes) == 0:
+            self.report({"WARNING"}, "No node selected.")
+            return {'FINISHED'}
+
+        selected_node = context.selected_nodes[0]
+        container_node_group = container_obj.modifiers[0].node_group
+
+        container_output_node = get_output_node(container_node_group)
+
+        if len(container_output_node.inputs[0].links) == 0:
+            pre_socket = None
+        else:
+            pre_socket = container_output_node.inputs[0].links[0].from_socket
+
+        container_node_group.links.new(selected_node.outputs[0],
+                                       container_output_node.inputs[0])
 
         bpy.ops.mesh.primitive_cube_add(
             size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -106,6 +128,15 @@ class ExtractObject():
         fetch_mesh_node.inputs[0].default_value = container_obj
         node_group.links.new(fetch_mesh_node.outputs[0], output_node.inputs[0])
 
+        for modifier in obj.modifiers:
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+        obj.data.materials.clear()
+
+        if pre_socket:
+            container_node_group.links.new(pre_socket,
+                                           container_output_node.inputs[0])
+
         select_object(obj)
 
         self.report({"INFO"}, f"Successfully picked")
@@ -113,24 +144,92 @@ class ExtractObject():
         return {'FINISHED'}
 
 
-class ExtractSurface(bpy.types.Operator, ExtractObject):
-    bl_idname = "bioxelnodes.fetch_mesh"
-    bl_label = "Extract Surface"
-    bl_description = "Extract Surface"
+class ExtractNodeMesh(bpy.types.Operator, ExtractNodeObject):
+    bl_idname = "bioxelnodes.extract_node_mesh"
+    bl_label = "Extract Mesh"
+    bl_description = "Extract Mesh"
     bl_icon = "OUTLINER_OB_MESH"
-    object_type = "Surface"
+    object_type = "Mesh"
 
 
-class ExtractVolume(bpy.types.Operator, ExtractObject):
-    bl_idname = "bioxelnodes.pick_volume"
-    bl_label = "Extract Volume"
-    bl_description = "Extract Volume"
-    bl_icon = "OUTLINER_OB_VOLUME"
-    object_type = "Volume"
+class ExtractNodeShapeWire(bpy.types.Operator, ExtractNodeObject):
+    bl_idname = "bioxelnodes.extract_node_shape_wire"
+    bl_label = "Extract Shape Wire"
+    bl_description = "Extract Shape Wire"
+    bl_icon = "FILE_VOLUME"
+    object_type = "ShapeWire"
+
+
+class ExtractNodeBboxWire(bpy.types.Operator, ExtractNodeObject):
+    bl_idname = "bioxelnodes.extract_node_bbox_wire"
+    bl_label = "Extract Bbox Wire"
+    bl_description = "Extract Bbox Wire"
+    bl_icon = "MESH_CUBE"
+    object_type = "BboxWire"
+
+
+class ExtractObject():
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        container_obj = get_container_obj(context.object)
+
+        if container_obj is None:
+            self.report({"WARNING"}, "Cannot find any bioxel container.")
+            return {'FINISHED'}
+
+        bpy.ops.mesh.primitive_cube_add(
+            size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        obj = bpy.context.active_object
+
+        obj.name = f"{container_obj.name}_{self.object_type}"
+
+        bpy.ops.node.new_geometry_nodes_modifier()
+        modifier = obj.modifiers[0]
+        node_group = modifier.node_group
+
+        output_node = get_output_node(node_group)
+
+        fetch_mesh_node = add_node_to_graph(f"Fetch{self.object_type}",
+                                            node_group,
+                                            node_label=f"Fetch {self.object_type}",
+                                            use_link=get_use_link())
+
+        fetch_mesh_node.inputs[0].default_value = container_obj
+
+        if self.object_type == "Mesh":
+            node_group.links.new(
+                fetch_mesh_node.outputs[0], output_node.inputs[0])
+        else:
+            curve_to_mesh_node = node_group.nodes.new(
+                "GeometryNodeCurveToMesh")
+            node_group.links.new(
+                fetch_mesh_node.outputs[0], curve_to_mesh_node.inputs[0])
+            node_group.links.new(
+                curve_to_mesh_node.outputs[0], output_node.inputs[0])
+
+        for modifier in obj.modifiers:
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+        obj.data.materials.clear()
+
+        select_object(obj)
+
+        self.report({"INFO"}, f"Successfully picked")
+
+        return {'FINISHED'}
+
+
+class ExtractMesh(bpy.types.Operator, ExtractObject):
+    bl_idname = "bioxelnodes.extract_mesh"
+    bl_label = "Extract Mesh"
+    bl_description = "Extract Mesh"
+    bl_icon = "OUTLINER_OB_MESH"
+    object_type = "Mesh"
 
 
 class ExtractShapeWire(bpy.types.Operator, ExtractObject):
-    bl_idname = "bioxelnodes.pick_shape_wire"
+    bl_idname = "bioxelnodes.extract_shape_wire"
     bl_label = "Extract Shape Wire"
     bl_description = "Extract Shape Wire"
     bl_icon = "FILE_VOLUME"
@@ -138,7 +237,7 @@ class ExtractShapeWire(bpy.types.Operator, ExtractObject):
 
 
 class ExtractBboxWire(bpy.types.Operator, ExtractObject):
-    bl_idname = "bioxelnodes.pick_bbox_wire"
+    bl_idname = "bioxelnodes.extract_bbox_wire"
     bl_label = "Extract Bbox Wire"
     bl_description = "Extract Bbox Wire"
     bl_icon = "MESH_CUBE"
@@ -253,8 +352,8 @@ class AddCutter():
                                          node_group,
                                          use_link=get_use_link())
 
-            output_node = get_nodes_by_type(node_group,
-                                            'NodeGroupOutput')[0]
+            output_node = get_output_node(node_group)
+
             if len(output_node.inputs[0].links) == 0:
                 node_group.links.new(cut_node.outputs[0],
                                      output_node.inputs[0])
@@ -277,7 +376,7 @@ class AddCutter():
                                          node_name="ObjectCutter",
                                          node_label=name)
             node = bpy.context.active_node
-            node.inputs[0].default_value = name
+            node.inputs[0].default_value = self.cutter_type.capitalize()
             node.inputs[1].default_value = cutter_obj
 
         return {'FINISHED'}
@@ -368,8 +467,8 @@ class AddSlicer(bpy.types.Operator):
 
         slice_node.inputs[1].default_value = slicer_obj
 
-        output_node = get_nodes_by_type(node_group,
-                                        'NodeGroupOutput')[0]
+        output_node = get_output_node(node_group)
+
         if len(output_node.inputs[0].links) == 0:
             node_group.links.new(slice_node.outputs[0],
                                  output_node.inputs[0])
@@ -419,8 +518,8 @@ class AddLocator(bpy.types.Operator):
 
         parent_node.inputs[1].default_value = locator_obj
 
-        output_node = get_nodes_by_type(node_group,
-                                        'NodeGroupOutput')[0]
+        output_node = get_output_node(node_group)
+
         if len(output_node.inputs[0].links) == 0:
             node_group.links.new(parent_node.outputs[0],
                                  output_node.inputs[0])
