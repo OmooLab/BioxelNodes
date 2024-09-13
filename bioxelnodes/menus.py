@@ -15,8 +15,8 @@ from .operators.container import (AddLocator, AddSlicer, ContainerProps,
                                   SaveContainer, LoadContainer,
                                   AddPieCutter, AddPlaneCutter,
                                   AddCylinderCutter, AddCubeCutter, AddSphereCutter,
-                                  ExtractBboxWire, ExtractMesh, ExtractVolume, ExtractShapeWire,
-                                  ExtractNodeMesh, ExtractNodeBboxWire, ExtractNodeVolume, ExtractNodeShapeWire)
+                                  ExtractBboxWire, ExtractMesh, ExtractShapeWire,
+                                  ExtractNodeMesh, ExtractNodeBboxWire, ExtractNodeShapeWire)
 
 from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
 from .operators.misc import (CleanTemp,
@@ -80,7 +80,6 @@ class ExtractFromContainerMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(ExtractMesh.bl_idname)
-        layout.operator(ExtractVolume.bl_idname)
         layout.operator(ExtractShapeWire.bl_idname)
         layout.operator(ExtractBboxWire.bl_idname)
 
@@ -261,7 +260,6 @@ class NodeContextMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(ExtractNodeMesh.bl_idname)
-        layout.operator(ExtractNodeVolume.bl_idname)
         layout.operator(ExtractNodeShapeWire.bl_idname)
         layout.operator(ExtractNodeBboxWire.bl_idname)
 

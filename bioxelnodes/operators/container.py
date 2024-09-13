@@ -152,14 +152,6 @@ class ExtractNodeMesh(bpy.types.Operator, ExtractNodeObject):
     object_type = "Mesh"
 
 
-class ExtractNodeVolume(bpy.types.Operator, ExtractNodeObject):
-    bl_idname = "bioxelnodes.extract_node_volume"
-    bl_label = "Extract Volume"
-    bl_description = "Extract Volume"
-    bl_icon = "OUTLINER_OB_VOLUME"
-    object_type = "Volume"
-
-
 class ExtractNodeShapeWire(bpy.types.Operator, ExtractNodeObject):
     bl_idname = "bioxelnodes.extract_node_shape_wire"
     bl_label = "Extract Shape Wire"
@@ -204,7 +196,17 @@ class ExtractObject():
                                             use_link=get_use_link())
 
         fetch_mesh_node.inputs[0].default_value = container_obj
-        node_group.links.new(fetch_mesh_node.outputs[0], output_node.inputs[0])
+
+        if self.object_type == "Mesh":
+            node_group.links.new(
+                fetch_mesh_node.outputs[0], output_node.inputs[0])
+        else:
+            curve_to_mesh_node = node_group.nodes.new(
+                "GeometryNodeCurveToMesh")
+            node_group.links.new(
+                fetch_mesh_node.outputs[0], curve_to_mesh_node.inputs[0])
+            node_group.links.new(
+                curve_to_mesh_node.outputs[0], output_node.inputs[0])
 
         for modifier in obj.modifiers:
             bpy.ops.object.modifier_apply(modifier=modifier.name)
@@ -224,14 +226,6 @@ class ExtractMesh(bpy.types.Operator, ExtractObject):
     bl_description = "Extract Mesh"
     bl_icon = "OUTLINER_OB_MESH"
     object_type = "Mesh"
-
-
-class ExtractVolume(bpy.types.Operator, ExtractObject):
-    bl_idname = "bioxelnodes.extract_volume"
-    bl_label = "Extract Volume"
-    bl_description = "Extract Volume"
-    bl_icon = "OUTLINER_OB_VOLUME"
-    object_type = "Volume"
 
 
 class ExtractShapeWire(bpy.types.Operator, ExtractObject):
