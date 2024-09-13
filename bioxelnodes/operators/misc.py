@@ -5,7 +5,7 @@ import shutil
 from ..bioxelutils.common import get_all_layer_objs, get_node_lib_path, get_node_version, is_missing_layer, set_file_prop
 from .layer import RemoveLayers, SaveLayersCache
 
-from ..constants import NODE_LIB_DIRPATH, VERSIONS
+from ..constants import LATEST_NODE_LIB_PATH, VERSIONS
 from ..utils import get_cache_dir
 
 
@@ -19,7 +19,8 @@ class ReLinkNodeLib(bpy.types.Operator):
 
     def execute(self, context):
         node_version = VERSIONS[self.index]['node_version']
-        lib_path = get_node_lib_path(node_version)
+        lib_path = get_node_lib_path(node_version) \
+            if self.index != 0 else LATEST_NODE_LIB_PATH
 
         node_libs = []
         for node_group in bpy.data.node_groups:
@@ -56,16 +57,23 @@ class SaveNodeLib(bpy.types.Operator):
 
     def execute(self, context):
         node_version = get_node_version()
+
         if node_version is None:
             node_version = VERSIONS[0]["node_version"]
         else:
             if node_version not in [v["node_version"] for v in VERSIONS]:
                 node_version = VERSIONS[0]["node_version"]
-                
-        lib_path = get_node_lib_path(node_version)
-        
+
+        if node_version == VERSIONS[0]["node_version"]:
+            lib_path = LATEST_NODE_LIB_PATH
+        else:
+            lib_path = get_node_lib_path(node_version)
+
+        version_str = "v"+".".join([str(i) for i in list(node_version)])
+
         lib_dir = bpy.path.abspath(self.lib_dir)
-        local_lib_path: Path = Path(lib_dir, lib_path.name).resolve()
+        local_lib_path: Path = Path(lib_dir,
+                                    f"BioxelNodes_{version_str}.blend").resolve()
         node_lib_path: Path = lib_path
         blend_path = Path(bpy.path.abspath("//")).resolve()
 

@@ -10,16 +10,19 @@ from .operators.layer import (FetchLayer, RelocateLayer, RetimeLayer, RenameLaye
                               RemoveSelectedLayers, SaveSelectedLayersCache,
                               ResampleLayer, SignScalar, CombineLabels,
                               FillByLabel, FillByThreshold, FillByRange)
-from .operators.container import (AddLocator, AddSlicer, ExtractShapeWire,
+from .operators.container import (AddLocator, AddSlicer, ContainerProps,
                                   SaveContainerLayersCache, RemoveContainerMissingLayers,
                                   SaveContainer, LoadContainer,
                                   AddPieCutter, AddPlaneCutter,
                                   AddCylinderCutter, AddCubeCutter, AddSphereCutter,
-                                  ExtractBboxWire, ExtractSurface, ExtractVolume, ContainerProps)
+                                  ExtractBboxWire, ExtractMesh, ExtractVolume, ExtractShapeWire,
+                                  ExtractNodeMesh, ExtractNodeBboxWire, ExtractNodeVolume, ExtractNodeShapeWire)
 
 from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
 from .operators.misc import (CleanTemp,
-                             ReLinkNodeLib, RemoveAllMissingLayers, RenderSettingPreset, SaveAllLayersCache, SaveNodeLib, SliceViewer)
+                             ReLinkNodeLib, RemoveAllMissingLayers,
+                             RenderSettingPreset, SaveAllLayersCache,
+                             SaveNodeLib, SliceViewer)
 
 
 class IncompatibleMenu(bpy.types.Menu):
@@ -76,7 +79,7 @@ class ExtractFromContainerMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(ExtractSurface.bl_idname)
+        layout.operator(ExtractMesh.bl_idname)
         layout.operator(ExtractVolume.bl_idname)
         layout.operator(ExtractShapeWire.bl_idname)
         layout.operator(ExtractBboxWire.bl_idname)
@@ -199,8 +202,8 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
         layout.operator(RemoveAllMissingLayers.bl_idname)
 
         layout.separator()
-        layout.operator(SaveNodeLib.bl_idname)
         layout.menu(ReLinkNodeLibMenu.bl_idname)
+        layout.operator(SaveNodeLib.bl_idname)
 
         layout.separator()
         layout.menu(DangerZoneMenu.bl_idname)
@@ -257,6 +260,12 @@ class NodeContextMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator(ExtractNodeMesh.bl_idname)
+        layout.operator(ExtractNodeVolume.bl_idname)
+        layout.operator(ExtractNodeShapeWire.bl_idname)
+        layout.operator(ExtractNodeBboxWire.bl_idname)
+
+        layout.separator()
         layout.operator(SaveSelectedLayersCache.bl_idname,
                         icon=SaveSelectedLayersCache.bl_icon)
         layout.operator(RemoveSelectedLayers.bl_idname)

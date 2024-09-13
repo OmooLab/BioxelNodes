@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bioxelnodes"
-version = "1.0.0"
+version = "1.0.1"
 name = "Bioxel Nodes"
 tagline = "For scientific volumetric data visualization in Blender"
 maintainer = "Ma Nan <icrdr2010@outlook.com>"
@@ -10,7 +10,7 @@ website = "https://omoolab.github.io/BioxelNodes/latest"
 
 tags = ["Geometry Nodes", "Render", "Import-Export"]
 blender_version_min = "4.2.0"
-license = ["SPDX:MIT"]
+license = ['SPDX:GPL-3.0-or-later']
 copyright = ["2024 OmooLab"]
 platforms = ["windows-x64", "linux-x64", "macos-arm64", "macos-x64"]
 
