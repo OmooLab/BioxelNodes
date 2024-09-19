@@ -164,7 +164,7 @@ class ParseVolumetricData(bpy.types.Operator):
     read_as: bpy.props.EnumProperty(name="Read as",
                                     default="SCALAR",
                                     items=[("SCALAR", "Scalar", ""),
-                                           ("LABEL", "Labels", ""),
+                                           ("LABEL", "Label", ""),
                                            ("COLOR", "Color", "")])  # type: ignore
 
     series_id: bpy.props.EnumProperty(name="Select Series",
@@ -282,6 +282,10 @@ class ParseVolumetricData(bpy.types.Operator):
         if self.read_as == "LABEL":
             if self.label_count > 100 or self.dtype.kind not in ["i", "u"]:
                 self.report({"ERROR"}, "Invaild label data.")
+                return {'CANCELLED'}
+
+            if self.label_count == 0:
+                self.report({"ERROR"}, "Get no label.")
                 return {'CANCELLED'}
 
         orig_shape = self.meta['xyz_shape']
@@ -418,8 +422,8 @@ class ParseVolumetricData(bpy.types.Operator):
                     series_id = "empty"
 
                 label = "{:<20} {:>1}".format(f"{study_description}>{series_description}({series_modality})",
-                                                                f"({size_x}x{size_y})x{count}")
-                
+                                              f"({size_x}x{size_y})x{count}")
+
                 series_items[series_id] = label
 
             for series_id, label in series_items.items():
@@ -500,10 +504,13 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
     label_count: bpy.props.IntProperty()  # type: ignore
 
+    smooth: bpy.props.IntProperty(name="Smooth Size (Larger takes longer time)",
+                                  default=3)  # type: ignore
+
     read_as: bpy.props.EnumProperty(name="Read as",
                                     default="SCALAR",
                                     items=[("SCALAR", "Scalar", ""),
-                                           ("LABEL", "Labels", ""),
+                                           ("LABEL", "Label", ""),
                                            ("COLOR", "Color", "")])  # type: ignore
 
     bioxel_size: bpy.props.FloatProperty(name="Bioxel Size (Larger size means small resolution)",
@@ -616,12 +623,15 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                     progress_callback = progress_callback_factory(name_i,
                                                                   progress,
                                                                   progress_step)
+                    label_data = data == np.full_like(data, i+1)
+                    label_data = label_data.astype(np.float32)
                     try:
-                        layer = Layer(data=data == np.full_like(data, i+1),
+                        layer = Layer(data=label_data,
                                       name=name_i,
                                       kind=kind)
 
                         layer.resize(shape=shape,
+                                     smooth=self.smooth,
                                      progress_callback=progress_callback)
 
                         layer.affine = affine
@@ -924,6 +934,8 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
         if self.read_as == "SCALAR":
             panel.prop(self, "split_channel",
                        text=f"Split Channel as Multi Layer")
+        elif self.read_as == "LABEL":
+            panel.prop(self, "smooth")
 
         panel.label(
             text="Dimension Order: [Frame, (X-axis,Y-axis,Z-axis), Channel]")

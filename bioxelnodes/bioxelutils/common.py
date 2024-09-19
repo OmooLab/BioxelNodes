@@ -259,11 +259,12 @@ def local_lib_not_updated():
     not_update = get_node_version() != addon_version
     return use_local and not_update
 
+
 def get_output_node(node_group):
     try:
         output_node = get_nodes_by_type(node_group,
                                         'NodeGroupOutput')[0]
     except:
         output_node = node_group.nodes.new("NodeGroupOutput")
-        
+
     return output_node

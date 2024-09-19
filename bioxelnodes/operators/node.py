@@ -1,7 +1,7 @@
 import bpy
 
 from ..bioxelutils.common import is_incompatible, local_lib_not_updated
-from ..bioxelutils.node import assign_node_group, get_node_group
+from ..bioxelutils.node import assign_node_tree, get_node_tree
 from ..utils import get_use_link
 
 
@@ -41,14 +41,14 @@ class AddNode(bpy.types.Operator):
                         "Current addon verison is not compatible to this file. If you insist on editing this file please keep the same addon version.")
             return {'CANCELLED'}
 
-        get_node_group(self.node_type, get_use_link())
+        node_tree = get_node_tree(self.node_type, get_use_link())
         bpy.ops.node.add_node(
             'INVOKE_DEFAULT',
             type='GeometryNodeGroup',
             use_transform=True
         )
         node = bpy.context.active_node
-        assign_node_group(node, self.node_type)
+        assign_node_tree(node, node_tree)
         node.label = self.node_label
 
         node.show_options = False

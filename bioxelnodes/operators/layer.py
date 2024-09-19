@@ -4,7 +4,6 @@ import bpy
 import numpy as np
 
 
-
 from ..exceptions import NoContent
 from ..bioxel.layer import Layer
 from ..bioxelutils.node import add_node_to_graph
@@ -199,13 +198,23 @@ class RetimeLayer(bpy.types.Operator, LayerOperator):
             return self.execute(context)
 
 
-class RelocateLayer(bpy.types.Operator, LayerOperator):
+class RelocateLayer(bpy.types.Operator):
     bl_idname = "bioxelnodes.relocate_layer"
     bl_label = "Relocate Layer Cache"
     bl_description = "Relocate layer cache"
     bl_icon = "FILE"
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+
+    def execute(self, context):
+        layer_obj = get_selected_layer(context)
+        if layer_obj == None:
+            self.report({"WARNING"}, "Get no layer.")
+            return {'FINISHED'}
+
+        self.operate(layer_obj, context)
+
+        return {'FINISHED'}
 
     def operate(self, layer_obj, context):
         layer_obj.data.filepath = self.filepath
@@ -259,7 +268,7 @@ class ResampleLayer(bpy.types.Operator, OutputLayerOperator):
     bl_description = "Resample value"
     bl_icon = "ALIASED"
 
-    smooth: bpy.props.IntProperty(name="Smooth Iteration",
+    smooth: bpy.props.IntProperty(name="Smooth Size",
                                   default=0,
                                   soft_min=0, soft_max=5,
                                   options={"SKIP_SAVE"})  # type: ignore
@@ -389,7 +398,7 @@ class FillByThreshold(bpy.types.Operator, FillOperator):
             if self.invert else data > self.threshold
 
         new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 3)
+        new_layer.fill(self.fill_value, mask, 0)
         new_layer.name = self.new_layer_name \
             or f"{orig_layer.name}_F-{self.threshold:.2f}"
         return new_layer
@@ -419,7 +428,7 @@ class FillByRange(bpy.types.Operator, FillOperator):
             (data > self.from_min) & (data < self.from_max)
 
         new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 3)
+        new_layer.fill(self.fill_value, mask, 0)
         new_layer.name = self.new_layer_name \
             or f"{orig_layer.name}_F-{self.from_min:.2f}-{self.from_max:.2f}"
         return new_layer
@@ -431,7 +440,7 @@ class FillByLabel(bpy.types.Operator, FillOperator):
     bl_description = "Fill value by label"
     bl_icon = "MESH_CAPSULE"
 
-    smooth: bpy.props.IntProperty(name="Smooth Iteration",
+    smooth: bpy.props.IntProperty(name="Smooth Size",
                                   default=0,
                                   soft_min=0, soft_max=5,
                                   options={"SKIP_SAVE"})  # type: ignore
@@ -451,7 +460,7 @@ class FillByLabel(bpy.types.Operator, FillOperator):
             mask = 1 - mask
 
         new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 3)
+        new_layer.fill(self.fill_value, mask, 0)
         new_layer.name = self.new_layer_name \
             or f"{orig_layer.name}_F-{label_layer.name}"
         return new_layer
