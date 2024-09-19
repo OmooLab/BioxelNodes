@@ -77,7 +77,7 @@ class Layer():
             for f in range(self.frame_count):
                 mask_frame = mask[f, :, :, :]
                 if smooth > 0:
-                    mask_frame = scipy.minimum_filter(mask_frame.astype(np.float32),
+                    mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
                                                       mode="nearest",
                                                       size=smooth)
                 # mask_frame = scipy.median_filter(
@@ -87,7 +87,7 @@ class Layer():
             for f in range(self.frame_count):
                 mask_frame = mask[:, :, :]
                 if smooth > 0:
-                    mask_frame = scipy.minimum_filter(mask_frame.astype(np.float32),
+                    mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
                                                       mode="nearest",
                                                       size=smooth)
                 # mask_frame = scipy.median_filter(
@@ -119,10 +119,6 @@ class Layer():
             if progress_callback:
                 progress_callback(f, self.frame_count)
 
-            # frame = ski.resize(data[f, :, :, :],
-            #                    shape,
-            #                    preserve_range=True,
-            #                    anti_aliasing=data.dtype.kind != "b")
             frame = data[f, :, :, :, :]
             if smooth > 0:
                 frame = scipy.median_filter(frame.astype(np.float32),

@@ -343,7 +343,7 @@ class AddCutter():
         if len(cut_nodes) == 0:
             cutter_node = add_node_to_graph("ObjectCutter",
                                             node_group,
-                                            node_label=name,
+                                            node_label=f"{self.cutter_type.capitalize()} Cutter",
                                             use_link=get_use_link())
             cutter_node.inputs[0].default_value = self.cutter_type.capitalize()
             cutter_node.inputs[1].default_value = cutter_obj
