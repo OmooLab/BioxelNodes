@@ -18,7 +18,7 @@
         <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../support_format/">
+        <link rel="next" href="../advanced_usage/">
       
       
       <link rel="icon" href="../assets/logo.png">
@@ -266,6 +266,26 @@
   
 
       
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../SARS-Cov-2/" class="md-tabs__link">
+          
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -489,7 +509,7 @@
         <li class="md-nav__item">
   <a href="#cutout-the-skull" class="md-nav__link">
     <span class="md-ellipsis">
-      Cutout the skull
+      Cutout the Skull
     </span>
   </a>
   
@@ -523,9 +543,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#save-temporary-files" class="md-nav__link">
+  <a href="#deliver-blender-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Save Temporary Files
+      Deliver Blender File
     </span>
   </a>
   
@@ -535,6 +555,27 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Advanced Usage
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -589,11 +630,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced/" class="md-nav__link">
+      <a href="../qa/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Advanced
+    Q & A
   </span>
   
 
@@ -603,6 +644,57 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -610,11 +702,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../qa/" class="md-nav__link">
+      <a href="../SARS-Cov-2/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Q & A
+    SARS Cov 2
   </span>
   
 
@@ -678,7 +770,7 @@
         <li class="md-nav__item">
   <a href="#cutout-the-skull" class="md-nav__link">
     <span class="md-ellipsis">
-      Cutout the skull
+      Cutout the Skull
     </span>
   </a>
   
@@ -712,9 +804,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#save-temporary-files" class="md-nav__link">
+  <a href="#deliver-blender-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Save Temporary Files
+      Deliver Blender File
     </span>
   </a>
   
@@ -740,8 +832,8 @@
 
 <h1 id="step-by-step">Step by Step</h1>
 <h2 id="download-data">Download Data</h2>
-<p>Here is the open data from <a href="https://www.nlm.nih.gov/research/visible/visible_human.html">Visible Human Project (VHP)</a> for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to any location for later usage.</p>
-<p><a href="https://drive.google.com/file/d/1kcnEwwDj-5X4U8330G_FNfWFS8f-892R/view?usp=sharing">VHP_M_CT_Head.zip</a></p>
+<p>Here is the open data from <a href="https://www.nlm.nih.gov/research/visible/visible_human.html">Visible Human Project (VHP)</a> for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to a new directry for later usage.</p>
+<p><a href="https://drive.google.com/file/d/1bBGpt5pQ0evr-0-f4KDNRnKPoUYj2bJ-/view?usp=drive_link">VHP_M_CT_Head.zip</a></p>
 <p>VHP original radiology data was shared in the proprietary format that predated DICOM, complicating its use. Now all data has been harmonized to standard DICOM and released in <a href="https://portal.imaging.datacommons.cancer.gov/">NCI Imaging Data Commons (IDC)</a>, you also can download data from IDC by yourself.</p>
 <h2 id="import-data">Import Data</h2>
 <p>In the top menu, click <strong>Bioxel Nodes &gt; Import Volumetric Data (Init) &gt; as Scalar</strong>, locate to the unzipped folder, select any DICOM file (don't select more than one, and don't select the folder either), and click <strong>Import as Scalar</strong>.</p>
@@ -755,7 +847,7 @@
 <p><img alt="alt text" src="../assets/step_by_step/image-2.png" /></p>
 <p>(If the volume disappears when you click the "Slice Viewer" button, save the file and restart Blender, it should be fixed, or you can turn on the Cycles rendering to see the slicer plane as well. The issue is caused by EEVEE's failure of reloading the shaders.)</p>
 <p>The "Slicer" node is used to display the slices of the data, with an external object as the location of the slice plane. This step is not necessary for visualization, but it provides a quick way to preview the data in Blender for user perception. Next, let's turn the volumetric data into a renderable object.</p>
-<h2 id="cutout-the-skull">Cutout the skull</h2>
+<h2 id="cutout-the-skull">Cutout the Skull</h2>
 <p>Bone tends to have much higher CT values than soft tissue, so you can split bone and soft tissue by setting a threshold. In the Geometry Nodes panel menu of the container, click <strong>Add &gt; Bioxel Nodes &gt; Component &gt; Cutout by Threshold</strong> to add a "Cutout" node and connect it between the "Fetch Layer" node and the "Output", and then set the "Threshold" parameter of the "Cutout by Threshold" node to 0.3 and turn on the "With Surface" option. Switch to viewport shading to "Render Preview". The node graph and the render result are shown below.</p>
 <p><img alt="alt text" src="../assets/step_by_step/image-3.png" /></p>
 <p>If you want the render result to be consistent with the above image, you also need to change the default light object type from "Point" to "Area" to increase the brightness, and change the Look in Color Management to "High Contrast".</p>
@@ -778,10 +870,8 @@
 <p>A mesh, made up of vertexs and faces, is the "greatest common" in the 3D world. Therefore, in order to be compatible with other 3D workflow, the addon provides the "To Surface" node (Add &gt; Bioxel Nodes &gt; Component &gt; ToSurface), which converts the component into a mesh. Note that the surface mesh is not editable in the container's geometry node, and can only be connected to "Transform" and "Shader" nodes.</p>
 <p>As shown below, you can connect "Slime Shader" node (Add &gt; Bioxel Nodes &gt; Surface &gt; Slime Shader) after the "To Surface" node to give the surface a shader, or connect "Transform" nodes.</p>
 <p><img alt="alt text" src="../assets/step_by_step/image-7.png" /></p>
-<p>If you want to edit the mesh, click <strong>Bioxel Nodes &gt; Extract from Container &gt; Extract Surface</strong> in the Geometry Nodes panel menu of the container. The addon will create a new object with Geometry Nodes, in which a "Fetch Surface" node to read the surface mesh. You can apply this geometry node to edit the mesh as usual. Or you can leave the geometry node in place and keep it connected to the original container in real time.</p>
-<p><img alt="alt text" src="../assets/step_by_step/image-8.png" /></p>
-<p>(To show it better, I made an X-axis offset to the newly created mesh, otherwise the container and the mesh are perfectly overlapping.)</p>
-<h2 id="save-temporary-files">Save Temporary Files</h2>
+<p>If you want to edit the mesh, in the Geometry Nodes panel menu of the container, click <strong>Bioxel Nodes &gt; Extract from Container &gt; Extract Mesh</strong>, the addon will create a new mesh model object prefixed with the container name, and then you can perform the usual 3D operations, such as digitally sculpting, animating, exporting to 3D print format stl, etc.</p>
+<h2 id="deliver-blender-file">Deliver Blender File</h2>
 <p>The layers cache is stored in a temporary folder, while the addon's custom nodes are linked to the node library file in addon directory. Both of them are exist locally by default, and if you only deliver the Blender file to other devices, the file will not work properly because the resources are missing.</p>
 <p>Therefore, you need to save all temporary files before you deliver the Blender file. The procedure is simple:</p>
 <ol>
@@ -838,13 +928,13 @@
         
         
           
-          <a href="../support_format/" class="md-footer__link md-footer__link--next" aria-label="Next: Support Format">
+          <a href="../advanced_usage/" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced Usage">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Support Format
+                Advanced Usage
               </div>
             </div>
             <div class="md-footer__button md-icon">
