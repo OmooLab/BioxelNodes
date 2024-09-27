@@ -1,6 +1,6 @@
 from pathlib import Path
 
-VERSIONS = [{"label": "Latest", "node_version": (1, 0, 2)},
+VERSIONS = [{"label": "Latest", "node_version": (1, 0, 3)},
             {"label": "v0.3.x", "node_version": (0, 3, 3)},
             {"label": "v0.2.x", "node_version": (0, 2, 9)}]
 
@@ -165,7 +165,13 @@ MENU_ITEMS = [
                 'icon': 'PROP_CON',
                 'name': 'ReCenter',
                 'description': ''
-            }
+            },
+            {
+                'label': 'Extract Transform',
+                'icon': 'EMPTY_AXIS',
+                'name': 'ExtractTransform',
+                'description': ''
+            },
         ]
     },
     {

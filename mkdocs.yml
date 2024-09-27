@@ -11,10 +11,12 @@ nav:
   - Getting Started:
       - Installation: installation.md
       - Step by Step: step_by_step.md
+      - Advanced Usage: advanced_usage.md
       - Support Format: support_format.md
       - Improve Performance: improve_performance.md
-      - Advanced: advanced.md
       - Q & A: qa.md
+  - Tutorials:
+      - SARS-Cov-2: SARS-Cov-2.md
 
 theme:
   name: material
