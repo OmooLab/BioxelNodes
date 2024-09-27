@@ -2,9 +2,9 @@
 
 ## Download Data
 
-Here is the open data from [Visible Human Project (VHP)](https://www.nlm.nih.gov/research/visible/visible_human.html) for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to any location for later usage.
+Here is the open data from [Visible Human Project (VHP)](https://www.nlm.nih.gov/research/visible/visible_human.html) for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to a new directry for later usage.
 
-[VHP_M_CT_Head.zip](https://drive.google.com/file/d/1kcnEwwDj-5X4U8330G_FNfWFS8f-892R/view?usp=sharing)
+[VHP_M_CT_Head.zip](https://drive.google.com/file/d/1bBGpt5pQ0evr-0-f4KDNRnKPoUYj2bJ-/view?usp=drive_link)
 
 VHP original radiology data was shared in the proprietary format that predated DICOM, complicating its use. Now all data has been harmonized to standard DICOM and released in [NCI Imaging Data Commons (IDC)](https://portal.imaging.datacommons.cancer.gov/), you also can download data from IDC by yourself.
 
@@ -32,7 +32,7 @@ In the container's geometry nodes panel menu, click **Bioxel Nodes > Add a Slice
 
 The "Slicer" node is used to display the slices of the data, with an external object as the location of the slice plane. This step is not necessary for visualization, but it provides a quick way to preview the data in Blender for user perception. Next, let's turn the volumetric data into a renderable object.
 
-## Cutout the skull
+## Cutout the Skull
 
 Bone tends to have much higher CT values than soft tissue, so you can split bone and soft tissue by setting a threshold. In the Geometry Nodes panel menu of the container, click **Add > Bioxel Nodes > Component > Cutout by Threshold** to add a "Cutout" node and connect it between the "Fetch Layer" node and the "Output", and then set the "Threshold" parameter of the "Cutout by Threshold" node to 0.3 and turn on the "With Surface" option. Switch to viewport shading to "Render Preview". The node graph and the render result are shown below.
 
@@ -78,13 +78,9 @@ As shown below, you can connect "Slime Shader" node (Add > Bioxel Nodes > Surfac
 
 ![alt text](assets/step_by_step/image-7.png)
 
-If you want to edit the mesh, click **Bioxel Nodes > Extract from Container > Extract Surface** in the Geometry Nodes panel menu of the container. The addon will create a new object with Geometry Nodes, in which a "Fetch Surface" node to read the surface mesh. You can apply this geometry node to edit the mesh as usual. Or you can leave the geometry node in place and keep it connected to the original container in real time.
+If you want to edit the mesh, in the Geometry Nodes panel menu of the container, click **Bioxel Nodes > Extract from Container > Extract Mesh**, the addon will create a new mesh model object prefixed with the container name, and then you can perform the usual 3D operations, such as digitally sculpting, animating, exporting to 3D print format stl, etc.
 
-![alt text](assets/step_by_step/image-8.png)
-
-(To show it better, I made an X-axis offset to the newly created mesh, otherwise the container and the mesh are perfectly overlapping.)
-
-## Save Temporary Files
+## Deliver Blender File
 
 The layers cache is stored in a temporary folder, while the addon's custom nodes are linked to the node library file in addon directory. Both of them are exist locally by default, and if you only deliver the Blender file to other devices, the file will not work properly because the resources are missing.
 

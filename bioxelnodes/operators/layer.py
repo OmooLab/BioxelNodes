@@ -370,8 +370,6 @@ class FillOperator(OutputLayerOperator):
     def invoke(self, context, event):
         layer_obj = get_selected_layer(context)
         if layer_obj:
-            scalar_min = get_layer_prop_value(layer_obj, "min")
-            self.fill_value = min(scalar_min, 0)
             name = get_layer_label(layer_obj)
             context.window_manager.invoke_props_dialog(self,
                                                        title=f"Fill {name}")

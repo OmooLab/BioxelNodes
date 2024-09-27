@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bioxelnodes"
-version = "1.0.2"
+version = "1.0.3"
 description = ""
 authors = ["Ma Nan <icrdr2010@outlook.com>"]
 license = "MIT"

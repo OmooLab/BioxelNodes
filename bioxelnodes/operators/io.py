@@ -96,8 +96,8 @@ class ImportAsLabel(bpy.types.Operator, ImportVolumetricData):
 
 class ImportAsColor(bpy.types.Operator, ImportVolumetricData):
     bl_idname = "bioxelnodes.import_as_color"
-    bl_label = "Import as Label"
-    bl_description = "Import Volumetric Data to Container as Label"
+    bl_label = "Import as Color"
+    bl_description = "Import Volumetric Data to Container as Color"
     bl_icon = "EVENT_C"
     read_as = "COLOR"
 
@@ -505,7 +505,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
     label_count: bpy.props.IntProperty()  # type: ignore
 
     smooth: bpy.props.IntProperty(name="Smooth Size (Larger takes longer time)",
-                                  default=3)  # type: ignore
+                                  default=0)  # type: ignore
 
     read_as: bpy.props.EnumProperty(name="Read as",
                                     default="SCALAR",
@@ -624,7 +624,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                                                                   progress,
                                                                   progress_step)
                     label_data = data == np.full_like(data, i+1)
-                    label_data = label_data.astype(np.float32)
+                    # label_data = label_data.astype(np.float32)
                     try:
                         layer = Layer(data=label_data,
                                       name=name_i,
