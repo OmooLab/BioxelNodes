@@ -1,4 +1,4 @@
-# Q & A
+# FAQ
 
 ## Nothing in the scene when rendering?
 
