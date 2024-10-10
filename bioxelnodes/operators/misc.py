@@ -1,3 +1,4 @@
+import webbrowser
 import bpy
 from pathlib import Path
 import shutil
@@ -260,3 +261,16 @@ class RemoveAllMissingLayers(bpy.types.Operator, RemoveLayers):
                                               event,
                                               message=f"Are you sure to remove all **Missing** layers?")
         return {'RUNNING_MODAL'}
+
+
+class Help(bpy.types.Operator):
+    bl_idname = "bioxelnodes.help"
+    bl_label = "Need Help?"
+    bl_description = "Online Manual for Beginner"
+    bl_icon = "HELP"
+
+    def execute(self, context):
+        webbrowser.open(
+            'https://omoolab.github.io/BioxelNodes/latest/', new=2)
+
+        return {'FINISHED'}
