@@ -146,7 +146,7 @@ class RenderSettingPreset(bpy.types.Operator):
     def execute(self, context):
         if self.preset == "performance":
             # EEVEE
-            bpy.context.scene.eevee.use_taa_reprojection = False
+            # bpy.context.scene.eevee.use_taa_reprojection = False
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 32
             bpy.context.scene.eevee.volumetric_samples = 64
@@ -162,7 +162,7 @@ class RenderSettingPreset(bpy.types.Operator):
 
         elif self.preset == "balance":
             # EEVEE
-            bpy.context.scene.eevee.use_taa_reprojection = False
+            # bpy.context.scene.eevee.use_taa_reprojection = False
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 64
             bpy.context.scene.eevee.volumetric_samples = 128
@@ -178,7 +178,7 @@ class RenderSettingPreset(bpy.types.Operator):
 
         elif self.preset == "quality":
             # EEVEE
-            bpy.context.scene.eevee.use_taa_reprojection = False
+            # bpy.context.scene.eevee.use_taa_reprojection = False
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 128
             bpy.context.scene.eevee.volumetric_samples = 256
@@ -202,7 +202,7 @@ class SliceViewer(bpy.types.Operator):
     bl_icon = "FILE_VOLUME"
 
     def execute(self, context):
-        bpy.context.scene.eevee.use_taa_reprojection = False
+        # bpy.context.scene.eevee.use_taa_reprojection = False
         bpy.context.scene.eevee.volumetric_tile_size = '2'
         bpy.context.scene.eevee.volumetric_shadow_samples = 128
         bpy.context.scene.eevee.volumetric_samples = 128
