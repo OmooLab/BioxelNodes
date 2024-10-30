@@ -1,6 +1,6 @@
 from pathlib import Path
 
-VERSIONS = [{"label": "Latest", "node_version": (1, 0, 5)},
+VERSIONS = [{"label": "Latest", "node_version": (1, 0, 6)},
             {"label": "v0.3.x", "node_version": (0, 3, 3)},
             {"label": "v0.2.x", "node_version": (0, 2, 9)}]
 

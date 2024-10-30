@@ -19,7 +19,7 @@ from .operators.container import (AddLocator, AddSlicer, ContainerProps,
                                   ExtractNodeMesh, ExtractNodeBboxWire, ExtractNodeShapeWire)
 
 from .operators.io import (ImportAsLabel, ImportAsScalar, ImportAsColor)
-from .operators.misc import (CleanTemp, Help,
+from .operators.misc import (AddEeveeEnv, CleanTemp, Help,
                              ReLinkNodeLib, RemoveAllMissingLayers,
                              RenderSettingPreset, SaveAllLayersCache,
                              SaveNodeLib, SliceViewer)
@@ -212,6 +212,7 @@ class BioxelNodesTopbarMenu(bpy.types.Menu):
         layout.menu(DangerZoneMenu.bl_idname)
 
         layout.separator()
+        layout.operator(AddEeveeEnv.bl_idname)
         layout.menu(RenderSettingMenu.bl_idname)
 
         layout.separator()
