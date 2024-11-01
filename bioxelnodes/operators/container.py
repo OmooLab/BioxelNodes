@@ -541,6 +541,7 @@ class ContainerProps(bpy.types.Operator):
     bl_label = "Change Container Properties"
     bl_description = "Change current ontainer properties"
     bl_icon = "FILE_TICK"
+    bl_options = {'UNDO'}
 
     scene_scale: bpy.props.FloatProperty(name="Scene Scale",
                                          soft_min=0.0001, soft_max=10.0,

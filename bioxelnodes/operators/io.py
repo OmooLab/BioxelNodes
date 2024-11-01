@@ -664,6 +664,9 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
                 else:
                     data = data.astype(np.float32)
 
+                # Gamma Correct
+                # data = data ** 2.2
+                                           
                 name = self.layer_name or "Color"
                 if data.shape[4] == 1:
                     data = np.repeat(data, repeats=3, axis=4)
