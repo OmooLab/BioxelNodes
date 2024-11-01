@@ -1,6 +1,6 @@
 from pathlib import Path
 
-VERSIONS = [{"label": "Latest", "node_version": (1, 0, 6)},
+VERSIONS = [{"label": "Latest", "node_version": (1, 0, 7)},
             {"label": "v0.3.x", "node_version": (0, 3, 3)},
             {"label": "v0.2.x", "node_version": (0, 2, 9)}]
 
@@ -8,7 +8,7 @@ NODE_LIB_DIRPATH = Path(Path(__file__).parent,
                         "assets/Nodes").resolve()
 
 LATEST_NODE_LIB_PATH = lib_path = Path(NODE_LIB_DIRPATH,
-                                  "BioxelNodes_latest.blend").resolve()
+                                       "BioxelNodes_latest.blend").resolve()
 
 COMPONENT_OUTPUT_NODES = [
     "CutoutByThreshold",
@@ -164,6 +164,12 @@ MENU_ITEMS = [
                 'label': 'ReCenter',
                 'icon': 'PROP_CON',
                 'name': 'ReCenter',
+                'description': ''
+            },
+            {
+                'label': 'Copy Transform',
+                'icon': 'EMPTY_AXIS',
+                'name': 'CopyTransform',
                 'description': ''
             },
             {

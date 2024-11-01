@@ -207,15 +207,24 @@ class SliceViewer(bpy.types.Operator):
         bpy.context.scene.eevee.volumetric_shadow_samples = 128
         bpy.context.scene.eevee.volumetric_samples = 128
         bpy.context.scene.eevee.volumetric_ray_depth = 1
+        
+        bpy.context.scene.eevee.use_shadows = False
         bpy.context.scene.eevee.use_volumetric_shadows = False
 
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                area.spaces[0].shading.type = 'MATERIAL'
-                area.spaces[0].shading.studio_light = 'studio.exr'
-                area.spaces[0].shading.studiolight_intensity = 2.5
-                area.spaces[0].shading.use_scene_lights = False
-                area.spaces[0].shading.use_scene_world = False
+        view_3d = None
+        if context.area.type == 'VIEW_3D':
+            view_3d = context.area
+        else:
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    view_3d = area
+                    break
+        if view_3d:
+            view_3d.spaces[0].shading.type = 'MATERIAL'
+            view_3d.spaces[0].shading.studio_light = 'studio.exr'
+            view_3d.spaces[0].shading.studiolight_intensity = 1.5
+            view_3d.spaces[0].shading.use_scene_lights = False
+            view_3d.spaces[0].shading.use_scene_world = False
 
         return {'FINISHED'}
 
@@ -282,29 +291,35 @@ class AddEeveeEnv(bpy.types.Operator):
     bl_description = "To make volume shadow less dark"
 
     def execute(self, context):
-        bpy.ops.object.light_add(
-            type='POINT', align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-        light_obj = bpy.context.active_object
-        light_obj.name = "EeveeEnv"
-        light_obj.data.shadow_soft_size = 100
-        light_obj.data.energy = 1e+06
-        light_obj.data.color = (0.1, 0.1, 0.1)
-        light_obj.data.use_shadow = False
-        light_obj.data.diffuse_factor = 0
-        light_obj.data.specular_factor = 0
-        light_obj.data.transmission_factor = 0
 
-        light_obj.hide_select = True
-        light_obj.lock_location[0] = True
-        light_obj.lock_location[1] = True
-        light_obj.lock_location[2] = True
-        light_obj.lock_rotation[0] = True
-        light_obj.lock_rotation[1] = True
-        light_obj.lock_rotation[2] = True
-        light_obj.lock_scale[0] = True
-        light_obj.lock_scale[1] = True
-        light_obj.lock_scale[2] = True
+        bpy.ops.wm.append(
+            directory=f"{str(LATEST_NODE_LIB_PATH)}/Object",
+            filename="EeveeEnv"
+        )
+        # bpy.ops.object.light_add(
+        #     type='POINT', align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        # light_obj = bpy.context.active_object
+        # light_obj.name = "EeveeEnv"
+        # light_obj.data.shadow_soft_size = 100
+        # light_obj.data.energy = 1e+06
+        # light_obj.data.color = (0.1, 0.1, 0.1)
+        # light_obj.data.use_shadow = False
+        # light_obj.data.diffuse_factor = 0
+        # light_obj.data.specular_factor = 0
+        # light_obj.data.transmission_factor = 0
 
+        # light_obj.hide_select = True
+        # light_obj.lock_location[0] = True
+        # light_obj.lock_location[1] = True
+        # light_obj.lock_location[2] = True
+        # light_obj.lock_rotation[0] = True
+        # light_obj.lock_rotation[1] = True
+        # light_obj.lock_rotation[2] = True
+        # light_obj.lock_scale[0] = True
+        # light_obj.lock_scale[1] = True
+        # light_obj.lock_scale[2] = True
+
+        bpy.context.scene.eevee.use_shadows = True
         bpy.context.scene.eevee.use_volumetric_shadows = True
 
         return {'FINISHED'}
