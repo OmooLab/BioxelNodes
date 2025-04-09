@@ -41,8 +41,8 @@ def run_python(args: str):
 
 
 def build_extension(platform: Platform, python_version="3.11") -> None:
-    wheel_dirpath = Path("./bioxelnodes/wheels")
-    toml_filepath = Path("bioxelnodes/blender_manifest.toml")
+    wheel_dirpath = Path("./src/bioxelnodes/wheels")
+    toml_filepath = Path("./src/bioxelnodes/blender_manifest.toml")
     scipy_ndimage_dirpath = Path("./scipy_ndimage", platform.blender_tag)
 
     # download required_packages
@@ -60,7 +60,7 @@ def build_extension(platform: Platform, python_version="3.11") -> None:
                           f.name.replace("universal2", "arm64")))
 
     for ndimage_filepath in scipy_ndimage_dirpath.iterdir():
-        to_filepath = Path("./bioxelnodes/bioxel/scipy", ndimage_filepath.name)
+        to_filepath = Path("./src/bioxelnodes/bioxel/scipy", ndimage_filepath.name)
         shutil.copy(ndimage_filepath, to_filepath)
 
     # Load the TOML file
@@ -70,12 +70,6 @@ def build_extension(platform: Platform, python_version="3.11") -> None:
     manifest["platforms"] = [platform.blender_tag]
     manifest["wheels"] = [f"./wheels/{f.name}"
                           for f in wheel_dirpath.glob('*.whl')]
-
-    # build = tomlkit.table(True)
-    # generated = tomlkit.table()
-    # generated["platforms"] = [platform.blender_tag]
-    # generated["wheels"] = [f"./wheels/{f.name}"
-    #                        for f in wheel_dirpath.glob('*.whl')]
 
     # build.append('generated', generated)
     # manifest.append('build', build)

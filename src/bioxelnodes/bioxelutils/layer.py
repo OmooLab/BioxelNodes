@@ -3,7 +3,11 @@ import re
 import bpy
 import numpy as np
 
-import pyopenvdb as vdb
+try:
+    import pyopenvdb as vdb
+except:
+    import openvdb as vdb
+    
 from pathlib import Path
 from uuid import uuid4
 
