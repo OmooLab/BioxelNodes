@@ -38,23 +38,18 @@ def register():
 
 def unregister():
     for cls in reversed(ordered_classes):
-        try:
-            bpy.utils.unregister_class(cls)
-        except Exception as e:
-            print(f"Fail to unregister {cls}, skiped")
+        bpy.utils.unregister_class(cls)
 
     for module in modules:
-        try:
-            if module.__name__ == __name__:
-                continue
-            if hasattr(module, "unregister"):
-                module.unregister()
-        except Exception as e:
-            print(f"Fail to unregister {module}, skiped")
+        if module.__name__ == __name__:
+            continue
+        if hasattr(module, "unregister"):
+            module.unregister()
 
 
 # Import modules
 #################################################
+
 
 def get_all_submodules(directory):
     return list(iter_submodules(directory, __package__))
@@ -78,19 +73,18 @@ def iter_submodule_names(path, root=""):
 # Find classes to register
 #################################################
 
+
 def get_ordered_classes_to_register(modules):
     return toposort(get_register_deps_dict(modules))
 
 
 def get_register_deps_dict(modules):
     my_classes = set(iter_my_classes(modules))
-    my_classes_by_idname = {
-        cls.bl_idname: cls for cls in my_classes if hasattr(cls, "bl_idname")}
+    my_classes_by_idname = {cls.bl_idname: cls for cls in my_classes if hasattr(cls, "bl_idname")}
 
     deps_dict = {}
     for cls in my_classes:
-        deps_dict[cls] = set(iter_my_register_deps(
-            cls, my_classes, my_classes_by_idname))
+        deps_dict[cls] = set(iter_my_register_deps(cls, my_classes, my_classes_by_idname))
     return deps_dict
 
 
@@ -119,7 +113,7 @@ def get_dependency_from_annotation(value):
 
 
 def iter_my_deps_from_parent_id(cls, my_classes_by_idname):
-    if bpy.types.Panel in cls.__bases__:
+    if issubclass(cls, bpy.types.Panel):
         parent_idname = getattr(cls, "bl_parent_id", None)
         if parent_idname is not None:
             parent_cls = my_classes_by_idname.get(parent_idname)
@@ -130,7 +124,7 @@ def iter_my_deps_from_parent_id(cls, my_classes_by_idname):
 def iter_my_classes(modules):
     base_types = get_register_base_types()
     for cls in get_classes_in_modules(modules):
-        if any(base in base_types for base in cls.__bases__):
+        if any(issubclass(cls, base) for base in base_types):
             if not getattr(cls, "is_registered", False):
                 yield cls
 
@@ -150,29 +144,44 @@ def iter_classes_in_module(module):
 
 
 def get_register_base_types():
-    return set(getattr(bpy.types, name) for name in [
-        "Panel", "Operator", "PropertyGroup", "FileHandler",
-        "AddonPreferences", "Header", "Menu",
-        "Node", "NodeSocket", "NodeTree",
-        "UIList", "RenderEngine",
-        "Gizmo", "GizmoGroup",
-    ] if hasattr(bpy.types, name))
+    return set(
+        getattr(bpy.types, name)
+        for name in [
+            "Panel",
+            "Operator",
+            "PropertyGroup",
+            "AddonPreferences",
+            "Header",
+            "Menu",
+            "Node",
+            "NodeSocket",
+            "NodeTree",
+            "UIList",
+            "RenderEngine",
+            "Gizmo",
+            "GizmoGroup",
+            "FileHandler"
+        ]
+    )
 
 
 # Find order to register to solve dependencies
 #################################################
+
 
 def toposort(deps_dict):
     sorted_list = []
     sorted_values = set()
     while len(deps_dict) > 0:
         unsorted = []
+        sorted_list_sub = []  # helper for additional sorting by bl_order - in panels
         for value, deps in deps_dict.items():
             if len(deps) == 0:
-                sorted_list.append(value)
+                sorted_list_sub.append(value)
                 sorted_values.add(value)
             else:
                 unsorted.append(value)
-        deps_dict = {value: deps_dict[value] -
-                     sorted_values for value in unsorted}
+        deps_dict = {value: deps_dict[value] - sorted_values for value in unsorted}
+        sorted_list_sub.sort(key=lambda cls: getattr(cls, "bl_order", 0))
+        sorted_list.extend(sorted_list_sub)
     return sorted_list
