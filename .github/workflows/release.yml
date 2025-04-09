@@ -1,31 +1,11 @@
-name: Upload Assets to Release
+name: Release Version
 
 on:
   push:
-    branches:
-      - "release/*"
+    tags:
+      - 'v*'
 
 jobs:
-  # draft_release:
-  #   name: Draft Release
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     upload_url: ${{ steps.draft_release.outputs.upload_url }}
-  #     version: ${{ steps.set_env.outputs.version }}
-  #   steps:
-  #     - name: Set Version Env
-  #       id: set_env
-  #       run: |
-  #         ref_name=${{ github.ref_name }}
-  #         echo "version=${ref_name#release/}" >> "$GITHUB_OUTPUT"
-  #     - name: Get release
-  #       id: draft_release
-  #       uses: cardinalby/git-get-release-action@1.2.4
-  #       with:
-  #         releaseName: Upload
-  #       env:
-  #         GITHUB_TOKEN: ${{ github.token }}
-
   draft_release:
     name: Draft Release
     permissions:
@@ -50,7 +30,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build_blender_add-on:
+  build_extension:
     name: Build Blender Extension
     needs: draft_release
     runs-on: ubuntu-latest
@@ -66,12 +46,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-      - name: Build Add-on
-        run: |
+      - name: Build Extension
+        run: | # build.py need tomlkit to edit blender_manifest.toml
           pip install tomlkit
           python build.py ${{ matrix.platform }}
-          zip -r package.zip bioxelnodes
-      - name: Upload Release Asset
+          zip -r package.zip src/bioxelnodes
+      - name: Upload Extension
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
