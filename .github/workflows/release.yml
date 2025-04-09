@@ -50,7 +50,7 @@ jobs:
         run: | # build.py need tomlkit to edit blender_manifest.toml
           pip install tomlkit
           python build.py ${{ matrix.platform }}
-          zip -r package.zip src/bioxelnodes/*
+          zip -rj package.zip src/bioxelnodes/
       - name: Upload Extension
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
