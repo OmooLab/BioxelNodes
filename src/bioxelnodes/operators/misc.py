@@ -154,7 +154,6 @@ class RenderSettingPreset(bpy.types.Operator):
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
             # Cycles
-            bpy.context.scene.cycles.shading_system = True
             bpy.context.scene.cycles.volume_bounces = 0
             bpy.context.scene.cycles.transparent_max_bounces = 4
             bpy.context.scene.cycles.volume_preview_step_rate = 4
@@ -170,7 +169,6 @@ class RenderSettingPreset(bpy.types.Operator):
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
             # Cycles
-            bpy.context.scene.cycles.shading_system = True
             bpy.context.scene.cycles.volume_bounces = 4
             bpy.context.scene.cycles.transparent_max_bounces = 8
             bpy.context.scene.cycles.volume_preview_step_rate = 1
@@ -186,7 +184,6 @@ class RenderSettingPreset(bpy.types.Operator):
             bpy.context.scene.eevee.use_volumetric_shadows = True
 
             # Cycles
-            bpy.context.scene.cycles.shading_system = True
             bpy.context.scene.cycles.volume_bounces = 8
             bpy.context.scene.cycles.transparent_max_bounces = 16
             bpy.context.scene.cycles.volume_preview_step_rate = 0.5
