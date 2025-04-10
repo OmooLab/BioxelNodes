@@ -510,6 +510,10 @@ class AddLocator(bpy.types.Operator):
 
         modifier = container_obj.modifiers[0]
         node_group = modifier.node_group
+        try:
+            selected_node = context.selected_nodes[0]
+        except:
+            selected_node = None
 
         parent_node = add_node_to_graph("TransformParent",
                                         node_group,
@@ -518,20 +522,37 @@ class AddLocator(bpy.types.Operator):
 
         parent_node.inputs[1].default_value = locator_obj
 
-        output_node = get_output_node(node_group)
-
-        if len(output_node.inputs[0].links) == 0:
-            node_group.links.new(parent_node.outputs[0],
-                                 output_node.inputs[0])
-            move_node_to_node(parent_node, output_node, (-300, 0))
+        if selected_node is None or len(selected_node.outputs) == 0:
+            output_node = get_output_node(node_group)
+            if len(output_node.inputs[0].links) == 0:
+                node_group.links.new(parent_node.outputs[0],
+                                     output_node.inputs[0])
+                move_node_to_node(parent_node, output_node, (-300, 0))
+            else:
+                pre_output_node = output_node.inputs[0].links[0].from_node
+                node_group.links.new(pre_output_node.outputs[0],
+                                     parent_node.inputs[0])
+                node_group.links.new(parent_node.outputs[0],
+                                     output_node.inputs[0])
+                move_node_between_nodes(parent_node,
+                                        [pre_output_node, output_node])
         else:
-            pre_output_node = output_node.inputs[0].links[0].from_node
-            node_group.links.new(pre_output_node.outputs[0],
-                                 parent_node.inputs[0])
-            node_group.links.new(parent_node.outputs[0],
-                                 output_node.inputs[0])
-            move_node_between_nodes(parent_node,
-                                    [pre_output_node, output_node])
+            try:
+                to_node = selected_node.outputs[0].links[0].to_node
+            except:
+                to_node = None
+
+            if to_node is None:
+                node_group.links.new(selected_node.outputs[0],
+                                     parent_node.inputs[0])
+                move_node_to_node(parent_node, selected_node, (300, 0))
+            else:
+                node_group.links.new(selected_node.outputs[0],
+                                     parent_node.inputs[0])
+                node_group.links.new(parent_node.outputs[0],
+                                     to_node.inputs[0])
+                move_node_between_nodes(parent_node,
+                                        [selected_node, to_node])
 
         return {'FINISHED'}
 
