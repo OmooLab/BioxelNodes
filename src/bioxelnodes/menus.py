@@ -419,7 +419,7 @@ node_menu = NodeMenu(
 
 def add():
     node_menu.register()
-    bpy.types.VIEW3D_HT_header.append(VIEW3D_TOPBAR)
+    # bpy.types.VIEW3D_HT_header.append(VIEW3D_TOPBAR)
     bpy.types.TOPBAR_MT_editor_menus.append(TOPBAR)
     bpy.types.NODE_PT_node_tree_properties.prepend(NODE_PROP)
     bpy.types.NODE_MT_editor_menus.append(NODE_HEAD)
@@ -427,7 +427,7 @@ def add():
 
 
 def remove():
-    bpy.types.VIEW3D_HT_header.remove(VIEW3D_TOPBAR)
+    # bpy.types.VIEW3D_HT_header.remove(VIEW3D_TOPBAR)
     bpy.types.TOPBAR_MT_editor_menus.remove(TOPBAR)
     bpy.types.NODE_PT_node_tree_properties.remove(NODE_PROP)
     bpy.types.NODE_MT_editor_menus.remove(NODE_HEAD)
