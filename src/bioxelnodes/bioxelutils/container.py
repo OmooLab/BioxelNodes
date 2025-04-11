@@ -164,4 +164,23 @@ def container_to_obj(container: Container,
                                container_obj=container_obj,
                                cache_dir=cache_dir)
 
+    try:
+        layer_node = get_nodes_by_type(
+            node_group, "BioxelNodes_FetchLayer")[0]
+        center_node = add_node_to_graph("ReCenter",
+                                        node_group,
+                                        use_link=get_use_link())
+
+        output_node = get_output_node(node_group)
+
+        node_group.links.new(layer_node.outputs[0],
+                             center_node.inputs[0])
+        node_group.links.new(center_node.outputs[0],
+                             output_node.inputs[0])
+
+        move_node_to_node(center_node, layer_node, (300, 0))
+        bpy.ops.bioxelnodes.add_slicer('EXEC_DEFAULT')
+    except:
+        pass
+
     return container_obj
