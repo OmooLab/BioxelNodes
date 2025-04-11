@@ -5,10 +5,12 @@ import threading
 import numpy as np
 from pathlib import Path
 
+
 from ..exceptions import CancelledByUser
 from ..props import BIOXELNODES_Series
+from ..bioxelutils.node import add_node_to_graph
 from ..bioxelutils.common import (get_all_layer_objs, get_container_obj,
-                                  get_layer_obj, is_incompatible)
+                                  get_layer_obj, get_nodes_by_type, get_output_node, is_incompatible, move_node_to_node)
 from ..bioxelutils.container import (Container,
                                      add_layers,
                                      container_to_obj)
@@ -16,7 +18,7 @@ from ..bioxel.layer import Layer
 from ..bioxel.parse import (DICOM_EXTS, SUPPORT_EXTS,
                             get_ext, parse_volumetric_data)
 
-from ..utils import (get_cache_dir,
+from ..utils import (get_cache_dir, get_use_link,
                      progress_update, progress_bar,
                      select_object)
 
@@ -666,7 +668,7 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
                 # Gamma Correct
                 # data = data ** 2.2
-                                           
+
                 name = self.layer_name or "Color"
                 if data.shape[4] == 1:
                     data = np.repeat(data, repeats=3, axis=4)
@@ -854,9 +856,46 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
 
         # Change render setting for better result
         if is_first_import:
-            bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
-                                                      preset="balance")
-            bpy.context.scene.render.engine = 'CYCLES'
+            try:
+
+                node_group = container_obj.modifiers[0].node_group
+                layer_node = get_nodes_by_type(
+                    node_group, "BioxelNodes_FetchLayer")[0]
+                center_node = add_node_to_graph("ReCenter",
+                                                node_group,
+                                                use_link=get_use_link())
+
+                output_node = get_output_node(node_group)
+
+                node_group.links.new(layer_node.outputs[0],
+                                     center_node.inputs[0])
+                node_group.links.new(center_node.outputs[0],
+                                     output_node.inputs[0])
+
+                move_node_to_node(center_node, layer_node, (300, 0))
+                bpy.ops.bioxelnodes.add_slicer('EXEC_DEFAULT')
+            except:
+                self.report({"WARNING"}, "Fail to create slicer.")
+
+            try:
+                bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
+                                                          preset="balance")
+                bpy.ops.bioxelnodes.add_eevee_env('EXEC_DEFAULT')
+                bpy.context.scene.eevee.use_taa_reprojection = False
+                bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+
+                view_3d = None
+                if context.area.type == 'VIEW_3D':
+                    view_3d = context.area
+                else:
+                    for area in context.screen.areas:
+                        if area.type == 'VIEW_3D':
+                            view_3d = area
+                            break
+                if view_3d:
+                    view_3d.spaces[0].shading.type = 'RENDERED'
+            except:
+                self.report({"WARNING"}, "Fail to change render setting.")
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}
