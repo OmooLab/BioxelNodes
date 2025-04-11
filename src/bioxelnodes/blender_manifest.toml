@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bioxelnodes"
-version = "1.0.8"
+version = "1.0.9"
 name = "Bioxel Nodes"
 tagline = "For scientific volumetric data visualization in Blender"
 maintainer = "Ma Nan <icrdr2010@outlook.com>"

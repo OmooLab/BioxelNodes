@@ -296,28 +296,6 @@ class AddEeveeEnv(bpy.types.Operator):
             directory=f"{str(LATEST_NODE_LIB_PATH)}/Object",
             filename="EeveeEnv"
         )
-        # bpy.ops.object.light_add(
-        #     type='POINT', align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-        # light_obj = bpy.context.active_object
-        # light_obj.name = "EeveeEnv"
-        # light_obj.data.shadow_soft_size = 100
-        # light_obj.data.energy = 1e+06
-        # light_obj.data.color = (0.1, 0.1, 0.1)
-        # light_obj.data.use_shadow = False
-        # light_obj.data.diffuse_factor = 0
-        # light_obj.data.specular_factor = 0
-        # light_obj.data.transmission_factor = 0
-
-        # light_obj.hide_select = True
-        # light_obj.lock_location[0] = True
-        # light_obj.lock_location[1] = True
-        # light_obj.lock_location[2] = True
-        # light_obj.lock_rotation[0] = True
-        # light_obj.lock_rotation[1] = True
-        # light_obj.lock_rotation[2] = True
-        # light_obj.lock_scale[0] = True
-        # light_obj.lock_scale[1] = True
-        # light_obj.lock_scale[2] = True
 
         bpy.context.scene.eevee.use_shadows = True
         bpy.context.scene.eevee.use_volumetric_shadows = True

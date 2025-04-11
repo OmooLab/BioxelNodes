@@ -95,7 +95,7 @@ def add_layers(layers: list[Layer],
         if len(output_node.inputs[0].links) == 0:
             node_group.links.new(fetch_node.outputs[0],
                                  output_node.inputs[0])
-            move_node_to_node(fetch_node, output_node, (-600, 0))
+            move_node_to_node(fetch_node, output_node, (-900, 0))
         else:
             move_node_to_node(fetch_node, output_node, (0, -100 * (i+1)))
 
