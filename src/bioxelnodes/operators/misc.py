@@ -147,6 +147,7 @@ class RenderSettingPreset(bpy.types.Operator):
         if self.preset == "performance":
             # EEVEE
             # bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.use_shadow_jitter_viewport = True
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 32
             bpy.context.scene.eevee.volumetric_samples = 64
@@ -162,6 +163,7 @@ class RenderSettingPreset(bpy.types.Operator):
         elif self.preset == "balance":
             # EEVEE
             # bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.use_shadow_jitter_viewport = True
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 64
             bpy.context.scene.eevee.volumetric_samples = 128
@@ -177,6 +179,7 @@ class RenderSettingPreset(bpy.types.Operator):
         elif self.preset == "quality":
             # EEVEE
             # bpy.context.scene.eevee.use_taa_reprojection = False
+            bpy.context.scene.eevee.use_shadow_jitter_viewport = True
             bpy.context.scene.eevee.volumetric_tile_size = '2'
             bpy.context.scene.eevee.volumetric_shadow_samples = 128
             bpy.context.scene.eevee.volumetric_samples = 256

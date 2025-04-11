@@ -857,7 +857,6 @@ class ImportVolumetricDataDialog(bpy.types.Operator):
             bpy.ops.bioxelnodes.render_setting_preset('EXEC_DEFAULT',
                                                       preset="balance")
             bpy.context.scene.render.engine = 'CYCLES'
-            bpy.ops.bioxelnodes.slice_viewer('EXEC_DEFAULT')
 
         self.report({"INFO"}, "Successfully Imported")
         return {'FINISHED'}
