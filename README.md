@@ -13,50 +13,33 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 
 ![cover](https://omoolab.github.io/BioxelNodes/latest/assets/cover.png)
 
+## Features
+
 -   Realistic rendering result, also support EEVEE NEXT.
--   Support multiple formats.
+-   Support many formats：.dcm, .jpg, .tif, .nii, .nrrd, .ome, .mrc...
 -   Support 4D volumetric data.
--   All kinds of cutters.
+-   Many kinds of cutters.
 -   Simple and powerful nodes.
 -   Based on blender natively, can work without addon.
+
+| ![4D](https://omoolab.github.io/BioxelNodes/latest/assets/4d-time.gif) | ![EEVEE](https://omoolab.github.io/BioxelNodes/latest/assets/eevee.gif) |
+| :--------------------------------------------------------------------: | :---------------------------------------------------------------------: |
+|                       Support 4D volumetric data                       |                       Real-time render with eevee                       |
 
 **Read the [getting started](https://omoolab.github.io/BioxelNodes/latest/installation) to begin your journey into visualizing volumetric data!**
 
 Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any problems with this add-on.
 
-## Support Multiple Formats
+## Citation
 
-| Format | EXT                                      |
-| ------ | ---------------------------------------- |
-| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           |
-| BMP    | .bmp, .BMP                               |
-| JPEG   | .jpg, .JPG, .jpeg, .JPEG                 |
-| PNG    | .png, .PNG                               |
-| TIFF   | .tif, .TIF, .tiff, .TIFF                 |
-| Nifti  | .nia, .nii, .nii.gz, .hdr, .img, .img.gz |
-| Nrrd   | .nrrd, .nhdr                             |
-| HDF5   | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 |
-| OME    | .ome.tiff, .ome.tif                      |
-| MRC    | .mrc, .mrc.gz, .map, .map.gz             |
+If you want to cite this work, you can cite it from Zenodo:
 
-## Support 4D volumetric data
-
-![4d](https://omoolab.github.io/BioxelNodes/latest/assets/4d-time.gif)
-
-🥰 4D volumetric data can also be imported into Blender.
-
-## Support EEVEE NEXT
-
-![eevee](https://omoolab.github.io/BioxelNodes/latest/assets/eevee.gif)
-
-👍 EEVEE NEXT is absolutely AWESOME! Bioxel Nodes is fully support EEVEE NEXT now! However, there are some limitations:
-
-1. Only one cutter supported.
-2. EEVEE result is not that great as Cycles does.
+[![DOI](https://zenodo.org/badge/786623459.svg)](https://zenodo.org/badge/latestdoi/786623459)
 
 ## Known Limitations
 
--   Only works with Cycles CPU , Cycles GPU (OptiX), EEVEE
+-   Only one cutter supported in EEVEE render
+-   Shader fail to work when convert to mesh.
 -   Section surface cannot be generated when convert to mesh (will be supported soon)
 
 ## Roadmap
