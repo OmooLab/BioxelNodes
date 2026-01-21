@@ -80,11 +80,13 @@ def get_ordered_classes_to_register(modules):
 
 def get_register_deps_dict(modules):
     my_classes = set(iter_my_classes(modules))
-    my_classes_by_idname = {cls.bl_idname: cls for cls in my_classes if hasattr(cls, "bl_idname")}
+    my_classes_by_idname = {
+        cls.bl_idname: cls for cls in my_classes if hasattr(cls, "bl_idname")}
 
     deps_dict = {}
     for cls in my_classes:
-        deps_dict[cls] = set(iter_my_register_deps(cls, my_classes, my_classes_by_idname))
+        deps_dict[cls] = set(iter_my_register_deps(
+            cls, my_classes, my_classes_by_idname))
     return deps_dict
 
 
@@ -181,7 +183,8 @@ def toposort(deps_dict):
                 sorted_values.add(value)
             else:
                 unsorted.append(value)
-        deps_dict = {value: deps_dict[value] - sorted_values for value in unsorted}
+        deps_dict = {value: deps_dict[value] -
+                     sorted_values for value in unsorted}
         sorted_list_sub.sort(key=lambda cls: getattr(cls, "bl_order", 0))
         sorted_list.extend(sorted_list_sub)
     return sorted_list

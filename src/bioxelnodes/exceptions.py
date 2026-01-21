@@ -1,22 +1,6 @@
-class CancelledByUser(Exception):
-    def __init__(self):
-        message = 'Cancelled by user'
-        super().__init__(message)
-
-
-class NoContent(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-
-class NoFound(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-
-class Incompatible(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
+# This file is kept for backward compatibility
+# Custom exceptions have been replaced with built-in exceptions:
+# CancelledByUser -> CancelledError
+# NoContent -> ValueError
+# NoFound -> LookupError
+# Incompatible -> ValueError

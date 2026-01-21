@@ -17,7 +17,9 @@ required_packages = ["SimpleITK==2.3.1",
                      "mrcfile==1.5.1",
                      "h5py==3.11.0",
                      "transforms3d==0.4.2",
-                     "tifffile==2024.7.24"]
+                     "tifffile==2024.7.24",
+                     "matplotlib==3.10.7",
+                     "pillow==11.2.1"]
 
 
 platforms = {"windows-x64": Platform(pypi_suffix="win_amd64",

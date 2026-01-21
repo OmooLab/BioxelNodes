@@ -39,7 +39,6 @@ from . import _ni_support
 from . import _nd_image
 
 
-
 def _invalid_origin(origin, lenw):
     return (origin < -(lenw // 2)) or (origin > (lenw - 1) // 2)
 
@@ -71,7 +70,6 @@ def _complex_via_real_components(func, input, weights, output, cval, **kwargs):
         func(input, weights.real, output=output.real, cval=cval, **kwargs)
         func(input, weights.imag, output=output.imag, cval=cval, **kwargs)
     return output
-
 
 
 def correlate1d(input, weights, axis=-1, output=None, mode="reflect",
@@ -131,7 +129,6 @@ def correlate1d(input, weights, axis=-1, output=None, mode="reflect",
     _nd_image.correlate1d(input, weights, axis, output, mode, cval,
                           origin)
     return output
-
 
 
 def convolve1d(input, weights, axis=-1, output=None, mode="reflect",
@@ -205,7 +202,6 @@ def _gaussian_kernel1d(sigma, order, radius):
         return q * phi_x
 
 
-
 def gaussian_filter1d(input, sigma, axis=-1, order=0, output=None,
                       mode="reflect", cval=0.0, truncate=4.0, *, radius=None):
     """1-D Gaussian filter.
@@ -272,7 +268,6 @@ def gaussian_filter1d(input, sigma, axis=-1, order=0, output=None,
     # Since we are calling correlate, not convolve, revert the kernel
     weights = _gaussian_kernel1d(sigma, order, lw)[::-1]
     return correlate1d(input, weights, axis, output, mode, cval, 0)
-
 
 
 def gaussian_filter(input, sigma, order=0, output=None,
@@ -381,7 +376,6 @@ def gaussian_filter(input, sigma, order=0, output=None,
     return output
 
 
-
 def prewitt(input, axis=-1, output=None, mode="reflect", cval=0.0):
     """Calculate a Prewitt filter.
 
@@ -443,7 +437,6 @@ def prewitt(input, axis=-1, output=None, mode="reflect", cval=0.0):
     return output
 
 
-
 def sobel(input, axis=-1, output=None, mode="reflect", cval=0.0):
     """Calculate a Sobel filter.
 
@@ -501,7 +494,6 @@ def sobel(input, axis=-1, output=None, mode="reflect", cval=0.0):
     return output
 
 
-
 def generic_laplace(input, derivative2, output=None, mode="reflect",
                     cval=0.0,
                     extra_arguments=(),
@@ -549,7 +541,6 @@ def generic_laplace(input, derivative2, output=None, mode="reflect",
     return output
 
 
-
 def laplace(input, output=None, mode="reflect", cval=0.0):
     """N-D Laplace filter based on approximate second derivatives.
 
@@ -582,7 +573,6 @@ def laplace(input, output=None, mode="reflect", cval=0.0):
     def derivative2(input, axis, output, mode, cval):
         return correlate1d(input, [1, -2, 1], axis, output, mode, cval, 0)
     return generic_laplace(input, derivative2, output, mode, cval)
-
 
 
 def gaussian_laplace(input, sigma, output=None, mode="reflect",
@@ -637,7 +627,6 @@ def gaussian_laplace(input, sigma, output=None, mode="reflect",
                            extra_keywords=kwargs)
 
 
-
 def generic_gradient_magnitude(input, derivative, output=None,
                                mode="reflect", cval=0.0,
                                extra_arguments=(), extra_keywords=None):
@@ -688,7 +677,6 @@ def generic_gradient_magnitude(input, derivative, output=None,
     else:
         output[...] = input[...]
     return output
-
 
 
 def gaussian_gradient_magnitude(input, sigma, output=None,
@@ -792,7 +780,6 @@ def _correlate_or_convolve(input, weights, output, mode, cval, origin,
     return output
 
 
-
 def correlate(input, weights, output=None, mode='reflect', cval=0.0,
               origin=0):
     """
@@ -854,7 +841,6 @@ def correlate(input, weights, output=None, mode='reflect', cval=0.0,
     """
     return _correlate_or_convolve(input, weights, output, mode, cval,
                                   origin, False)
-
 
 
 def convolve(input, weights, output=None, mode='reflect', cval=0.0,
@@ -967,7 +953,6 @@ def convolve(input, weights, output=None, mode='reflect', cval=0.0,
                                   origin, True)
 
 
-
 def uniform_filter1d(input, size, axis=-1, output=None,
                      mode="reflect", cval=0.0, origin=0):
     """Calculate a 1-D uniform filter along the given axis.
@@ -1016,7 +1001,6 @@ def uniform_filter1d(input, size, axis=-1, output=None,
         _nd_image.uniform_filter1d(input.imag, size, axis, output.imag, mode,
                                    np.imag(cval), origin)
     return output
-
 
 
 def uniform_filter(input, size=3, output=None, mode="reflect",
@@ -1088,7 +1072,6 @@ def uniform_filter(input, size=3, output=None, mode="reflect",
     return output
 
 
-
 def minimum_filter1d(input, size, axis=-1, output=None,
                      mode="reflect", cval=0.0, origin=0):
     """Calculate a 1-D minimum filter along the given axis.
@@ -1143,7 +1126,6 @@ def minimum_filter1d(input, size, axis=-1, output=None,
     _nd_image.min_or_max_filter1d(input, size, axis, output, mode, cval,
                                   origin, 1)
     return output
-
 
 
 def maximum_filter1d(input, size, axis=-1, output=None,
@@ -1302,7 +1284,6 @@ def _min_or_max_filter(input, size, footprint, structure, output, mode,
     return output
 
 
-
 def minimum_filter(input, size=None, footprint=None, output=None,
                    mode="reflect", cval=0.0, origin=0, *, axes=None):
     """Calculate a multidimensional minimum filter.
@@ -1350,7 +1331,6 @@ def minimum_filter(input, size=None, footprint=None, output=None,
                               cval, origin, 1, axes)
 
 
-
 def maximum_filter(input, size=None, footprint=None, output=None,
                    mode="reflect", cval=0.0, origin=0, *, axes=None):
     """Calculate a multidimensional maximum filter.
@@ -1396,7 +1376,6 @@ def maximum_filter(input, size=None, footprint=None, output=None,
     """
     return _min_or_max_filter(input, size, footprint, None, output, mode,
                               cval, origin, 0, axes)
-
 
 
 def _rank_filter(input, rank, size=None, footprint=None, output=None,
@@ -1491,7 +1470,6 @@ def _rank_filter(input, rank, size=None, footprint=None, output=None,
         return output
 
 
-
 def rank_filter(input, rank, size=None, footprint=None, output=None,
                 mode="reflect", cval=0.0, origin=0, *, axes=None):
     """Calculate a multidimensional rank filter.
@@ -1533,7 +1511,6 @@ def rank_filter(input, rank, size=None, footprint=None, output=None,
     rank = operator.index(rank)
     return _rank_filter(input, rank, size, footprint, output, mode, cval,
                         origin, 'rank', axes=axes)
-
 
 
 def median_filter(input, size=None, footprint=None, output=None,
@@ -1586,7 +1563,6 @@ def median_filter(input, size=None, footprint=None, output=None,
                         origin, 'median', axes=axes)
 
 
-
 def percentile_filter(input, percentile, size=None, footprint=None,
                       output=None, mode="reflect", cval=0.0, origin=0, *,
                       axes=None):
@@ -1628,7 +1604,6 @@ def percentile_filter(input, percentile, size=None, footprint=None,
     """
     return _rank_filter(input, percentile, size, footprint, output, mode,
                         cval, origin, 'percentile', axes=axes)
-
 
 
 def generic_filter1d(input, function, filter_size, axis=-1,
@@ -1716,7 +1691,6 @@ def generic_filter1d(input, function, filter_size, axis=-1,
                                mode, cval, origin, extra_arguments,
                                extra_keywords)
     return output
-
 
 
 def generic_filter(input, function, size=None, footprint=None,

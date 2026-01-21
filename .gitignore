@@ -125,14 +125,14 @@ dmypy.json
 
 pythonlib*
 
-*.blend1
-
-blendcache_*
-
 *.ipynb
 
 .secrets
-
 .vdb
 
 !scipy_ndimage/*/**
+
+# Blender
+*.blend1
+blendcache_*
+*.cats.txt~
