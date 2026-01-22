@@ -24,6 +24,11 @@ uv sync
 uv run build.py <platform>  # platforms: windows-x64, linux-x64, macos-arm64, macos-x64
 ```
 
+### Unit Test
+```bash
+uv run pytest tests/
+```
+
 ### Code Quality
 ```bash
 # Format code (autopep8)

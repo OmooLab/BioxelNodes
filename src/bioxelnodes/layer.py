@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 
 import bpy
 import numpy as np
-import openvdb as vdb
+
+try:
+    import openvdb as vdb
+except ImportError:
+    vdb = None
 
 from .bioxel.layer import Layer
 from .utils import ndarray_to_png
@@ -57,12 +61,10 @@ def cache_layer_data(layer: Layer, cache_path: str):
                 grid.copyFromArray(data[f, :, :, :].copy().astype(np.float32))
             else:  # 颜色类型
                 grid = vdb.Vec3SGrid()
-                grid.copyFromArray(
-                    data[f, :, :, :, :].copy().astype(np.float32))
+                grid.copyFromArray(data[f, :, :, :, :].copy().astype(np.float32))
 
             # 仅设置transform，不存储metadata
-            grid.transform = vdb.createLinearTransform(
-                layer.affine.transpose())
+            grid.transform = vdb.createLinearTransform(layer.affine.transpose())
             grid.name = layer.kind
 
             # 保存序列帧VDB
@@ -272,6 +274,5 @@ def save_layers_to_json(layers: List[Layer], cache_dir: str) -> List[int]:
         added_ids.append(cache_id)
 
     set_layer_caches(existing_data)
-    print(
-        f"Successfully added {len(added_ids)} layers to the internal text datablock")
+    print(f"Successfully added {len(added_ids)} layers to the internal text datablock")
     return added_ids

@@ -16,13 +16,11 @@ class RenameLayer(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     cache_id: bpy.props.StringProperty(options={"HIDDEN"})  # type: ignore
-    new_name: bpy.props.StringProperty(
-        name="New name", default="")  # type: ignore
+    new_name: bpy.props.StringProperty(name="New name", default="")  # type: ignore
 
     def invoke(self, context, event):
         caches = get_layer_caches()
-        entry = next((c for c in caches if str(
-            c.get("id", "")) == self.cache_id), None)
+        entry = next((c for c in caches if str(c.get("id", "")) == self.cache_id), None)
         if entry:
             self.new_name = str(entry.get("name", ""))
         return context.window_manager.invoke_props_dialog(self)
@@ -127,8 +125,7 @@ class AddLayerNode(bpy.types.Operator):
             layer_node.inputs["Frame Count"].default_value = entry["frame_count"]
             layer_node.inputs["Animation"].default_value = True
         else:
-            hidden_sockets = hidden_sockets + \
-                ["Frame Count", "Frame Offset", "Cycle"]
+            hidden_sockets = hidden_sockets + ["Frame Count", "Frame Offset", "Cycle"]
 
         # 将特定属性隐藏到hidden面板
         for socket_name in hidden_sockets:
@@ -177,8 +174,7 @@ class RelocatePath(bpy.types.Operator):
             return {"CANCELLED"}
 
         caches = get_layer_caches()
-        entry = next((c for c in caches if str(
-            c.get("id", "")) == self.cache_id), None)
+        entry = next((c for c in caches if str(c.get("id", "")) == self.cache_id), None)
         if not entry:
             self.report({"ERROR"}, "Layer not found")
             return {"CANCELLED"}
@@ -228,8 +224,7 @@ class SaveLayer(bpy.types.Operator):
 
     def invoke(self, context, event):
         # Default to Blender file directory if possible
-        blend_dir = Path(
-            bpy.data.filepath).parent if bpy.data.filepath else Path.cwd()
+        blend_dir = Path(bpy.data.filepath).parent if bpy.data.filepath else Path.cwd()
         context.window_manager.fileselect_add(self)
         if not self.directory:
             self.directory = str(blend_dir)
@@ -244,8 +239,7 @@ class SaveLayer(bpy.types.Operator):
             return {"CANCELLED"}
 
         caches = get_layer_caches()
-        entry = next((c for c in caches if str(
-            c.get("id")) == self.cache_id), None)
+        entry = next((c for c in caches if str(c.get("id")) == self.cache_id), None)
         cache_id = entry.get("id")
 
         if not entry:

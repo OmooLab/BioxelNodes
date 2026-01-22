@@ -136,3 +136,5 @@ pythonlib*
 *.blend1
 blendcache_*
 *.cats.txt~
+
+tests/data

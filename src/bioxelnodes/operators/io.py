@@ -12,35 +12,18 @@ import transforms3d
 from ..props import BIOXEL_Series
 from ..utils import get_layer_obj, wrapped_label
 
-from ..bioxel.layer import Layer
-from ..bioxel.parse import DICOM_EXTS, SUPPORT_EXTS, get_ext, parse_volumetric_data
+from ..bioxel import (
+    DICOM_EXTS,
+    SUPPORT_EXTS,
+    read,
+    read_meta,
+    calc_layer_shape,
+    calc_layer_size,
+    get_ext,
+)
 
 from ..utils import get_cache_dir, progress_update, progress_bar
 from ..layer import get_layer_caches, save_layers_to_json
-
-
-def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
-    shape = (
-        int(orig_shape[0] / bioxel_size * orig_spacing[0]),
-        int(orig_shape[1] / bioxel_size * orig_spacing[1]),
-        int(orig_shape[2] / bioxel_size * orig_spacing[2]),
-    )
-
-    return (
-        shape[0] if shape[0] > 0 else 1,
-        shape[1] if shape[1] > 0 else 1,
-        shape[2] if shape[2] > 0 else 1,
-    )
-
-
-def get_layer_size(shape: tuple, bioxel_size: float, scale: float = 1.0):
-    size = (
-        float(shape[0] * bioxel_size * scale),
-        float(shape[1] * bioxel_size * scale),
-        float(shape[2] * bioxel_size * scale),
-    )
-
-    return size
 
 
 """
@@ -211,11 +194,7 @@ class ParseVolumetricData(bpy.types.Operator):
 
             try:
                 series_id = self.series_id if self.series_id != "empty" else ""
-                data, meta = parse_volumetric_data(
-                    data_file=self.filepath,
-                    series_id=series_id,
-                    progress_callback=progress_callback,
-                )
+                data = read_meta(self.filepath, series_id=series_id)
             except KeyboardInterrupt:
                 return
             except Exception as e:
@@ -225,8 +204,8 @@ class ParseVolumetricData(bpy.types.Operator):
             if cancel():
                 return
 
-            self.meta = meta
-            self.label_count = int(np.max(data))
+            self.meta = data.meta
+            self.label_count = int(np.max(data.data))
             self.dtype = data.dtype
 
         # Init cancel flag
@@ -334,8 +313,8 @@ class ParseVolumetricData(bpy.types.Operator):
 
         bioxel_size = max(min(*orig_spacing), 1.0)
 
-        layer_shape = get_layer_shape(bioxel_size, orig_shape, orig_spacing)
-        layer_size = get_layer_size(layer_shape, bioxel_size, 0.01)
+        layer_shape = calc_layer_shape(bioxel_size, orig_shape, orig_spacing)
+        layer_size = calc_layer_size(layer_shape, bioxel_size, 0.01)
         min_log10 = math.floor(math.log10(min(*layer_size)))
         max_log10 = math.floor(math.log10(max(*layer_size)))
 
@@ -547,33 +526,23 @@ class ImportDataDialog(bpy.types.Operator):
 
     def execute(self, context):
         def import_volumetric_data_func(self, context, cancel):
-            progress_update(context, 0.0, "Parsing Volumetirc Data...")
-
             def progress_callback(factor, text):
                 if cancel():
                     raise KeyboardInterrupt("Cancelled by user")
                 progress_update(context, factor * 0.2, text)
 
-            def progress_callback_factory(layer_name, progress, progress_step):
-                def progress_callback(frame, total):
-                    if cancel():
-                        raise KeyboardInterrupt("Cancelled by user")
-                    sub_progress_step = progress_step / total
-                    sub_progress = progress + frame * sub_progress_step
-                    progress_update(
-                        context,
-                        sub_progress,
-                        f"Processing {layer_name} Frame {frame+1}...",
-                    )
-                    print(f"Processing {layer_name} Frame {frame+1}...")
-
-                return progress_callback
-
             try:
-                data, meta = parse_volumetric_data(
-                    data_file=self.filepath,
-                    series_id=self.series_id,
-                    progress_callback=progress_callback,
+                data = read(self.filepath, self.series_id, progress_callback)
+
+                self.layers = data.to_layers(
+                    kind=self.read_as.lower(),
+                    layer_name=self.layer_name,
+                    bioxel_size=self.bioxel_size,
+                    smooth=self.smooth,
+                    remap=self.remap,
+                    split_channel=self.split_channel,
+                    frame_source=self.frame_source,
+                    progress_callback=lambda f, t: progress_callback(0.2 + f * 0.7, t),
                 )
 
             except KeyboardInterrupt:
@@ -585,203 +554,6 @@ class ImportDataDialog(bpy.types.Operator):
             if cancel():
                 return
 
-            shape = get_layer_shape(
-                self.bioxel_size, self.orig_shape, self.orig_spacing
-            )
-
-            mat_scale = transforms3d.zooms.zfdir2aff(self.bioxel_size)
-            affine = np.dot(meta["affine"], mat_scale)
-            kind = self.read_as.lower()
-
-            if cancel():
-                return
-
-            # change shape as sequence or not
-            if self.frame_source == "-1":
-                data = data[0:1, :, :, :, :]
-            elif self.frame_source == "0":
-                # frame as frame
-                pass
-            elif self.frame_source == "1":
-                # X as frame
-                data = data.transpose(1, 0, 2, 3, 4)
-                shape = (1, shape[1], shape[2])
-            elif self.frame_source == "2":
-                # Y as frame
-                data = data.transpose(2, 1, 0, 3, 4)
-                shape = (shape[0], 1, shape[2])
-            elif self.frame_source == "3":
-                # Z as frame
-                data = data.transpose(3, 1, 2, 0, 4)
-                shape = (shape[0], shape[1], 1)
-            else:
-                # channel as frame
-                data = data.transpose(4, 1, 2, 3, 0)
-
-            layers = []
-            if kind == "label":
-                name = self.layer_name or "Label"
-                data = data.astype(int)
-                label_count = int(np.max(data))
-                progress_step = 0.7 / label_count
-
-                for i in range(label_count):
-                    if cancel():
-                        return
-
-                    name_i = f"{name}_{i+1}"
-                    progress = 0.2 + i * progress_step
-                    progress_update(context, progress, f"Processing {name_i}...")
-
-                    progress_callback = progress_callback_factory(
-                        name_i, progress, progress_step
-                    )
-                    label_data = data == np.full_like(data, i + 1)
-                    # label_data = label_data.astype(np.float32)
-                    try:
-                        layer = Layer(data=label_data, name=name_i, kind=kind)
-
-                        layer.resize(
-                            shape=shape,
-                            smooth=self.smooth,
-                            progress_callback=progress_callback,
-                        )
-
-                        layer.affine = affine
-
-                        layers.append(layer)
-                    except KeyboardInterrupt:
-                        return
-                    except Exception as e:
-                        self.has_error = e
-                        return
-
-            if kind == "color":
-                if np.issubdtype(np.uint8, data.dtype):
-                    data = np.multiply(data, 1.0 / 256, dtype=np.float32)
-                elif data.dtype.kind in ["u", "i"]:
-                    # Convert the normalized array to float dtype
-                    data = data.astype(np.float32)
-
-                    min_val = data.min()
-                    max_val = data.max()
-                    # Avoid division by zero if all values are the same
-                    if max_val != min_val:
-                        # Normalize the array to the range (0,1)
-                        data = (data - min_val) / (max_val - min_val)
-                    else:
-                        # If all values are the same, the normalized array will be all zeros
-                        data = np.zeros_like(data, dtype=np.float32)
-
-                else:
-                    data = data.astype(np.float32)
-
-                # Gamma Correct
-                # data = data ** 2.2
-
-                name = self.layer_name or "Color"
-                if data.shape[4] == 1:
-                    data = np.repeat(data, repeats=3, axis=4)
-                elif data.shape[4] == 2:
-                    d_shape = list(data.shape)
-                    d_shape = d_shape[:4] + [1]
-                    zore = np.zeros(tuple(d_shape), dtype=np.float32)
-                    data = np.concatenate((data, zore), axis=-1)
-                elif data.shape[4] > 3:
-                    data = data[:, :, :, :, :3]
-
-                if cancel():
-                    return
-
-                progress_update(context, 0.2, f"Processing {name}...")
-                progress_callback = progress_callback_factory(name, 0.2, 0.7)
-
-                try:
-                    layer = Layer(data=data, name=name, kind=kind)
-
-                    layer.resize(shape=shape, progress_callback=progress_callback)
-
-                    layer.affine = affine
-
-                    layers.append(layer)
-                except KeyboardInterrupt:
-                    return
-                except Exception as e:
-                    self.has_error = e
-                    return
-
-            elif kind == "scalar":
-                name = self.layer_name or "Scalar"
-
-                if self.remap:
-                    # Convert the normalized array to float dtype
-                    data = data.astype(np.float32)
-
-                    min_val = data.min()
-                    max_val = data.max()
-                    # Avoid division by zero if all values are the same
-                    if max_val != min_val:
-                        # Normalize the array to the range (0,1)
-                        data = (data - min_val) / (max_val - min_val)
-                    else:
-                        # If all values are the same, the normalized array will be all zeros
-                        data = np.zeros_like(data, dtype=np.float32)
-
-                if self.split_channel:
-                    progress_step = 0.7 / self.channel_count
-
-                    for i in range(self.channel_count):
-                        if cancel():
-                            return
-
-                        name_i = f"{name}_{i+1}"
-                        progress = 0.2 + i * progress_step
-                        progress_update(context, progress, f"Processing {name_i}...")
-                        progress_callback = progress_callback_factory(
-                            name_i, progress, progress_step
-                        )
-                        try:
-                            layer = Layer(
-                                data=data[:, :, :, :, i : i + 1], name=name_i, kind=kind
-                            )
-
-                            layer.resize(
-                                shape=shape, progress_callback=progress_callback
-                            )
-
-                            layer.affine = affine
-
-                            layers.append(layer)
-                        except KeyboardInterrupt:
-                            return
-                        except Exception as e:
-                            self.has_error = e
-                            return
-                else:
-                    if cancel():
-                        return
-
-                    progress_update(context, 0.2, f"Processing {name}...")
-                    progress_callback = progress_callback_factory(name, 0.2, 0.7)
-
-                    try:
-                        layer = Layer(data=data, name=name, kind=kind)
-
-                        layer.resize(shape=shape, progress_callback=progress_callback)
-
-                        layer.affine = affine
-
-                        layers.append(layer)
-                    except KeyboardInterrupt:
-                        return
-                    except Exception as e:
-                        self.has_error = e
-                        return
-
-            if cancel():
-                return
-
-            self.layers = layers
             progress_update(context, 0.9, "Creating Layers...")
 
         self.is_cancelled = False
@@ -851,7 +623,7 @@ class ImportDataDialog(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
     def draw(self, context):
-        layer_shape = get_layer_shape(
+        layer_shape = calc_layer_shape(
             self.bioxel_size, self.orig_shape, self.orig_spacing
         )
 

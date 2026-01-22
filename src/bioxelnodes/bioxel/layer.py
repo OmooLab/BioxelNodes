@@ -1,6 +1,12 @@
 import copy
 import numpy as np
 
+# 条件导入 openvdb（只在 Blender 环境中存在）
+try:
+    import openvdb as vdb
+except ImportError:
+    vdb = None
+
 from . import scipy
 from . import scipy as ndi
 

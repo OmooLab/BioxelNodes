@@ -105,7 +105,7 @@ def add_bioxel_node(name: str):
         bpy.ops.object.modifier_add_node_group(
             asset_library_type="CUSTOM",
             asset_library_identifier="O Bioxel",
-            relative_asset_identifier=f"Nodes.blend\\NodeTree\\{name}",
+            relative_asset_identifier=f"BioxelNodes.blend\\NodeTree\\{name}",
         )
         bpy.ops.object.modifier_remove(modifier=name)
         try:
