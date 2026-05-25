@@ -115,7 +115,7 @@ class Help(bpy.types.Operator):
     bl_icon = "HELP"
 
     def execute(self, context):
-        webbrowser.open("https://omoolab.github.io/BioxelNodes/latest/", new=2)
+        webbrowser.open("https://docs.omoolab.xyz/bioxelnodes/latest/", new=2)
 
         return {"FINISHED"}
 

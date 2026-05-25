@@ -53,7 +53,7 @@ class BioxelPanelBase:
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_context = "geometry_node"
-    bl_category = "胞素（Bioxel）"
+    bl_category = "Bioxel Nodes"
     # try to make Bioxel panels order early (may be respected by Blender)
 
     @classmethod
@@ -63,7 +63,7 @@ class BioxelPanelBase:
 
 
 class HeaderPanel(bpy.types.Panel, BioxelPanelBase):
-    bl_label = "胞素（Bioxel）"
+    bl_label = "Bioxel Nodes"
     bl_idname = "BIOXEL_PT_header_panel"
     bl_order = 0
 
