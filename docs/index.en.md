@@ -1,5 +1,3 @@
-[中文文档](https://uj6xfhbzp0.feishu.cn/wiki/LPKEwjooSivxjskWHlCcQznjnNf?from=from_copylink)
-
 # Bioxel Nodes
 
 [![For Blender](https://img.shields.io/badge/Blender-orange?style=for-the-badge&logo=blender&logoColor=white&color=black)](https://blender.org/)
@@ -20,7 +18,7 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 -   Simple and powerful nodes.
 -   Based on blender natively, can work without addon.
 
-**Read the [getting started](https://omoolab.github.io/BioxelNodes/latest/installation) to begin your journey into visualizing volumetric data!**
+**Read the [getting started](https://docs.omoolab.xyz/bioxelnodes/latest/en/installation) to begin your journey into visualizing volumetric data!**
 
 Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any problems with this add-on.
 
