@@ -1,6 +1,3 @@
-# Scipy
-!scipy_ndimage/*/**
-
 # Tempary files
 temp
 sandbox.*
@@ -393,3 +390,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+
+# Scipy
+!scipy_ndimage/*/**
