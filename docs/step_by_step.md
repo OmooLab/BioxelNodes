@@ -1,97 +1,97 @@
-# Step by Step
+# 分步指南
 
-## Download Data
+## 下载数据
 
-Here is the open data from [Visible Human Project (VHP)](https://www.nlm.nih.gov/research/visible/visible_human.html) for you to learn how to use this addon. It is a CT scan image of a male head, download and unzip it to a new directry for later usage.
+这里提供来自 [Visible Human Project (VHP)](https://www.nlm.nih.gov/research/visible/visible_human.html) 的公开数据供您学习插件使用。这是一个男性头部的 CT 扫描图像，下载并解压到新文件夹中备用。
 
 [VHP_M_CT_Head.zip](https://drive.google.com/file/d/1bBGpt5pQ0evr-0-f4KDNRnKPoUYj2bJ-/view?usp=drive_link)
 
-VHP original radiology data was shared in the proprietary format that predated DICOM, complicating its use. Now all data has been harmonized to standard DICOM and released in [NCI Imaging Data Commons (IDC)](https://portal.imaging.datacommons.cancer.gov/), you also can download data from IDC by yourself.
+VHP 原始影像数据以 DICOM 前身专有格式共享，使用较为复杂。现在所有数据已统一为标准 DICOM 格式并发布在 [NCI Imaging Data Commons (IDC)](https://portal.imaging.datacommons.cancer.gov/) 上，您也可以自行从 IDC 下载数据。
 
-## Import Data
+## 导入数据
 
-In the top menu, click **Bioxel Nodes > Import Volumetric Data (Init) > as Scalar**, locate to the unzipped folder, select any DICOM file (don't select more than one, and don't select the folder either), and click **Import as Scalar**.
+点击顶部菜单 **Bioxel Nodes > Import Volumetric Data (Init) > as Scalar**，定位到解压后的文件夹，选择任意一个 DICOM 文件（不要选择多个，也不要选择文件夹），然后点击 **Import as Scalar**。
 
 ![alt text](assets/step_by_step/image.png)
 
-You can also choose to import data by dragging one DICOM file into the 3D viewport (some DICOM files don't have extension suffix and can't be dragged in).
+您也可以通过将一个 DICOM 文件拖入 3D 视图来导入数据（部分 DICOM 文件没有扩展名，无法拖入）。
 
-The process of reading the data may take a while, the bottom right corner of the Blender interface will show you the progress of the reading, and a dialog box will pop up when the reading is successful. Ignore all the options for now and just click OK, I will explain the purpose of these options later.
+读取数据可能需要一段时间，Blender 界面右下角会显示读取进度，读取成功后会弹出一个对话框。目前先忽略所有选项，直接点击确定，稍后我会解释这些选项的作用。
 
-The import process involves data conversion, so there is more waiting time, and the progress of the import is displayed in the lower right corner of the interface. After importing, the addon will create a new object, with a new geometry nodes that will serve as a "workbench" for manipulating the data, the new object is called the **Container**. The newly imported data is stored in the Container as a **Layer**, which is loaded into the Container's Geometry node via the "Fetch Layer" node (the red one), and be converted into a **Component** that can be rendered.
+导入过程涉及数据转换，因此需要等待更长时间，导入进度会显示在界面右下角。导入完成后，插件会创建一个新对象，其中包含一个新的几何节点，用于操作数据。这个新对象称为 **Container（容器）**。导入的数据作为 **Layer（图层）** 存储在容器中，通过 "Fetch Layer" 节点（红色）加载到容器的几何节点中，并转换为可渲染的 **Component（组件）**。
 
 ![alt text](assets/step_by_step/image-1.png)
 
-Next, let's preview the data in Blender.
+接下来，让我们在 Blender 中预览数据。
 
-In the container's geometry nodes panel menu, click **Bioxel Nodes > Add a Slicer**. The addon will insert a node named "Slice" between the "Fetch Layer" and the "Output" and create a new plane object named "Slicer". Click the "Slice Viewer" button in the upper right corner of the 3D viewport to enter the preview mode, then move and rotate the "Slicer" object. You will see a slice image of the data, which should be familiar to anyone who has used any DICOM viewing software.
+在容器的几何节点面板菜单中，点击 **Bioxel Nodes > Add a Slicer**。插件会插入一个名为 "Slice" 的节点，并创建一个新的平面对象 "Slicer"。点击 3D 视图右上角的 "Slice Viewer" 按钮进入预览模式，然后移动和旋转 "Slicer" 对象。您将看到数据的切片图像，任何使用过 DICOM 查看软件的人都会对此很熟悉。
 
 ![alt text](assets/step_by_step/image-2.png)
 
-(If the volume disappears when you click the "Slice Viewer" button, save the file and restart Blender, it should be fixed, or you can turn on the Cycles rendering to see the slicer plane as well. The issue is caused by EEVEE's failure of reloading the shaders.)
+（如果点击 "Slice Viewer" 按钮后体积消失，保存文件并重启 Blender 即可修复。您也可以打开 Cycles 渲染器来查看切片平面。这是因为 EEVEE 未能重新加载着色器导致的。）
 
-The "Slicer" node is used to display the slices of the data, with an external object as the location of the slice plane. This step is not necessary for visualization, but it provides a quick way to preview the data in Blender for user perception. Next, let's turn the volumetric data into a renderable object.
+"Slicer" 节点用于显示数据的切片，切片平面的位置由外部对象控制。这一步对于可视化并非必须，但它提供了一种在 Blender 中快速预览数据的方式。接下来，让我们将体数据转换为可渲染的对象。
 
-## Cutout the Skull
+## 提取颅骨
 
-Bone tends to have much higher CT values than soft tissue, so you can split bone and soft tissue by setting a threshold. In the Geometry Nodes panel menu of the container, click **Add > Bioxel Nodes > Component > Cutout by Threshold** to add a "Cutout" node and connect it between the "Fetch Layer" node and the "Output", and then set the "Threshold" parameter of the "Cutout by Threshold" node to 0.3 and turn on the "With Surface" option. Switch to viewport shading to "Render Preview". The node graph and the render result are shown below.
+骨骼的 CT 值通常比软组织高得多，因此可以通过设置阈值来分离骨骼和软组织。在容器的几何节点面板菜单中，点击 **Add > Bioxel Nodes > Component > Cutout by Threshold** 添加一个 "Cutout" 节点，并将其连接在 "Fetch Layer" 节点和 "Output" 之间。然后将 "Cutout by Threshold" 节点的 "Threshold" 参数设置为 0.3，并打开 "With Surface" 选项。切换视图着色为 "Render Preview"。节点图和渲染结果如下图所示。
 
 ![alt text](assets/step_by_step/image-3.png)
 
-If you want the render result to be consistent with the above image, you also need to change the default light object type from "Point" to "Area" to increase the brightness, and change the Look in Color Management to "High Contrast".
+如果希望渲染结果与上图一致，还需要将默认灯光类型从 "Point" 改为 "Area" 以提高亮度，并将颜色管理中的 Look 改为 "High Contrast"。
 
-You can understand the role of the "Threshold" parameter in shaping the output by changing it. If you feel very laggy while draging the parameter, you can temporarily turn off the "With Surface" option in the "Cutout" node. When you are satisfied, turn it on again. In addition, the volume rendering is very computationally intensive, which is also a major cause of the lag, so you can adjust the parameters in "Slice Viewer" mode first, and then do the Cycles rendering when you are satisfied.
+您可以通过改变 "Threshold" 参数来理解它在塑造输出中的作用。如果您拖动参数时感到非常卡顿，可以暂时关闭 "Cutout" 节点中的 "With Surface" 选项。满意后再重新打开。此外，体渲染计算量很大，这也是导致卡顿的主要原因，因此建议先在 "Slice Viewer" 模式下调整参数，满意后再进行 Cycles 渲染。
 
-You may consider using GPU for faster rendering, but please note that Bioxel Nodes only supports Optix GPUs due to its dependency on OSL (Open shader language), and the first time you turn on GPU rendering, you may need to wait for Blender to load the appropriate dependencies (the screen will get stuck), so please be patient.
+您可能考虑使用 GPU 来加快渲染速度，但请注意，由于 Bioxel Nodes 依赖 OSL（Open Shader Language），目前仅支持 Optix GPU。初次开启 GPU 渲染时，可能需要等待 Blender 加载相应的依赖项（屏幕会卡住），请耐心等待。
 
-Although the output component looks like a mesh object, it retains its internal information through its volume, so when you cut through the component, you should see an inhomogeneous cross-section made up of volume, rather than just an empty shell like any mesh object. Let's cut the skull to see its complex internal structure.
+虽然输出的组件看起来像网格对象，但它通过体数据保留了内部信息，因此当您切开组件时，会看到由体数据组成的不均匀截面，而不是像任何网格对象那样的空壳。让我们切开颅骨来观察其复杂的内部结构。
 
-## Cut and Color
+## 切割和着色
 
-In the container's geometry nodes panel menu, click **Bioxel Nodes > Add a Cutter > Plane Cutter**, the addon will insert a "Cut" node and a "Object Cutter" node. Also, it will create a new plane object named "Plane Cutter" to the scene, at this point you should be able to see that the skull has been cut through as expected.
+在容器的几何节点面板菜单中，点击 **Bioxel Nodes > Add a Cutter > Plane Cutter**，插件会插入一个 "Cut" 节点和一个 "Object Cutter" 节点。同时，它会创建一个新的平面对象 "Plane Cutter" 到场景中，此时您应该能看到颅骨已被切开。
 
-Just like the "Slicer" object, move and rotate the "Plane Cutter" and the position and direction of the cut will change accordingly. Please adjust the Cutter object to a vertical orientation so that it cuts the skull vertically, as shown below.
+与 "Slicer" 对象类似，移动和旋转 "Plane Cutter" 会改变切割的位置和方向。请将 Cutter 对象调整为垂直方向，使其垂直切开颅骨，如下图所示。
 
 ![alt text](assets/step_by_step/image-4.png)
 
-The CT value of the skull is inhomogeneous, which reflects the difference in substance density of the bone. We can enhance the display of this difference by coloring. In the Geometry Nodes panel menu of the container, click **Add > Bioxel Nodes > Propetry > Set Color by Ramp 5** to add the "Set Color" node and connect it after any node. Set the node's parameters "From Min" to 0.3 and "From Max" to 0.5, as shown below.
+颅骨的 CT 值不均匀，这反映了骨质密度的差异。我们可以通过着色来增强这种差异的显示。在容器的几何节点面板菜单中，点击 **Add > Bioxel Nodes > Property > Set Color by Ramp 5** 添加 "Set Color" 节点，并连接在任何节点之后。将节点的 "From Min" 设置为 0.3，"From Max" 设置为 0.5，如下图所示。
 
 ![alt text](assets/step_by_step/image-5.png)
 
-When rendering is turned on, you can clearly see that the calvaria and teeth are colored red, meaning that the bone in these areas is denser. You can try to adjust the parameters of the "Set Color" node to recognize their roles. If you feel laggy when draging the parameters, you can temporarily turn off "With Surface" and switch to "Slice Viewer" mode.
+开启渲染后，您可以清楚地看到顶骨和牙齿被染成红色，这意味着这些区域的骨骼密度更高。您可以尝试调整 "Set Color" 节点的参数来了解它们的作用。如果您拖动参数时感到卡顿，可以暂时关闭 "With Surface" 并切换到 "Slice Viewer" 模式。
 
-## Transformation
+## 变换
 
-You may find that the position of the skull is a bit off the origin, this is due to the fact that the addon keeps the position information from the original data record during the import process. If you need to change the position, do not move the container (object) directly as you would in 3D viewport; the addon provides dedicated "Transform" node to handle transformations.
+您可能会发现颅骨的位置有些偏离原点，这是因为插件在导入过程中保留了原始数据记录的位置信息。如果需要更改位置，请不要直接在 3D 视图中移动容器（如平常操作 3D 对象那样）；插件提供了专门的 "Transform" 节点来处理变换。
 
-In the Geometry Nodes panel menu of the container, click **Bioxel Nodes > Add a Locator**, the addon will insert the "Transform Parent" node and create a new empty object named "Locator". If you move, rotate, or scale the "Locator", the skull will Transform as well. If you also want the origin of the rotational transformation to be set at the geometric center of the skull, just add a "ReCenter" node (Add > Bioxel Nodes > Transform > ReCenter) in front of the "Transform Parent" node, as shown below.
+在容器的几何节点面板菜单中，点击 **Bioxel Nodes > Add a Locator**，插件会插入 "Transform Parent" 节点并创建一个新的空对象 "Locator"。如果您移动、旋转或缩放 "Locator"，颅骨也会随之变换。如果您希望旋转变换的原点设置在颅骨的几何中心，只需在 "Transform Parent" 节点之前添加一个 "ReCenter" 节点（Add > Bioxel Nodes > Transform > ReCenter），如下图所示。
 
 ![alt text](assets/step_by_step/image-6.png)
 
-Being used to moving objects directly in the 3D viewport, you may find it strange to have an extra step to transform component like this. This is in consideration of the fact that there may be multiple components involved in one container with different transform needs, as well as future development plans for resampling mechanism, which I'll explain in more detail later.
+习惯了直接在 3D 视图中移动对象，您可能会觉得多一步来变换组件有些奇怪。这样做是考虑到一个容器中可能涉及多个组件，它们有不同的变换需求，以及未来重采样机制的开发计划，我稍后会详细说明。
 
-## Surface Mesh
+## 表面网格
 
-A mesh, made up of vertexs and faces, is the "greatest common" in the 3D world. Therefore, in order to be compatible with other 3D workflow, the addon provides the "To Surface" node (Add > Bioxel Nodes > Component > ToSurface), which converts the component into a mesh. Note that the surface mesh is not editable in the container's geometry node, and can only be connected to "Transform" and "Shader" nodes.
+由顶点和面组成的网格是 3D 世界中的"最大公约数"。因此，为了与其他 3D 工作流程兼容，插件提供了 "To Surface" 节点（Add > Bioxel Nodes > Component > ToSurface），它将组件转换为网格。请注意，表面网格在容器的几何节点中不可编辑，只能连接到 "Transform" 和 "Shader" 节点。
 
-As shown below, you can connect "Slime Shader" node (Add > Bioxel Nodes > Surface > Slime Shader) after the "To Surface" node to give the surface a shader, or connect "Transform" nodes.
+如下图所示，您可以连接 "Slime Shader" 节点（Add > Bioxel Nodes > Surface > Slime Shader）在 "To Surface" 节点之后，为表面赋予着色器，也可以连接 "Transform" 节点。
 
 ![alt text](assets/step_by_step/image-7.png)
 
-If you want to edit the mesh, in the Geometry Nodes panel menu of the container, click **Bioxel Nodes > Extract from Container > Extract Mesh**, the addon will create a new mesh model object prefixed with the container name, and then you can perform the usual 3D operations, such as digitally sculpting, animating, exporting to 3D print format stl, etc.
+如果您想编辑网格，在容器的几何节点面板菜单中，点击 **Bioxel Nodes > Extract from Container > Extract Mesh**，插件会创建一个以容器名称为前缀的新网格模型对象，然后您可以执行常规的 3D 操作，如数字雕刻、动画、导出为 3D 打印格式 stl 等。
 
-## Deliver Blender File
+## 交付 Blender 文件
 
-The layers cache is stored in a temporary folder, while the addon's custom nodes are linked to the node library file in addon directory. Both of them are exist locally by default, and if you only deliver the Blender file to other devices, the file will not work properly because the resources are missing.
+图层缓存存储在临时文件夹中，插件的自定义节点链接到插件目录中的节点库文件。两者默认都存在于本地，如果您只将 Blender 文件交付给其他设备，文件将无法正常工作，因为资源缺失。
 
-Therefore, you need to save all temporary files before you deliver the Blender file. The procedure is simple:
+因此，在交付 Blender 文件之前，您需要保存所有临时文件。步骤如下：
 
-1. Save the Blender file.
-2. in the top menu, click **Bioxel Nodes > Save Node Library**, and set the relative path.
-3. in the top menu, click **Bioxel Nodes > Save All Layers Cache** and set the relative path.
+1. 保存 Blender 文件
+2. 点击顶部菜单 **Bioxel Nodes > Save Node Library**，设置相对路径
+3. 点击顶部菜单 **Bioxel Nodes > Save All Layers Cache**，设置相对路径
 
-Zip the Blender file together with the local node library file and the layer cache files (there may be more than one).
+将 Blender 文件与本地节点库文件和图层缓存文件（可能不止一个）一起打包。
 
 ![alt text](assets/step_by_step/image-9.png)
 
-🤗 If you can follow the documentation up to this point, you're already started!
+如果您能按照文档走到这一步，您已经入门了！

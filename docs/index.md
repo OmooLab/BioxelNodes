@@ -1,5 +1,3 @@
-[中文文档](https://uj6xfhbzp0.feishu.cn/wiki/LPKEwjooSivxjskWHlCcQznjnNf?from=from_copylink)
-
 # Bioxel Nodes
 
 [![For Blender](https://img.shields.io/badge/Blender-orange?style=for-the-badge&logo=blender&logoColor=white&color=black)](https://blender.org/)
@@ -9,58 +7,58 @@
 
 [![Discord](https://img.shields.io/discord/1265129134397587457?style=for-the-badge&logo=discord&label=Discord&labelColor=white&color=black)](https://discord.gg/pYkNyq2TjE)
 
-Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It using Blender's powerful **Geometry Nodes** and **Cycles** to process and render volumetric data.
+Bioxel Nodes 是一款用于科学体数据可视化的 Blender 插件。它利用 Blender 强大的 **几何节点 (Geometry Nodes)** 和 **Cycles** 渲染器来处理和渲染体数据。
 
 ![cover](https://omoolab.github.io/BioxelNodes/latest/assets/cover.png)
 
--   Realistic rendering result, also support EEVEE NEXT.
--   Support multiple formats.
--   Support 4D volumetric data.
--   All kinds of cutters.
--   Simple and powerful nodes.
--   Based on blender natively, can work without addon.
+- 逼真的渲染效果，同时也支持 EEVEE NEXT
+- 支持多种数据格式
+- 支持 4D 体数据
+- 多种切割工具
+- 简洁而强大的节点系统
+- 基于 Blender 原生开发，插件卸载后仍可正常工作
 
-**Read the [getting started](https://omoolab.github.io/BioxelNodes/latest/installation) to begin your journey into visualizing volumetric data!**
+**阅读[安装指南](installation.md)开始您的体数据可视化之旅！**
 
-Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any problems with this add-on.
+如果您在使用过程中遇到任何问题，欢迎加入我们的 [Discord 服务器](https://discord.gg/pYkNyq2TjE)。
 
-## Support Multiple Formats
+## 支持多种格式
 
-| Format | EXT                                      |
-| ------ | ---------------------------------------- |
-| DICOM  | .dcm, .DCM, .DICOM, .ima, .IMA           |
-| BMP    | .bmp, .BMP                               |
-| JPEG   | .jpg, .JPG, .jpeg, .JPEG                 |
-| PNG    | .png, .PNG                               |
-| TIFF   | .tif, .TIF, .tiff, .TIFF                 |
-| Nifti  | .nia, .nii, .nii.gz, .hdr, .img, .img.gz |
-| Nrrd   | .nrrd, .nhdr                             |
-| HDF5   | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 |
-| OME    | .ome.tiff, .ome.tif                      |
-| MRC    | .mrc, .mrc.gz, .map, .map.gz             |
+| 格式 | 扩展名                                   |
+| ---- | ---------------------------------------- |
+| DICOM | .dcm, .DCM, .DICOM, .ima, .IMA          |
+| BMP  | .bmp, .BMP                               |
+| JPEG | .jpg, .JPG, .jpeg, .JPEG                 |
+| PNG  | .png, .PNG                               |
+| TIFF | .tif, .TIF, .tiff, .TIFF                 |
+| Nifti | .nia, .nii, .nii.gz, .hdr, .img, .img.gz |
+| Nrrd | .nrrd, .nhdr                             |
+| HDF5 | .hdf, .h4, .hdf4, .he2, .h5, .hdf5, .he5 |
+| OME  | .ome.tiff, .ome.tif                      |
+| MRC  | .mrc, .mrc.gz, .map, .map.gz            |
 
-## Support 4D volumetric data
+## 支持 4D 体数据
 
 ![4d](https://omoolab.github.io/BioxelNodes/latest/assets/4d-time.gif)
 
-🥰 4D volumetric data can also be imported into Blender.
+4D 体数据也可以导入到 Blender 中。
 
-## Support EEVEE NEXT
+## 支持 EEVEE NEXT
 
 ![eevee](https://omoolab.github.io/BioxelNodes/latest/assets/eevee.gif)
 
-👍 EEVEE NEXT is absolutely AWESOME! Bioxel Nodes is fully support EEVEE NEXT now! However, there are some limitations:
+EEVEE NEXT 太棒了！Bioxel Nodes 现在全面支持 EEVEE NEXT！但仍有以下限制：
 
-1. Only one cutter supported.
-2. EEVEE result is not that great as Cycles does.
+1. 仅支持一个切割器
+2. EEVEE 渲染效果不如 Cycles
 
-## Known Limitations
+## 已知限制
 
--   Only works with Cycles CPU , Cycles GPU (OptiX), EEVEE
--   Section surface cannot be generated when convert to mesh (will be supported soon)
+- 仅支持 Cycles CPU、Cycles GPU (OptiX)、EEVEE
+- 转换为网格时无法生成剖面（即将支持）
 
-## Roadmap
+## 路线图
 
--   Better multi-format import experience
--   One-click bake model with texture
--   AI Segmentation to Generate Labels
+- 更完善的多格式导入体验
+- 一键烘焙带纹理模型
+- AI 分割生成标签

@@ -4,96 +4,96 @@
 
 ![alt text](assets/SARS-Cov-2/image-1.png)
 
-In this tutorial, we'll make a structural visualzation of the SARS-Cov-2 Virus. Please see [step by step](step_by_step.md) to make sure you have a basic understanding of how to use the addon, and make sure the addon version is v1.0.2 or higher!
+在本教程中，我们将制作 SARS-Cov-2 病毒的结构可视化。请确保您已阅读[分步指南](step_by_step.md)以了解插件的基本使用方法，并确保插件版本为 v1.0.2 或更高！
 
-Research data is from paper published in September 2020 in Cell Press ([https://www.cell.com/cell/fulltext/S0092-8674(20)31159-4](<https://www.cell.com/cell/fulltext/S0092-8674(20)31159-4>)) by Li Sai team at Tsinghua University. This research revealed the molecular assembly of the authentic SARS-CoV-2 virus using cryoelectron tomography (cryo-ET) and subtomogram averaging (STA). Here is an official video of this study
+研究数据来自 2020 年 9 月发表在 Cell Press 的论文（[https://www.cell.com/cell/fulltext/S0092-8674(20)31159-4](<https://www.cell.com/cell/fulltext/S0092-8674(20)31159-4>)），作者是清华大学李赛团队。该研究使用冷冻电子断层扫描（cryo-ET）和亚断层图平均（STA）揭示了真实 SARS-CoV-2 病毒的分子组装。以下是该研究的官方视频：
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/JSKl5VY4k5w?si=t4LhrCRebxrX_Saf&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-"It remains enigmatic how coronaviruses pack the ∼30-kb RNA into the ∼80-nm-diameter viral lumen. Are the RNPs ordered relative to each other to avoid RNA entangling, knotting, or even damage or are they involved in virus assembly?" Three assembly classes were proposed in the paper, we will make a visualzation of the "eggs-in-a-nest"-shaped RNPs assembly, based on real cryo-ET data.
+"冠状病毒如何将约 30kb 的 RNA 包装到约 80nm 直径的病毒腔内仍然是个谜。RNP 彼此之间是否有序以避免 RNA 缠结、打结或损坏，还是它们参与病毒组装？" 论文中提出了三类组装方式，我们将基于真实的冷冻电镜数据，制作"巢中蛋"形 RNP 组装的可视化。
 
-## Download and import data
+## 下载和导入数据
 
-The data of this research is hosted on EMDB ([https://www.ebi.ac.uk/emdb](https://www.ebi.ac.uk/emdb)), and the website of SARS-Cov-2 virus is [here](https://www.ebi.ac.uk/emdb/EMD-30430). Open the page, find "Download" button and select the first selection "3D Volume (.map.gz)".
+该研究的数据托管在 EMDB（[https://www.ebi.ac.uk/emdb](https://www.ebi.ac.uk/emdb)），SARS-Cov-2 病毒网站是[这里](https://www.ebi.ac.uk/emdb/EMD-30430)。打开页面，找到"Download"按钮，选择第一个选项"3D Volume (.map.gz)"。
 
-In case you can't download data, you can download here.
+如果您无法下载数据，可以从这里下载。
 
 [SARS-Cov-2.map](https://drive.google.com/file/d/1LMybsmTVbwQ38_eqAx6hbZTc5p2fdcjK/view?usp=sharing)
 
-After downloading, put it into any directory and import the data. In the import options, it is recommended to adjust the Bioxel Size to 5, in order to reduce the shape of the data to increase the speed of calculation and rendering. If you are confident in the performance of your hardware, you can leave the original 2.72 unchanged. After adjusting the Bioxel Size, the shape of the converted data will be calculated below based on the current bioxel size. The amount of data will increase exponentially with larger shape, and may result in OOM (out of memory).
+下载后，放到任意目录并导入数据。在导入选项中，建议将 Bioxel Size 调整为 5，以减小数据形状，提高计算和渲染速度。如果您对硬件性能有信心，可以保持原始的 2.72 不变。调整 Bioxel Size 后，下方会根据当前的 bioxel size 计算转换后数据的形状。数据量会随着形状增大呈指数增长，可能会导致内存不足（OOM）。
 
-## Cutout the Virus
+## 切割病毒
 
-After importing, you can get the virus by creating and connecting nodes and setting parameters as shown below
+导入后，您可以通过创建和连接节点并设置参数来获取病毒，如下图所示。
 
 ![alt text](assets/SARS-Cov-2/image-2.png)
 
-Place the light and the camera in the way as below. The backlight is a area light, color white, intensity 500W, spread 90°, and inside the virus, place a point light, color `FFD08D`, intensity 5W. Camera focal length is 200 mm. the background color is pure black. The Look of the color management is High Contrast.
+按下图所示放置灯光和相机。背光是区域光，白色，强度 500W，扩散 90°；在病毒内部放置一个点光源，颜色 `FFD08D`，强度 5W。相机焦距为 200mm。背景颜色为纯黑色。颜色管理的 Look 为 High Contrast。
 
 ![alt text](assets/SARS-Cov-2/image-3.png)
 
-Continue editing the node, followed by "Set Properies" and "Set Color by Ramp 4" node, the parameters of these two nodes are set as shown in the figure, where the color part, from top to bottom, is set to `E1D0FC` (1.0), `FFE42D` (0.5), `3793FF` (0.5), `FFFF8EC` (0.1) (alpha value in parentheses). Color alpha also affects density.
+继续编辑节点，接着是"Set Properties"和"Set Color by Ramp 4"节点，这两个节点的参数设置如下图，其中颜色部分，从上到下设置为 `E1D0FC`（1.0）、`FFE42D`（0.5）、`3793FF`（0.5）、`FFFF8EC`（0.1）（括号中为 alpha 值）。颜色的 alpha 值也会影响密度。
 
 ![alt text](assets/SARS-Cov-2/image-4.png)
 
-If you feel that rendering is too slow, see [here](improve_performance.md) for suggestions
+如果您觉得渲染太慢，请参阅[这里](improve_performance.md)获取建议。
 
-## Color the RNPs alone
+## 单独为 RNP 着色
 
-The current rendering is pretty good, but considering that my goal is to make it clear how the RNPs are arranged within the virus, the RNPs should be colored differently than the others. So how to color the RNPs alone?
+当前的渲染效果很好，但考虑到我的目标是让您清楚看到 RNP 在病毒内部的排列方式，RNP 应该与其他部分用不同颜色着色。那么如何单独为 RNP 着色呢？
 
-First of all, we have to separate the RNPs. The value of RNPs is between the membrane and S protein, so it is very difficult to separate. The good thing is that the virus is spherical, we can separate the RNPs part of the virus from the rest by using a sphere cutter. To do so, in the Geometry Nodes panel menu of the container, click **Bioxel Nodes > Add a Cutter > Sphere Cutter**, and adjust the scale and position of the newly created sphere object named "Sphere_Cutter" appropriately, so that it can just separate the internal RNPs and membrane of the virus.
+首先，我们必须分离 RNP。RNP 的值介于膜和 S 蛋白之间，因此很难分离。好在病毒是球形的，我们可以使用球形切割器将病毒的 RNP 部分与其余部分分离。为此，在容器的几何节点面板菜单中，点击 **Bioxel Nodes > Add a Cutter > Sphere Cutter**，并适当调整新创建的名为"Sphere_Cutter"的球体对象的大小和位置，使其恰好能将病毒内部的 RNP 和膜分离。
 
 ![alt text](assets/SARS-Cov-2/image-5.png)
 
-The process of changing the position of the "Sphere_Cutter" object can be very laggy, then you can turn off "With Surface" and do it in Slice Viewer mode. Once you are happy with it, you can restore the settings.
+改变"Sphere_Cutter"对象的位置可能会非常卡顿，此时您可以关闭"With Surface"并在 Slice Viewer 模式下操作。满意后，恢复设置。
 
-Then we turn on Invert in the "Sphere Cutter" node and you can see the opposite result. This way we've managed to separate the two, next let's color them separately and finally merge them with Join Component. Create and join the nodes as shown below, where the second Cutter node is copied and the color value in Set Color is `FFDDFE` (0.5). If all is well, the rendering should look like below.
+然后在"Sphere Cutter"节点中打开 Invert，您可以看到相反的结果。这样我们就成功将两者分离了。接下来让我们分别着色，最后用 Join Component 合并。按如下图所示创建和连接节点，其中第二个 Cutter 节点是复制的，Set Color 中的颜色值设置为 `FFDDFE`（0.5）。如果一切正常，渲染结果应该如下图所示。
 
 ![alt text](assets/SARS-Cov-2/image-6.png)
 
-At this point, the rendering of a SARS-Cov-2 virus is complete!
+此时，SARS-Cov-2 病毒的渲染完成了！
 
-## Render RNPs and Membranes
+## 渲染 RNP 和膜
 
-Realistic rendering is great, but Non-photorealistic rendering (NPR) is better for presenting structural information. So I will render ultrastructure of the RNPs assembly with toon shader.
+写实渲染很棒，但非写实渲染（NPR）在呈现结构信息方面更好。因此，我将使用卡通着色器来渲染 RNP 组装的首尾结构。
 
 ![alt text](assets/SARS-Cov-2/image-7.png)
 
-The silhouettes of RNPs uses Blender's Line Art feature, but Line Art must be based on a mesh. Select the nodes that are extruding the RNPs (i.e., the "Cut" nodes that are in charge of cutting out the RNPs), and right-click, click **Bioxel Nodes > Extract Mesh**. This gives you a new mesh object of the RNPs.
+RNP 的轮廓使用 Blender 的线稿（Line Art）功能，但线稿必须基于网格。选择挤出 RNP 的节点（即负责切割出 RNP 的"Cut"节点），右键点击 **Bioxel Nodes > Extract Mesh**。这将为您创建一个 RNP 的新网格对象。
 
-Extract the membrane mesh in the same way.
+用同样的方式提取膜网格。
 
-The membrane has a much higher value than the rest of the virus, so let's create a new "Cutout" node, also after the ReCenter, but with the threshold adjusted to 0.13. After the Cutout, connect to the "To Surface" node and parameterize it as shown in the figure, noting that the Remove Island Threshold is set to 1000 so that any fragments smaller than 1000 pts be eliminated. Then select the "To Surface" node, and perform the operation of extracting the mesh.
+膜的病毒值远高于其他部分，因此让我们创建一个新的"Cutout"节点，同样在 ReCenter 之后，但阈值调整为 0.13。Cutout 后，连接到"To Surface"节点并按如下图所示设置参数，注意 Remove Island Threshold 设置为 1000，以便消除小于 1000 pts 的任何碎片。然后选择"To Surface"节点，执行提取网格的操作。
 
 ![alt text](assets/SARS-Cov-2/image-8.png)
 
-The mesh of the membrane needs to be cut in half, this can be done with the Box Trim brush in sculpt mode or with the Boolean modifier. the mesh of the RNPs may also need some repair work, I cleaned up some of the broken surfaces of the RNPs. all the meshes are now ready to be used.
+膜的网格需要切成两半，这可以通过雕刻模式中的 Box Trim 笔刷或布尔修改器来完成。RNP 的网格也可能需要一些修复工作，我清理了一些 RNP 的破损表面。所有网格现在都可以使用了。
 
 ![alt text](assets/SARS-Cov-2/image-9.png)
 
-For Line Art, please see the video tutorial from Blender Secrets.
+关于线稿，请参阅 Blender Secrets 的视频教程。
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/aIWdBq7-ias?si=CrcStx5VVJBwDpzu&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-Finally, an infographic on the ultrastructure of RNPs is done!
+最后，RNP 超微结构的信息图完成了！
 
 ![alt text](assets/SARS-Cov-2/image-1.png)
 
-If you have trouble following the docs, you can download the project files.
+如果您按照文档有困难，可以下载项目文件。
 
 [SARS-Cov-2.zip](https://drive.google.com/file/d/15GpIoIjVAE-Jr98zWo7oupuk1KfRVPmk/view?usp=sharing)
 
-## Homework
+## 作业
 
-Other data relevant to the study are provided in the paper, you could try visualizing them.
+论文中提供了其他相关数据，您可以尝试可视化它们。
 
 ![alt text](assets/SARS-Cov-2/image-10.png)
 
-Go to the official EMDB website https://www.ebi.ac.uk/emdb/ and enter the EMD number in the search box to get them.
+前往官方 EMDB 网站 https://www.ebi.ac.uk/emdb/，在搜索框中输入 EMD 编号即可获取。
 
-The Electron Microscopy Data Bank (EMDB) is a public repository for cryogenic-sample Electron Microscopy (cryoEM) volumes and representative tomograms of macromolecular complexes and subcellular structures. If you want to get data on other virus, just enter their name in the search box. For example, hepatitis B virus, enter it into the search box, then select Virus in the Sample Type on the left side, and download the data you need (it is better to find the corresponding paper to clarify the data information).
+电子显微镜数据银行（EMDB）是一个公共仓库，用于存放冷冻样品的电子显微镜（cryoEM）体积和代表性断层图。如果您想获取其他病毒的数据，只需在搜索框中输入其名称即可。例如，乙型肝炎病毒，在搜索框中输入，然后选择左侧 Sample Type 中的 Virus，下载您需要的数据（最好找到相应的论文来明确数据信息）。
 
-**Try to visualize hepatitis B virus.**
+**尝试可视化乙型肝炎病毒。**
 
 ![alt text](assets/SARS-Cov-2/image-11.png)

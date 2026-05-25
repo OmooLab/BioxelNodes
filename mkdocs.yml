@@ -1,5 +1,5 @@
-site_name: Bioxel Nodes Handbook
-site_url: https://omoolab.github.io/BioxelNodes/
+site_name: Bioxel Nodes Docs
+site_url: https://docs.omoolab.xyz/bioxelnodes/
 site_author: OmooLab
 site_description: Bioxel Nodes is a Blender add-on for scientific volumetric data visualization.
 
@@ -8,21 +8,21 @@ repo_url: https://github.com/OmooLab/BioxelNodes
 
 nav:
   - index.md
-  - Getting Started:
-      - Installation: installation.md
-      - Step by Step: step_by_step.md
-      - Advanced Usage: advanced_usage.md
-      - Support Format: support_format.md
-      - Improve Performance: improve_performance.md
-      - FAQ: faq.md
-  - Tutorials:
-      - SARS-Cov-2: SARS-Cov-2.md
+  - 快速开始:
+      - installation.md
+      - step_by_step.md
+      - advanced_usage.md
+      - support_format.md
+      - improve_performance.md
+      - faq.md
+  - 案例教程:
+      - SARS-Cov-2.md
 
 theme:
   name: material
   favicon: assets/logo.png
   logo: assets/logo.png
-  language: en
+  language: zh
   font:
     text: Open Sans
     code: Cascadia Code
@@ -72,6 +72,17 @@ copyright: Copyright &copy; 2020 - 2024 Omoolab
 plugins:
   - search
   - mkdocstrings
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: zh
+          name: 中文
+          default: true
+        - locale: en
+          name: English
+          nav_translations:
+            快速开始: Getting Started
+            案例教程: Tutorials
 
 markdown_extensions:
   - attr_list

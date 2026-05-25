@@ -1,19 +1,19 @@
-# Installation
+# 安装
 
-**Currently only support Blender 4.2 or above, make sure you have the correct version of Blender.**
+**目前仅支持 Blender 4.2 及以上版本，请确保您安装了正确版本的 Blender。**
 
-## Install in Blender (recommended)
+## 在 Blender 中安装（推荐）
 
-This is the most recommended way, in the top menu, click **Edit > Preferences**, in "Get Extensions" Section, enter "bio" in the search box, then click Install. due to the add-on size (25MB~50MB) you may need to wait a while.
+这是最推荐的方式。点击顶部菜单 **Edit > Preferences**，在 "Get Extensions" 区域搜索 "bio"，然后点击 Install。由于插件体积较大（25MB~50MB），可能需要等待一段时间。
 
 ![alt text](assets/installation/image.png)
 
-## Blender Official Extensions Website
+## Blender 官方扩展网站
 
-Or you can visit the Blender official extensions website at [https://extensions.blender.org/add-ons/bioxelnodes/](https://extensions.blender.org/add-ons/bioxelnodes/)
-Click Get Add-on, open Blender, drag in Blender and follow the instructions to install.
+您也可以访问 Blender 官方扩展网站 [https://extensions.blender.org/add-ons/bioxelnodes/](https://extensions.blender.org/add-ons/bioxelnodes/)
+点击 Get Add-on，打开 Blender，将插件拖入并按照提示安装。
 
-## Manual Install
+## 手动安装
 
-You can also install _BioxelNodes\_{version}.zip_ manually by downloading from [bere](https://github.com/OmooLab/BioxelNodes/releases/latest).
-In the top menu, click **Edit > Preferences**, **Add-ons > Install from Disk** and select the Zip file you just downloaded.
+您也可以从 [这里](https://github.com/OmooLab/BioxelNodes/releases/latest) 下载 _BioxelNodes_{version}.zip_ 进行手动安装。
+点击顶部菜单 **Edit > Preferences**，选择 **Add-ons > Install from Disk**，然后选择您下载的 Zip 文件。
