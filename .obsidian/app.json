@@ -1,0 +1,22 @@
+{
+  "showInlineTitle": false,
+  "useMarkdownLinks": true,
+  "pdfExportSettings": {
+    "pageSize": "Letter",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  },
+  "userIgnoreFilters": [
+    "notes/assets/"
+  ],
+  "showUnsupportedFiles": false,
+  "attachmentFolderPath": "notes/assets",
+  "livePreview": true,
+  "showIndentGuide": false,
+  "alwaysUpdateLinks": true,
+  "openBehavior": "file:README",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "notes",
+  "newLinkFormat": "relative"
+}
