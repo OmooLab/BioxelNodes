@@ -15,7 +15,7 @@ class Platform:
 required_packages = ["SimpleITK==2.5.5",
                      "pyometiff==1.0.0",
                      "mrcfile==1.5.1",
-                     "h5py==3.16.0",
+                     "h5py==3.14.0",
                      "transforms3d==0.4.2",
                      "tifffile==2024.7.24",
                      "matplotlib==3.10.7",
