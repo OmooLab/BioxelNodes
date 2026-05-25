@@ -4,7 +4,7 @@ id = "bioxelnodes"
 version = "2.0.0"
 name = "Bioxel Nodes"
 tagline = "For scientific volumetric data visualization in Blender"
-maintainer = "Ma Nan <icrdr2010@outlook.com>"
+maintainer = "Nan <icrdr2010@outlook.com>"
 type = "add-on"
 website = "https://omoolab.github.io/BioxelNodes/latest"
 
@@ -14,7 +14,32 @@ license = ['SPDX:GPL-3.0-or-later']
 copyright = ["2024 OmooLab"]
 platforms = ["windows-x64"]
 
-wheels = ["./wheels/contourpy-1.3.3-cp311-cp311-win_amd64.whl", "./wheels/contourpy-1.3.3-cp313-cp313-win_amd64.whl", "./wheels/cycler-0.12.1-py3-none-any.whl", "./wheels/fonttools-4.63.0-cp311-cp311-win_amd64.whl", "./wheels/fonttools-4.63.0-cp313-cp313-win_amd64.whl", "./wheels/h5py-3.16.0-cp311-cp311-win_amd64.whl", "./wheels/h5py-3.16.0-cp313-cp313-win_amd64.whl", "./wheels/kiwisolver-1.5.0-cp311-cp311-win_amd64.whl", "./wheels/kiwisolver-1.5.0-cp313-cp313-win_amd64.whl", "./wheels/lxml-6.1.1-cp311-cp311-win_amd64.whl", "./wheels/lxml-6.1.1-cp313-cp313-win_amd64.whl", "./wheels/matplotlib-3.10.7-cp311-cp311-win_amd64.whl", "./wheels/matplotlib-3.10.7-cp313-cp313-win_amd64.whl", "./wheels/mrcfile-1.5.1-py2.py3-none-any.whl", "./wheels/packaging-26.2-py3-none-any.whl", "./wheels/pillow-11.2.1-cp311-cp311-win_amd64.whl", "./wheels/pillow-11.2.1-cp313-cp313-win_amd64.whl", "./wheels/pyometiff-1.0.0-py3-none-any.whl", "./wheels/pyparsing-3.3.2-py3-none-any.whl", "./wheels/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", "./wheels/simpleitk-2.5.5-cp311-abi3-win_amd64.whl", "./wheels/six-1.17.0-py2.py3-none-any.whl", "./wheels/tifffile-2024.7.24-py3-none-any.whl", "./wheels/transforms3d-0.4.2-py3-none-any.whl"]
+wheels = [
+    "./wheels/contourpy-1.3.3-cp311-cp311-win_amd64.whl",
+    "./wheels/contourpy-1.3.3-cp313-cp313-win_amd64.whl",
+    "./wheels/cycler-0.12.1-py3-none-any.whl",
+    "./wheels/fonttools-4.63.0-cp311-cp311-win_amd64.whl",
+    "./wheels/fonttools-4.63.0-cp313-cp313-win_amd64.whl",
+    "./wheels/h5py-3.16.0-cp311-cp311-win_amd64.whl",
+    "./wheels/h5py-3.16.0-cp313-cp313-win_amd64.whl",
+    "./wheels/kiwisolver-1.5.0-cp311-cp311-win_amd64.whl",
+    "./wheels/kiwisolver-1.5.0-cp313-cp313-win_amd64.whl",
+    "./wheels/lxml-6.1.1-cp311-cp311-win_amd64.whl",
+    "./wheels/lxml-6.1.1-cp313-cp313-win_amd64.whl",
+    "./wheels/matplotlib-3.10.7-cp311-cp311-win_amd64.whl",
+    "./wheels/matplotlib-3.10.7-cp313-cp313-win_amd64.whl",
+    "./wheels/mrcfile-1.5.1-py2.py3-none-any.whl",
+    "./wheels/packaging-26.2-py3-none-any.whl",
+    "./wheels/pillow-11.2.1-cp311-cp311-win_amd64.whl",
+    "./wheels/pillow-11.2.1-cp313-cp313-win_amd64.whl",
+    "./wheels/pyometiff-1.0.0-py3-none-any.whl",
+    "./wheels/pyparsing-3.3.2-py3-none-any.whl",
+    "./wheels/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+    "./wheels/simpleitk-2.5.5-cp311-abi3-win_amd64.whl",
+    "./wheels/six-1.17.0-py2.py3-none-any.whl",
+    "./wheels/tifffile-2024.7.24-py3-none-any.whl",
+    "./wheels/transforms3d-0.4.2-py3-none-any.whl",
+]
 
 [permissions]
 files = "Import/export volume data from/to disk"

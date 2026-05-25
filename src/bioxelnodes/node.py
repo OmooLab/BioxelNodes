@@ -2,7 +2,7 @@ from pathlib import Path
 import bpy
 
 # LookupError replaced with built-in LookupError
-from .constants import LATEST_NODE_LIB_PATH
+from .constants import LATEST_NODE_LIB_PATH, NODE_LIB_FILENAME
 
 
 def move_node_to_node(node, target_node, offset=(0, 0)):
@@ -105,7 +105,7 @@ def add_bioxel_node(name: str):
         bpy.ops.object.modifier_add_node_group(
             asset_library_type="CUSTOM",
             asset_library_identifier="O Bioxel",
-            relative_asset_identifier=f"BioxelNodes.blend\\NodeTree\\{name}",
+            relative_asset_identifier=f"{NODE_LIB_FILENAME}\\NodeTree\\{name}",
         )
         bpy.ops.object.modifier_remove(modifier=name)
         try:
