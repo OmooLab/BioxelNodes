@@ -1,20 +1,28 @@
-[data-md-color-scheme="slate"] {
+@import url("https://fontsapi.zeoseven.com/292/main/result.css");
+@import url("https://fontsapi.zeoseven.com/293/main/result.css");
+
+/* [data-md-color-scheme="slate"] {
   --md-code-hl-string-color: #8b8b8b;
-  --md-code-hl-keyword-color: white;
-  --md-code-hl-number-color: white;
-  --md-typeset-a-color: white;
+  --md-code-hl-keyword-color: #ffe8a3;
+  --md-code-hl-number-color: #ffe8a3;
+  --md-typeset-a-color: #ffe8a3;
 }
 
 [data-md-color-scheme="default"] {
   --md-code-hl-string-color: #444444;
-  --md-code-hl-keyword-color: black;
-  --md-code-hl-number-color: black;
+  --md-code-hl-keyword-color: #bd9100;
+  --md-code-hl-number-color: #bd9100;
 }
 
 [data-md-color-scheme=slate][data-md-color-primary=black] {
-  --md-typeset-a-color: white;
+  --md-typeset-a-color: #ffe8a3;
 }
 
 [data-md-color-scheme=default][data-md-color-primary=black] {
-  --md-typeset-a-color: black;
+  --md-typeset-a-color: #bd9100;
+} */
+
+:root {
+  --md-text-font: "LXGW WenKai";
+  --md-code-font: "LXGW WenKai Mono";
 }
