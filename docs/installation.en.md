@@ -1,19 +1,22 @@
 # Installation
 
-**Currently only support Blender 4.2 or above, make sure you have the correct version of Blender.**
+!!! warning
+    **v2.0.x only supports Blender 5.0 and above**
 
-## Install in Blender (recommended)
+The add-on supports multiple installation methods, choose one.
 
-This is the most recommended way, in the top menu, click **Edit > Preferences**, in "Get Extensions" Section, enter "bio" in the search box, then click Install. due to the add-on size (25MB~50MB) you may need to wait a while.
+## Blender Preferences (Recommended)
 
-![alt text](assets/installation/image.png)
+Click the top menu **Edit > Preferences**, search for "biox" in the "Get Extensions" area. Then click Install. Due to the large add-on size (60~100MB), you may need to wait for a while.
+
+![](assets/installation.png)
 
 ## Blender Official Extensions Website
 
-Or you can visit the Blender official extensions website at [https://extensions.blender.org/add-ons/bioxelnodes/](https://extensions.blender.org/add-ons/bioxelnodes/)
-Click Get Add-on, open Blender, drag in Blender and follow the instructions to install.
+Visit [https://extensions.blender.org/add-ons/bioxelnodes/](https://extensions.blender.org/add-ons/bioxelnodes/)
+Click Get Add-on, open Blender, drag the add-on into Blender and follow the prompts to install.
 
-## Manual Install
+## Manual Installation
 
-You can also install _BioxelNodes\_{version}.zip_ manually by downloading from [bere](https://github.com/OmooLab/BioxelNodes/releases/latest).
-In the top menu, click **Edit > Preferences**, **Add-ons > Install from Disk** and select the Zip file you just downloaded.
+You can also download `BioxelNodes.{version}.zip` from [here](https://github.com/OmooLab/BioxelNodes/releases/latest) for manual installation.
+Click the top menu **Edit > Preferences**, select **Add-ons > Install from Disk**, then choose the Zip file you downloaded.

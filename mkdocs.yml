@@ -7,16 +7,15 @@ repo_name: OmooLab/BioxelNodes
 repo_url: https://github.com/OmooLab/BioxelNodes
 
 nav:
-  - index.md
+  - 胞素节点:
+      - index.md
+      - gallery.md
   - 快速开始:
       - installation.md
-      - step_by_step.md
-      - advanced_usage.md
-      - support_format.md
-      - improve_performance.md
-      - faq.md
-  - 案例教程:
-      - SARS-Cov-2.md
+      - basics.md
+      - advanced.md
+      - dataset.md
+      - performance.md
 
 theme:
   name: material
@@ -80,6 +79,7 @@ plugins:
         - locale: en
           name: English
           nav_translations:
+            胞素节点: Bioxel Nodes
             快速开始: Getting Started
             案例教程: Tutorials
 

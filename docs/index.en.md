@@ -1,3 +1,5 @@
+**v2.0.x has been released, supporting only Blender 5.0+. The usage is completely different from before and is not compatible with old version files. See  http://docs.omoolab.xyz/bioxelnodes/2.0.x/en/basics/**
+
 # Bioxel Nodes
 
 [![For Blender](https://img.shields.io/badge/Blender-orange?style=for-the-badge&logo=blender&logoColor=white&color=black)](https://blender.org/)
