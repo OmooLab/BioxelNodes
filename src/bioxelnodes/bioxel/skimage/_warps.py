@@ -3,6 +3,7 @@ import numpy as np
 from .. import scipy as ndi
 from ._utils import convert_to_float
 
+
 def _clip_warp_output(input_image, output_image, mode, cval, clip):
     """Clip output image to range of values of input image.
 

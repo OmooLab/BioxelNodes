@@ -1,619 +1,314 @@
 from pathlib import Path
+import shutil
+
 import bpy
 
-import numpy as np
+from ..node import add_bioxel_node, get_layer_nodes, get_main_node_group
+from ..utils import refresh_bioxel_panels
+from ..layer import get_layer_caches, set_layer_caches
 
 
-from ..exceptions import NoContent
-from ..bioxel.layer import Layer
-from ..bioxelutils.node import add_node_to_graph
-from ..bioxelutils.common import (get_container_obj, get_layer_kind, get_layer_label, get_layer_name,
-                                  get_layer_prop_value,
-                                  get_container_layer_objs,
-                                  get_node_type, is_missing_layer, move_node_to_node, set_layer_prop_value)
-from ..bioxelutils.layer import layer_to_obj, obj_to_layer
-from ..utils import get_cache_dir, copy_to_dir, get_use_link
+class RenameLayer(bpy.types.Operator):
+    """Rename a cached Bioxel layer"""
 
+    bl_idname = "bioxel.rename_layer"
+    bl_label = "Rename Layer"
+    bl_options = {"REGISTER", "UNDO"}
 
-def get_label_layer_selection(self, context):
-    items = [("None", "None", "")]
-    container_obj = get_container_obj(bpy.context.active_object)
+    cache_id: bpy.props.StringProperty(options={"HIDDEN"})  # type: ignore
+    new_name: bpy.props.StringProperty(name="New name", default="")  # type: ignore
 
-    for layer_obj in get_container_layer_objs(container_obj):
-        kind = get_layer_prop_value(layer_obj, "kind")
-        name = get_layer_prop_value(layer_obj, "name")
-        if kind == "label":
-            items.append((layer_obj.name,
-                          name,
-                          ""))
-
-    return items
-
-
-class FetchLayer(bpy.types.Operator):
-    bl_idname = "bioxelnodes.fetch_layer"
-    bl_label = "Fetch Layer"
-    bl_description = "Fetch layer from current container"
-    bl_icon = "NODE"
-    bl_options = {'UNDO'}
-
-    layer_obj_name: bpy.props.StringProperty(
-        options={"HIDDEN"})  # type: ignore
-
-    @classmethod
-    def description(cls, context, properties):
-        layer_obj_name = properties.layer_obj_name
-        layer_obj = bpy.data.objects.get(layer_obj_name)
-        return "\n".join([f"{prop}: {get_layer_prop_value(layer_obj, prop)}"
-                          for prop in ["kind",
-                                       "bioxel_size",
-                                       "shape",
-                                       "frame_count",
-                                       "channel_count",
-                                       "min", "max"]])
-
-    @property
-    def layer_obj(self):
-        return bpy.data.objects.get(self.layer_obj_name)
+    def invoke(self, context, event):
+        caches = get_layer_caches()
+        entry = next((c for c in caches if str(c.get("id", "")) == self.cache_id), None)
+        if entry:
+            self.new_name = str(entry.get("name", ""))
+        return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        if self.layer_obj == None:
-            self.report({"WARNING"}, "Get no layer.")
-            return {'FINISHED'}
+        if not self.new_name:
+            self.report({"ERROR"}, "Name cannot be empty")
+            return {"CANCELLED"}
 
-        if is_missing_layer(self.layer_obj):
-            self.report({"WARNING"}, "Selected layer is lost.")
-            return {'FINISHED'}
+        caches = get_layer_caches()
+        for c in caches:
+            if str(c.get("id", "")) == self.cache_id:
+                c["name"] = self.new_name
+                break
 
-        bpy.ops.bioxelnodes.add_node('EXEC_DEFAULT',
-                                     node_name="FetchLayer",
-                                     node_label="Fetch Layer")
-        node = bpy.context.active_node
+        try:
+            set_layer_caches(caches)
+            refresh_bioxel_panels(context)
+            self.report({"INFO"}, "Layer renamed")
+            return {"FINISHED"}
+        except Exception as e:
+            self.report({"ERROR"}, f"Failed to save changes: {e}")
+            return {"CANCELLED"}
 
-        node.inputs[0].default_value = self.layer_obj
-        node.label = get_layer_label(self.layer_obj)
 
+class DeleteLayer(bpy.types.Operator):
+    """Delete a saved Bioxel layer"""
+
+    bl_idname = "bioxel.delete_layer"
+    bl_label = "Delete Layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    cache_id: bpy.props.StringProperty()  # type: ignore
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        if not self.cache_id:
+            self.report({"ERROR"}, "Missing cache id")
+            return {"CANCELLED"}
+
+        caches = get_layer_caches()
+        new_list = [c for c in caches if str(c.get("id", "")) != self.cache_id]
+        removed = next(
+            (c for c in caches if str(c.get("id", "")) == self.cache_id), None
+        )
+
+        try:
+            set_layer_caches(new_list)
+            refresh_bioxel_panels(context)
+        except Exception as e:
+            self.report({"ERROR"}, f"Failed to update layer list: {e}")
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, "Layer removed")
         return {"FINISHED"}
 
 
-def get_selected_layers(context, layer_filter=None):
-    def _layer_filter(layer_obj, context):
-        return True
+# 添加图层到节点图的操作器
+class AddLayerNode(bpy.types.Operator):
+    """将选中的图层添加到几何节点图"""
 
-    layer_filter = layer_filter or _layer_filter
-    select_objs = []
-    # node_group = context.space_data.edit_tree
-    for node in context.selected_nodes:
-        if get_node_type(node) == "BioxelNodes_FetchLayer":
-            layer_obj = node.inputs[0].default_value
-            if layer_obj is not None:
-                if layer_filter(layer_obj, context):
-                    select_objs.append(layer_obj)
+    bl_idname = "bioxel.add_layer_node"
+    bl_label = "添加图层节点"
+    bl_options = {"REGISTER", "UNDO"}
 
-    return list(set(select_objs))
-
-
-def get_selected_layer(context, layer_filter=None):
-    layer_objs = get_selected_layers(context, layer_filter)
-    return layer_objs[0] if len(layer_objs) > 0 else None
-
-
-class OutputLayerOperator():
-    new_layer_name: bpy.props.StringProperty(name="New Name",
-                                             options={"SKIP_SAVE"})  # type: ignore
-
-    def operate(self, orig_layer: Layer, context):
-        """do the operation"""
-        return orig_layer
-
-    def add_layer_node(self, context, layer):
-        orig_node = context.selected_nodes[0]
-        layer_obj = layer_to_obj(layer,
-                                 container_obj=context.object,
-                                 cache_dir=get_cache_dir())
-        node_group = context.space_data.edit_tree
-        fetch_node = add_node_to_graph("FetchLayer",
-                                       node_group,
-                                       use_link=get_use_link())
-        fetch_node.label = get_layer_prop_value(layer_obj, "name")
-        fetch_node.inputs[0].default_value = layer_obj
-        move_node_to_node(fetch_node, orig_node, (0, -100))
+    cache_id: bpy.props.StringProperty()  # type: ignore # 图层ID
 
     def execute(self, context):
-        layer_obj = get_selected_layer(context)
-        if layer_obj == None:
-            self.report({"WARNING"}, "Get no layer.")
-            return {'FINISHED'}
+        # 获取图层数据
+        caches = get_layer_caches()
 
-        if is_missing_layer(layer_obj):
-            self.report({"WARNING"}, "Selected layer is lost.")
-            return {'FINISHED'}
+        # 查找目标图层
+        entry = next(
+            (c for c in caches if str(c.get("id", "")) == str(self.cache_id)), None
+        )
 
-        orig_layer = obj_to_layer(layer_obj)
+        if not entry:
+            self.report({"ERROR"}, "Layer not found")
+            return {"CANCELLED"}
+
+        # 创建并设置节点属性
         try:
-            new_layer = self.operate(orig_layer, context)
-        except NoContent as e:
-            self.report({"WARNING"}, e.message)
-            return {'FINISHED'}
+            layer_node = add_bioxel_node("O Layer")
+        except:
+            self.report({"ERROR"}, "Fail to add layer node")
+            return {"CANCELLED"}
 
-        self.add_layer_node(context, new_layer)
-        return {'FINISHED'}
+        layer_node.node_tree.make_local()
+        layer_node.inputs["Path"].default_value = entry["path"]
+        layer_node.inputs["Name"].default_value = entry["name"]
+        layer_node.inputs["Shape"].default_value = entry["shape"]
+        layer_node.inputs["Min"].default_value = entry["min"]
+        layer_node.inputs["Max"].default_value = entry["max"]
+        layer_node.inputs["ID"].default_value = entry["id"]
 
+        # 将特定属性隐藏到hidden面板
+        hidden_sockets = ["Path", "Shape", "Min", "Max", "ID", "Animation"]
 
-class LayerOperator():
-
-    def operate(self, layer_obj: bpy.types.Object, context):
-        """do the operation"""
-        ...
-
-    def execute(self, context):
-        layer_obj = get_selected_layer(context)
-        if layer_obj == None:
-            self.report({"WARNING"}, "Get no layer.")
-            return {'FINISHED'}
-
-        if is_missing_layer(layer_obj):
-            self.report({"WARNING"}, "Selected layer is lost.")
-            return {'FINISHED'}
-
-        self.operate(layer_obj, context)
-
-        return {'FINISHED'}
-
-
-class RetimeLayer(bpy.types.Operator, LayerOperator):
-    bl_idname = "bioxelnodes.retime_layer"
-    bl_label = "Retime Sequence"
-    bl_description = "Retime layer time sequence"
-    bl_icon = "TIME"
-
-    frame_duration: bpy.props.IntProperty(name="Frames")  # type: ignore
-    frame_start: bpy.props.IntProperty(name="Start")  # type: ignore
-    frame_offset: bpy.props.IntProperty(name="Offset")  # type: ignore
-    sequence_mode: bpy.props.EnumProperty(name="Mode",
-                                          default="REPEAT",
-                                          items=[("CLIP", "Clip", ""),
-                                                 ("EXTEND", "Extend", ""),
-                                                 ("REPEAT", "Repeat", ""),
-                                                 ("PING_PONG", "Ping-Pong", "")])  # type: ignore
-
-    def operate(self, layer_obj, context):
-        layer_obj.data.frame_duration = self.frame_duration
-        layer_obj.data.frame_start = self.frame_start
-        layer_obj.data.frame_offset = self.frame_offset
-        layer_obj.data.sequence_mode = self.sequence_mode
-
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            self.frame_duration = layer_obj.data.frame_duration
-            self.frame_start = layer_obj.data.frame_start
-            self.frame_offset = layer_obj.data.frame_offset
-            self.sequence_mode = layer_obj.data.sequence_mode
-            name = get_layer_label(layer_obj)
-            context.window_manager.invoke_props_dialog(self,
-                                                       title=f"Retime {name}")
-            return {'RUNNING_MODAL'}
+        if entry["frame_count"] > 1:
+            layer_node.inputs["Frame Count"].default_value = entry["frame_count"]
+            layer_node.inputs["Animation"].default_value = True
         else:
-            return self.execute(context)
+            hidden_sockets = hidden_sockets + ["Frame Count", "Frame Offset", "Cycle"]
+
+        # 将特定属性隐藏到hidden面板
+        for socket_name in hidden_sockets:
+            if socket_name in layer_node.inputs:
+                layer_node.inputs[socket_name].hide = True
+
+        for socket_name in layer_node.outputs.keys():
+            if socket_name != entry["kind"].capitalize():
+                layer_node.outputs[socket_name].hide = True
+
+        self.report({"INFO"}, f"Successfully created node: {entry['name']}")
+        return {"FINISHED"}
 
 
-class RelocateLayer(bpy.types.Operator):
-    bl_idname = "bioxelnodes.relocate_layer"
-    bl_label = "Relocate Layer Cache"
-    bl_description = "Relocate layer cache"
-    bl_icon = "FILE"
+class RelocatePath(bpy.types.Operator):
+    """Locate and update the missing layer folder, and update all related nodes"""
 
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
+    bl_idname = "bioxel.find_layer_folder"
+    bl_label = "Relocate"
+    bl_options = {"REGISTER", "UNDO"}
 
-    def execute(self, context):
-        layer_obj = get_selected_layer(context)
-        if layer_obj == None:
-            self.report({"WARNING"}, "Get no layer.")
-            return {'FINISHED'}
+    cache_id: bpy.props.StringProperty(options={"HIDDEN"})  # type: ignore
 
-        self.operate(layer_obj, context)
-
-        return {'FINISHED'}
-
-    def operate(self, layer_obj, context):
-        layer_obj.data.filepath = self.filepath
-
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            context.window_manager.fileselect_add(self)
-            return {'RUNNING_MODAL'}
-        else:
-            return self.execute(context)
-
-
-class RenameLayer(bpy.types.Operator, LayerOperator):
-    bl_idname = "bioxelnodes.rename_layer"
-    bl_label = "Rename Layer"
-    bl_description = "Rename layer"
-    bl_icon = "FILE_FONT"
-
-    new_name: bpy.props.StringProperty(name="New Name",
-                                       options={"SKIP_SAVE"})  # type: ignore
-
-    def operate(self, layer_obj, context):
-        name = f"{layer_obj.parent.name}_{self.new_name}"
-        layer_obj.name = name
-        layer_obj.data.name = name
-
-        set_layer_prop_value(layer_obj, "name", self.new_name)
-
-        node_group = context.space_data.edit_tree
-        for node in node_group.nodes:
-            if get_node_type(node) == "BioxelNodes_FetchLayer":
-                if node.inputs[0].default_value == layer_obj:
-                    node.label = self.new_name
-
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            self.new_name = get_layer_name(layer_obj)
-            name = get_layer_label(layer_obj)
-            context.window_manager.invoke_props_dialog(self,
-                                                       title=f"Rename {name}")
-            return {'RUNNING_MODAL'}
-        else:
-            return self.execute(context)
-
-
-class ResampleLayer(bpy.types.Operator, OutputLayerOperator):
-    bl_idname = "bioxelnodes.resample_layer"
-    bl_label = "Resample Value"
-    bl_description = "Resample value"
-    bl_icon = "ALIASED"
-
-    smooth: bpy.props.IntProperty(name="Smooth Size",
-                                  default=0,
-                                  soft_min=0, soft_max=5,
-                                  options={"SKIP_SAVE"})  # type: ignore
-
-    bioxel_size: bpy.props.FloatProperty(
-        name="Bioxel Size",
-        soft_min=0.1, soft_max=10.0,
-        default=1,
-    )  # type: ignore
-
-    @staticmethod
-    def get_new_shape(orig_shape, orig_size, new_size):
-        return (int(orig_shape[0]*orig_size/new_size),
-                int(orig_shape[1]*orig_size/new_size),
-                int(orig_shape[2]*orig_size/new_size))
-
-    def operate(self, orig_layer: Layer, context):
-        new_layer = orig_layer.copy()
-        new_shape = self.get_new_shape(new_layer.shape,
-                                       new_layer.bioxel_size[0],
-                                       self.bioxel_size)
-
-        new_layer.resize(new_shape, self.smooth)
-        new_layer.name = self.new_layer_name \
-            or f"{orig_layer.name}_R-{self.bioxel_size:.2f}"
-        return new_layer
-
-    def draw(self, context):
-        layer_obj = get_selected_layer(context)
-        orig_shape = get_layer_prop_value(layer_obj, "shape")
-        orig_size = get_layer_prop_value(layer_obj, "bioxel_size")
-        new_shape = self.get_new_shape(orig_shape,
-                                       orig_size,
-                                       self.bioxel_size)
-
-        orig_shape = tuple(orig_shape)
-        bioxel_count = new_shape[0] * new_shape[1] * new_shape[2]
-
-        layer_shape_text = f"Shape from {str(orig_shape)} to {str(new_shape)}"
-        if bioxel_count > 100000000:
-            layer_shape_text += "**TOO LARGE!**"
-
-        layout = self.layout
-        layout.prop(self, "new_layer_name")
-        layout.prop(self, "bioxel_size")
-        layout.prop(self, "smooth")
-        layout.label(text=layer_shape_text)
-
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            name = get_layer_label(layer_obj)
-            self.bioxel_size = get_layer_prop_value(layer_obj,
-                                                    "bioxel_size")
-            context.window_manager.invoke_props_dialog(self,
-                                                       title=f"Resample {name}")
-            return {'RUNNING_MODAL'}
-        else:
-            return self.execute(context)
-
-
-class SignScalar(bpy.types.Operator, OutputLayerOperator):
-    bl_idname = "bioxelnodes.sign_scalar"
-    bl_label = "Sign Value"
-    bl_description = "Sign value"
-    bl_icon = "REMOVE"
-
-    def operate(self, orig_layer: Layer, context):
-        new_layer = orig_layer.copy()
-        new_layer.data = -orig_layer.data
-        new_layer.name = self.new_layer_name \
-            or f"{orig_layer.name}_Sign"
-        return new_layer
-
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            name = get_layer_label(layer_obj)
-            context.window_manager.invoke_props_dialog(self,
-                                                       title=f"Sign {name}")
-            return {'RUNNING_MODAL'}
-        else:
-            return self.execute(context)
-
-
-class FillOperator(OutputLayerOperator):
-
-    fill_value: bpy.props.FloatProperty(
-        name="Fill Value",
-        soft_min=0, soft_max=1024.0,
-        default=0,
-    )  # type: ignore
-
-    invert: bpy.props.BoolProperty(
-        name="Invert Aera",
+    use_relative: bpy.props.BoolProperty(
+        name="Relative Path",
+        description="Store the path relative to the current Blender file",
         default=True,
     )  # type: ignore
 
-    def invoke(self, context, event):
-        layer_obj = get_selected_layer(context)
-        if layer_obj:
-            name = get_layer_label(layer_obj)
-            context.window_manager.invoke_props_dialog(self,
-                                                       title=f"Fill {name}")
-            return {'RUNNING_MODAL'}
-        else:
-            return self.execute(context)
-
-
-class FillByThreshold(bpy.types.Operator, FillOperator):
-    bl_idname = "bioxelnodes.fill_by_threshold"
-    bl_label = "Fill Value by Threshold"
-    bl_description = "Fill value by threshold"
-    bl_icon = "EMPTY_SINGLE_ARROW"
-
-    threshold: bpy.props.FloatProperty(
-        name="Threshold",
-        soft_min=0, soft_max=1024,
-        default=128,
+    directory: bpy.props.StringProperty(
+        name="Layer Folder",
+        description="Select the correct folder for this layer",
+        subtype="DIR_PATH",
     )  # type: ignore
-
-    def operate(self, orig_layer: Layer, context):
-        data = np.amax(orig_layer.data, -1)
-        mask = data <= self.threshold \
-            if self.invert else data > self.threshold
-
-        new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 0)
-        new_layer.name = self.new_layer_name \
-            or f"{orig_layer.name}_F-{self.threshold:.2f}"
-        return new_layer
-
-
-class FillByRange(bpy.types.Operator, FillOperator):
-    bl_idname = "bioxelnodes.fill_by_range"
-    bl_label = "Fill Value by Range"
-    bl_description = "Fill value by range"
-    bl_icon = "IPO_CONSTANT"
-
-    from_min: bpy.props.FloatProperty(
-        name="From Min",
-        soft_min=0, soft_max=1024,
-        default=128,
-    )  # type: ignore
-
-    from_max: bpy.props.FloatProperty(
-        name="From Max",
-        soft_min=0, soft_max=1024,
-        default=256,
-    )  # type: ignore
-
-    def operate(self, orig_layer: Layer, context):
-        data = np.amax(orig_layer.data, -1)
-        mask = (data <= self.from_min) | (data >= self.from_max) if self.invert else \
-            (data > self.from_min) & (data < self.from_max)
-
-        new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 0)
-        new_layer.name = self.new_layer_name \
-            or f"{orig_layer.name}_F-{self.from_min:.2f}-{self.from_max:.2f}"
-        return new_layer
-
-
-class FillByLabel(bpy.types.Operator, FillOperator):
-    bl_idname = "bioxelnodes.fill_by_label"
-    bl_label = "Fill Value by Label"
-    bl_description = "Fill value by label"
-    bl_icon = "MESH_CAPSULE"
-
-    smooth: bpy.props.IntProperty(name="Smooth Size",
-                                  default=0,
-                                  soft_min=0, soft_max=5,
-                                  options={"SKIP_SAVE"})  # type: ignore
-
-    label_obj_name: bpy.props.EnumProperty(name="Label Layer",
-                                           items=get_label_layer_selection)  # type: ignore
-
-    def operate(self, orig_layer: Layer, context):
-        label_obj = bpy.data.objects.get(self.label_obj_name)
-        if label_obj is None:
-            raise NoContent("Cannot find any label layer.")
-
-        label_layer = obj_to_layer(label_obj)
-        label_layer.resize(orig_layer.shape, self.smooth)
-        mask = np.amax(label_layer.data, -1)
-        if self.invert:
-            mask = 1 - mask
-
-        new_layer = orig_layer.copy()
-        new_layer.fill(self.fill_value, mask, 0)
-        new_layer.name = self.new_layer_name \
-            or f"{orig_layer.name}_F-{label_layer.name}"
-        return new_layer
-
-
-class CombineLabels(bpy.types.Operator, OutputLayerOperator):
-    bl_idname = "bioxelnodes.combine_labels"
-    bl_label = "Combine Labels"
-    bl_description = "Combine all selected labels"
-    bl_icon = "MOD_BUILD"
-
-    def execute(self, context):
-        def layer_filter(layer_obj, context):
-            return get_layer_kind(layer_obj) == "label"
-
-        label_objs = get_selected_layers(context, layer_filter)
-
-        if len(label_objs) < 2:
-            self.report({"WARNING"}, "Not enough layers.")
-            return {'FINISHED'}
-
-        base_obj = label_objs[0]
-        label_objs = label_objs[1:]
-
-        base_layer = obj_to_layer(base_obj)
-        new_layer = base_layer.copy()
-        label_names = [base_layer.name]
-
-        for label_obj in label_objs:
-            label_layer = obj_to_layer(label_obj)
-            label_layer.resize(base_layer.shape)
-            new_layer.data = np.maximum(
-                new_layer.data, label_layer.data)
-            label_names.append(label_layer.name)
-
-        new_layer.name = self.new_layer_name \
-            or f"C-{'-'.join(label_names)}"
-
-        self.add_layer_node(context, new_layer)
-        return {'FINISHED'}
-
-
-class BatchLayerOperator():
-    success_msg = "Successfully done selected layers."
-    fail_msg = "fails."
-
-    def execute(self, context):
-        layer_objs = self.get_layers(context)
-
-        fails = []
-        for layer_obj in layer_objs:
-            try:
-                self.operate(layer_obj, context)
-            except:
-                fails.append(layer_obj)
-
-        if len(fails) == 0:
-            self.report({"INFO"}, self.success_msg)
-        else:
-            self.report(
-                {"WARNING"}, f"{','.join([layer_obj.name for layer_obj in fails])} {self.fail_msg}")
-
-        return {'FINISHED'}
-
-
-class SaveLayersCache(BatchLayerOperator):
-    fail_msg = "fail to save."
-
-    cache_dir: bpy.props.StringProperty(
-        name="Cache Directory",
-        subtype='DIR_PATH',
-        default="//"
-    )  # type: ignore
-
-    def operate(self, layer_obj, context):
-        output_dir = bpy.path.abspath(self.cache_dir)
-        source_dir = bpy.path.abspath(layer_obj.data.filepath)
-
-        source_path: Path = Path(source_dir).resolve()
-        is_sequence = layer_obj.data.is_sequence
-
-        name = layer_obj.name if is_sequence else f"{layer_obj.name}.vdb"
-        output_path: Path = Path(output_dir, name, source_path.name).resolve() \
-            if is_sequence else Path(output_dir, name).resolve()
-
-        if output_path != source_path:
-            copy_to_dir(source_path.parent if is_sequence else source_path,
-                        output_path.parent.parent if is_sequence else output_path.parent,
-                        new_name=name)
-
-        blend_path = Path(bpy.path.abspath("//")).resolve()
-
-        layer_obj.data.filepath = bpy.path.relpath(str(output_path),
-                                                   start=str(blend_path))
-
-        return {'FINISHED'}
 
     def invoke(self, context, event):
-        context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
 
+    def execute(self, context):
+        if not self.cache_id:
+            self.report({"ERROR"}, "Missing cache id")
+            return {"CANCELLED"}
+        if not self.directory:
+            self.report({"ERROR"}, "Please select a folder")
+            return {"CANCELLED"}
 
-class RemoveLayers(BatchLayerOperator):
-    fail_msg = "fail to remove."
+        caches = get_layer_caches()
+        entry = next((c for c in caches if str(c.get("id", "")) == self.cache_id), None)
+        if not entry:
+            self.report({"ERROR"}, "Layer not found")
+            return {"CANCELLED"}
 
-    def operate(self, layer_obj, context):
+        old_path = entry["path"]
+        new_path = (
+            bpy.path.relpath(self.directory)
+            if self.use_relative and bpy.data.filepath
+            else bpy.path.abspath(self.directory)
+        )
+        entry["path"] = new_path
+
+        set_layer_caches(caches)
+        refresh_bioxel_panels(context)
+
+        # 更新所有 node group 中 O Layer 节点的 Path
         for node_group in bpy.data.node_groups:
-            for node in node_group.nodes:
-                if get_node_type(node) == "BioxelNodes_FetchLayer":
-                    if node.inputs[0].default_value == layer_obj:
-                        node_group.nodes.remove(node)
+            for node in get_layer_nodes(node_group):
+                node_path = getattr(node.inputs.get("Path"), "default_value")
+                if node_path and node_path == old_path:
+                    node.inputs["Path"].default_value = new_path
 
-        cache_filepath = Path(bpy.path.abspath(
-            layer_obj.data.filepath)).resolve()
+        self.report({"INFO"}, f"Cache path updated: {new_path}")
+        return {"FINISHED"}
 
-        if cache_filepath.is_file():
-            if layer_obj.data.is_sequence:
-                for f in cache_filepath.parent.iterdir():
-                    f.unlink(missing_ok=True)
-            else:
-                cache_filepath.unlink(missing_ok=True)
 
-        # also remove layer object
-        bpy.data.volumes.remove(layer_obj.data)
+class SaveLayer(bpy.types.Operator):
+    """Copy the entire layer folder (named by id) to a target folder and update its path in the cache"""
 
-        return {'FINISHED'}
+    bl_idname = "bioxel.cache_layer_to_folder"
+    bl_label = "Save Layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    cache_id: bpy.props.StringProperty(options={"HIDDEN"})  # type: ignore
+
+    use_relative: bpy.props.BoolProperty(
+        name="Relative Path",
+        description="Store the path relative to the current Blender file",
+        default=True,
+    )  # type: ignore
+
+    directory: bpy.props.StringProperty(
+        name="Target Folder",
+        description="Select a folder to cache the layer files",
+        subtype="DIR_PATH",
+    )  # type: ignore
 
     def invoke(self, context, event):
-        context.window_manager.invoke_confirm(self,
-                                              event,
-                                              message=f"Are you sure to remove them?")
-        return {'RUNNING_MODAL'}
+        # Default to Blender file directory if possible
+        blend_dir = Path(bpy.data.filepath).parent if bpy.data.filepath else Path.cwd()
+        context.window_manager.fileselect_add(self)
+        if not self.directory:
+            self.directory = str(blend_dir)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        if not self.cache_id:
+            self.report({"ERROR"}, "Missing cache id")
+            return {"CANCELLED"}
+        if not self.directory:
+            self.report({"ERROR"}, "Please select a target folder")
+            return {"CANCELLED"}
+
+        caches = get_layer_caches()
+        entry = next((c for c in caches if str(c.get("id")) == self.cache_id), None)
+        cache_id = entry.get("id")
+
+        if not entry:
+            self.report({"ERROR"}, "Layer not found")
+            return {"CANCELLED"}
+
+        old_path = entry["path"]
+        src_path = bpy.path.abspath(old_path)
+        if not src_path or not Path(src_path).is_dir():
+            self.report({"ERROR"}, "Source folder not found")
+            return {"CANCELLED"}
+
+        src_dir = Path(src_path).resolve()
+        dst_root = Path(self.directory)
+        # copy as a subfolder named by id
+        dst_dir = (dst_root / src_dir.name).resolve()
+
+        try:
+            if src_dir != dst_dir:
+                if dst_dir.exists():
+                    shutil.rmtree(dst_dir)
+                shutil.copytree(src_dir, dst_dir)
+
+                # Save as relative path if requested and possible
+
+            new_path = (
+                bpy.path.relpath(str(dst_dir))
+                if self.use_relative and bpy.data.filepath
+                else bpy.path.abspath(str(dst_dir))
+            )
+
+            entry["path"] = new_path
+
+            set_layer_caches(caches)
+            refresh_bioxel_panels(context)
+
+            # 遍历所有 node group
+            for node_group in bpy.data.node_groups:
+                for node in get_layer_nodes(node_group):
+                    if cache_id == getattr(node.inputs.get("ID"), "default_value"):
+                        node.inputs["Path"].default_value = new_path
+
+            self.report({"INFO"}, f"Layer cached to {dst_dir}")
+            return {"FINISHED"}
+        except Exception as e:
+            self.report({"ERROR"}, f"Failed to cache layer: {e}")
+            return {"CANCELLED"}
 
 
-class SaveSelectedLayersCache(bpy.types.Operator, SaveLayersCache):
-    bl_idname = "bioxelnodes.save_selected_layers_cache"
-    bl_label = "Save Selected Layers Cache"
-    bl_description = "Save selected layers' Cache"
-    bl_icon = "FILE_TICK"
+class SelectAndFocusNode(bpy.types.Operator):
+    """Select and focus the specified node in the current node tree"""
 
-    success_msg = "Successfully saved all selected layers."
+    bl_idname = "bioxel.select_and_focus_node"
+    bl_label = "Select and Focus Node"
+    node_name: bpy.props.StringProperty()  # type: ignore
 
-    def get_layers(self, context):
-        def is_not_missing(layer_obj, context):
-            return not is_missing_layer(layer_obj)
-        return get_selected_layers(context, is_not_missing)
-
-
-class RemoveSelectedLayers(bpy.types.Operator, RemoveLayers):
-    bl_idname = "bioxelnodes.remove_selected_layers"
-    bl_label = "Remove Selected Layers"
-    bl_description = "Remove selected layers"
-    bl_icon = "TRASH"
-
-    success_msg = "Successfully removed all selected layers."
-
-    def get_layers(self, context):
-        return get_selected_layers(context)
+    def execute(self, context):
+        node_group = get_main_node_group(context)
+        if not node_group:
+            self.report({"ERROR"}, "No node group found.")
+            return {"CANCELLED"}
+        node = node_group.nodes.get(self.node_name)
+        if not node:
+            self.report({"ERROR"}, f"Node '{self.node_name}' not found.")
+            return {"CANCELLED"}
+        # Deselect all, select and focus this node
+        for n in node_group.nodes:
+            n.select = False
+        node.select = True
+        node_group.nodes.active = node
+        bpy.ops.node.view_selected()
+        return {"FINISHED"}

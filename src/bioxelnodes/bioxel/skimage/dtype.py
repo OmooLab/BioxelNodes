@@ -39,7 +39,8 @@ _integer_types = (
     np.uintp,
     np.uintc,
 )
-_integer_ranges = {t: (np.iinfo(t).min, np.iinfo(t).max) for t in _integer_types}
+_integer_ranges = {t: (np.iinfo(t).min, np.iinfo(t).max)
+                   for t in _integer_types}
 dtype_range = {
     bool: (False, True),
     np.bool_: (False, True),
@@ -175,7 +176,8 @@ def _scale(a, n, m, copy=True):
         # downscale with precision loss
         if copy:
             b = np.empty(a.shape, _dtype_bits(kind, m))
-            np.floor_divide(a, 2 ** (n - m), out=b, dtype=a.dtype, casting='unsafe')
+            np.floor_divide(a, 2 ** (n - m), out=b,
+                            dtype=a.dtype, casting='unsafe')
             return b
         else:
             a //= 2 ** (n - m)
@@ -282,7 +284,8 @@ def _convert(image, dtype, force_copy=False, uniform=False):
         return image
 
     if not (dtype_in in _supported_types and dtype_out in _supported_types):
-        raise ValueError(f'Cannot convert from {dtypeobj_in} to ' f'{dtypeobj_out}.')
+        raise ValueError(
+            f'Cannot convert from {dtypeobj_in} to ' f'{dtypeobj_out}.')
 
     if kind_in in 'ui':
         imin_in = np.iinfo(dtype_in).min
@@ -318,7 +321,8 @@ def _convert(image, dtype, force_copy=False, uniform=False):
 
         if not uniform:
             if kind_out == 'u':
-                image_out = np.multiply(image, imax_out, dtype=computation_type)
+                image_out = np.multiply(
+                    image, imax_out, dtype=computation_type)
             else:
                 image_out = np.multiply(
                     image, (imax_out - imin_out) / 2, dtype=computation_type
@@ -327,7 +331,8 @@ def _convert(image, dtype, force_copy=False, uniform=False):
             np.rint(image_out, out=image_out)
             np.clip(image_out, imin_out, imax_out, out=image_out)
         elif kind_out == 'u':
-            image_out = np.multiply(image, imax_out + 1, dtype=computation_type)
+            image_out = np.multiply(
+                image, imax_out + 1, dtype=computation_type)
             np.clip(image_out, 0, imax_out, out=image_out)
         else:
             image_out = np.multiply(

@@ -1,6 +1,12 @@
 import copy
 import numpy as np
 
+# 条件导入 openvdb（只在 Blender 环境中存在）
+try:
+    import openvdb as vdb
+except ImportError:
+    vdb = None
+
 from . import scipy
 from . import scipy as ndi
 
@@ -78,8 +84,8 @@ class Layer():
                 mask_frame = mask[f, :, :, :]
                 if smooth > 0:
                     mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
-                                                      mode="nearest",
-                                                      size=smooth)
+                                                     mode="nearest",
+                                                     size=smooth)
                 # mask_frame = scipy.median_filter(
                 #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
@@ -88,8 +94,8 @@ class Layer():
                 mask_frame = mask[:, :, :]
                 if smooth > 0:
                     mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
-                                                      mode="nearest",
-                                                      size=smooth)
+                                                     mode="nearest",
+                                                     size=smooth)
                 # mask_frame = scipy.median_filter(
                 #     mask_frame.astype(np.float32), size=2)
                 mask_frames += (mask_frame,)
@@ -150,3 +156,32 @@ class Layer():
 
         mat_scale = transforms3d.zooms.zfdir2aff(factors[0])
         self.affine = np.dot(self.affine, mat_scale)
+
+    def snapshot(self, shape: tuple, smooth: int = 0):
+        if len(shape) != 3:
+            raise Exception("Shape must be 3 dim")
+
+        data = self.data
+
+        snapshot = data[0, :, :, :, :]
+
+        factors = np.divide(self.shape, shape)
+        zoom_factors = [1 / f for f in factors]
+        order = 0 if snapshot.dtype == bool else 1
+        snapshot = ndi.zoom(snapshot,
+                            zoom_factors+[1.0],
+                            mode="nearest",
+                            grid_mode=False,
+                            order=order)
+
+        snapshot = snapshot.astype(np.float32)
+
+        if self.kind in ['scalar', 'vector', 'color']:
+            mn = float(np.nanmin(snapshot))
+            mx = float(np.nanmax(snapshot))
+            if mx - mn > 1e-8:
+                snapshot = (snapshot - mn) / (mx - mn)
+            else:
+                snapshot = np.clip(snapshot, 0.0, 1.0)
+
+        return snapshot

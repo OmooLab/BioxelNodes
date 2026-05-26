@@ -1,0 +1,30 @@
+/* not show label in canvas */
+.canvas-node-label {
+    display: none;
+}
+
+.canvas-node-container:hover + .canvas-node-label {
+    display: inherit;
+}
+
+/* image caption */
+.image-embed {
+    flex-wrap: wrap;
+}
+
+.image-embed[alt]:after {
+    content: attr(alt);
+    display: block;
+    padding-bottom: 12px;
+    line-height: 2.0;
+    font-style: italic;
+    color: var(--text-faint);
+    text-align: center;
+    width: 100%;
+}
+
+
+/* fix image in canvas */
+.image-embed {
+    padding: 0;
+}

@@ -83,7 +83,8 @@ def _get_output(output, input, shape=None, complex_output=False):
     elif isinstance(output, (type, np.dtype)):
         # Classes (like `np.float32`) and dtypes are interpreted as dtype
         if complex_output and np.dtype(output).kind != 'c':
-            warnings.warn("promoting specified output dtype to complex", stacklevel=3)
+            warnings.warn(
+                "promoting specified output dtype to complex", stacklevel=3)
             output = np.promote_types(output, np.complex64)
         output = np.zeros(shape, dtype=output)
     elif isinstance(output, str):

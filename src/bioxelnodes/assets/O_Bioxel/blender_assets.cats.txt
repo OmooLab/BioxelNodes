@@ -1,0 +1,12 @@
+# This is an Asset Catalog Definition file for Blender.
+#
+# Empty lines and lines starting with `#` will be ignored.
+# The first non-ignored line should be the version indicator.
+# Other lines are of the format "UUID:catalog/path/for/assets:simple catalog name"
+
+VERSION 1
+
+c0699a8b-6fd6-4d10-bdde-5ea0fa36724d:O Bioxel:O Bioxel
+5ea24e10-5a2b-44d1-b67b-19014c412793:O Bioxel/Layer:O Bioxel-Layer
+17383d65-f1a0-4122-b73a-0baaad4b8ecf:O Bioxel/Structure:O Bioxel-Structure
+d03fc5b0-465c-45ba-ba8e-524a1c52ae3d:O Bioxel/Utilities:O Bioxel-Utilities

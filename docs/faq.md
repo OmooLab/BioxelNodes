@@ -1,15 +1,15 @@
-# FAQ
+# 常见问题
 
-## Nothing in the scene when rendering?
+## 渲染时场景什么都没有？
 
-If you're using the Cycles renderer with GPU, make sure your GPU supports "Optix", as Bioxel Nodes relies on OSL (Open shader language) for volumetric rendering, otherwise you'll have to use the CPU for rendering.
+如果您使用 GPU 进行 Cycles 渲染，请确保您的 GPU 支持"Optix"，因为 Bioxel Nodes 依赖 OSL（Open Shader Language）进行体渲染，否则您必须使用 CPU 进行渲染。
 
-If you're using the EEVEE renderer, this issue is due to EEVEE not loading shaders for some unknown reason, save the file and restart Blender to fix it.
+如果您使用 EEVEE 渲染器，此问题是因为 EEVEE 出于未知原因未加载着色器，保存文件并重启 Blender 即可修复。
 
-## After updating the addon, the nodes in the file have turned red?
+## 更新插件后，文件中的节点变红了？
 
-This is because the version of the nodes in the file does not match the current version of the addon after updating.
+这是因为文件中节点的版本与更新后插件的版本不匹配。
 
-If you still want to edit the file with Bioxel Nodes, you can only roll back the addon version to the version that corresponds to the nodes.
+如果您仍想使用 Bioxel Nodes 编辑文件，只能将插件回滚到与节点对应的版本。
 
-If you just want the file to work and you won't rely on Bioxel Nodes any more, then you can just click **Bioxel Nodes > Relink Node Library >** in the top menu and select the corresponding version. Check to see if the nodes are working and rendering properly, and when everything is OK, click **Bioxel Nodes > Save Node Library** and select the save location in the dialog box.
+如果您只想让文件正常工作，不再依赖 Bioxel Nodes，那么您只需点击顶部菜单 **Bioxel Nodes > Relink Node Library >**，然后选择相应的版本。检查节点是否正常工作并正确渲染，一切正常后，点击 **Bioxel Nodes > Save Node Library**，在对话框中选择保存位置。

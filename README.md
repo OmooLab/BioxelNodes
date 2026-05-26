@@ -1,4 +1,6 @@
-[中文文档](https://uj6xfhbzp0.feishu.cn/wiki/LPKEwjooSivxjskWHlCcQznjnNf?from=from_copylink)
+**v2.0.x has been released, supporting only Blender 5.0+. The usage is completely different from before and is not compatible with old version files. See  http://docs.omoolab.xyz/bioxelnodes/2.0.x/en/basics/**
+
+[中文文档](https://docs.omoolab.xyz/bioxelnodes/latest/)
 
 # Bioxel Nodes
 
@@ -26,7 +28,7 @@ Bioxel Nodes is a Blender addon for scientific volumetric data visualization. It
 | :--------------------------------------------------------------------: | :---------------------------------------------------------------------: |
 |                       Support 4D volumetric data                       |                       Real-time render with eevee                       |
 
-**Read the [getting started](https://omoolab.github.io/BioxelNodes/latest/installation) to begin your journey into visualizing volumetric data!**
+**Read the [getting started](https://docs.omoolab.xyz/bioxelnodes/latest/en/installation) to begin your journey into visualizing volumetric data!**
 
 Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any problems with this add-on.
 

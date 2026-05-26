@@ -11,7 +11,7 @@ def _prepad_for_spline_filter(input, mode, cval):
         npad = 12
         if mode == 'grid-constant':
             padded = np.pad(input, npad, mode='constant',
-                               constant_values=cval)
+                            constant_values=cval)
         elif mode == 'nearest':
             padded = np.pad(input, npad, mode='edge')
     else:
@@ -20,6 +20,7 @@ def _prepad_for_spline_filter(input, mode, cval):
         npad = 0
         padded = input
     return padded, npad
+
 
 def spline_filter1d(input, order=3, axis=-1, output=np.float64,
                     mode='mirror'):

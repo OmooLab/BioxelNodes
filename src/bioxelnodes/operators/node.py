@@ -1,12 +1,12 @@
 import bpy
 
-from ..bioxelutils.common import is_incompatible, local_lib_not_updated
-from ..bioxelutils.node import assign_node_tree, get_node_tree
+from ..utils import is_incompatible, local_lib_not_updated
+from ..node import assign_node_tree, get_node_tree
 from ..utils import get_use_link
 
 
 class AddNode(bpy.types.Operator):
-    bl_idname = "bioxelnodes.add_node"
+    bl_idname = "bioxel.add_node"
     bl_label = "Add Node"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -24,7 +24,7 @@ class AddNode(bpy.types.Operator):
 
     @property
     def node_type(self):
-        return f"BioxelNodes_{self.node_name}"
+        return f"O {self.node_name}"
 
     def execute(self, context):
         space = context.space_data
