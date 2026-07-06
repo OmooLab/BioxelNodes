@@ -1,9 +1,13 @@
 ---
-name: "OPSX: Archive"
-description: Archive a completed change in the experimental workflow
-category: Workflow
-tags: [workflow, archive, experimental]
+name: "source-command-opsx-archive"
+description: "Archive a completed change in the experimental workflow"
 ---
+
+# source-command-opsx-archive
+
+Use this skill when the user asks to run the migrated source command `opsx-archive`.
+
+## Command Template
 
 Archive a completed change in the experimental workflow.
 

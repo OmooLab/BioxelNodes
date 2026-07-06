@@ -6,7 +6,7 @@ name = "Bioxel Nodes"
 tagline = "For scientific volumetric data visualization in Blender"
 maintainer = "Nan <icrdr2010@outlook.com>"
 type = "add-on"
-website = "https://omoolab.github.io/BioxelNodes/latest"
+website = "https://docs.omoolab.xyz/bioxelnodes/"
 
 tags = ["Geometry Nodes", "Render", "Import-Export"]
 blender_version_min = "5.0.0"
@@ -29,12 +29,13 @@ wheels = [
     "./wheels/matplotlib-3.10.7-cp311-cp311-win_amd64.whl",
     "./wheels/matplotlib-3.10.7-cp313-cp313-win_amd64.whl",
     "./wheels/mrcfile-1.5.1-py2.py3-none-any.whl",
-    "./wheels/packaging-26.2-py3-none-any.whl",
     "./wheels/pillow-11.2.1-cp311-cp311-win_amd64.whl",
     "./wheels/pillow-11.2.1-cp313-cp313-win_amd64.whl",
     "./wheels/pyometiff-1.0.0-py3-none-any.whl",
     "./wheels/pyparsing-3.3.2-py3-none-any.whl",
     "./wheels/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+    "./wheels/scipy-1.17.1-cp311-cp311-win_amd64.whl",
+    "./wheels/scipy-1.17.1-cp313-cp313-win_amd64.whl",
     "./wheels/simpleitk-2.5.5-cp311-abi3-win_amd64.whl",
     "./wheels/six-1.17.0-py2.py3-none-any.whl",
     "./wheels/tifffile-2024.7.24-py3-none-any.whl",

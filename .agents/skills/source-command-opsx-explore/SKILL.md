@@ -1,9 +1,13 @@
 ---
-name: "OPSX: Explore"
+name: "source-command-opsx-explore"
 description: "Enter explore mode - think through ideas, investigate problems, clarify requirements"
-category: Workflow
-tags: [workflow, explore, experimental, thinking]
 ---
+
+# source-command-opsx-explore
+
+Use this skill when the user asks to run the migrated source command `opsx-explore`.
+
+## Command Template
 
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
