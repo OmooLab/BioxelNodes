@@ -20,7 +20,7 @@ required_packages = ["SimpleITK==2.5.5",
                      "tifffile==2024.7.24",
                      "matplotlib==3.10.7",
                      "pillow==11.2.1",
-                     "scipy==1.17.1"]
+                     "scipy==1.16.3"]
 
 
 platforms = {"windows-x64": Platform(pypi_suffix="win_amd64",
