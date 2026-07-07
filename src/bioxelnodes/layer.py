@@ -227,20 +227,18 @@ def set_layer_caches(layers_data: List[Dict[str, Any]]):
     layers_text.write(json.dumps(layers_data, indent=4))
 
 
-def save_layers_to_json(layers: List[Layer], cache_dir: str) -> List[int]:
+def save_layers_to_cache(layers: List[Layer], cache_dir: str) -> List[Dict[str, Any]]:
     """
-    Save multiple Layer objects into the internal layers text datablock.
+    Save multiple Layer objects into cache folders.
 
     For each layer:
     - Generates a unique cache id.
     - Writes VDB files and a low-resolution snapshot (.npy) plus PNG slices under cache_dir/<cache_id>/.
-    - Appends an entry describing the layer into the b i o x e l _ l a y e r s text datablock.
 
     Returns:
-    - List of generated cache ids for the saved layers.
+    - List of layer cache metadata dictionaries.
     """
-    existing_data = get_layer_caches()
-    added_ids = []
+    cache_infos = []
 
     cache_dir_path = Path(cache_dir)
     cache_dir_path.mkdir(parents=True, exist_ok=True)
@@ -270,8 +268,22 @@ def save_layers_to_json(layers: List[Layer], cache_dir: str) -> List[int]:
             "snapshot_z": 0.5,
         }
 
+        cache_infos.append(cache_info)
+
+    return cache_infos
+
+
+def save_layers_to_json(layers: List[Layer], cache_dir: str) -> List[int]:
+    """
+    Save multiple Layer objects into cache folders and the internal layers text datablock.
+    """
+    existing_data = get_layer_caches()
+    cache_infos = save_layers_to_cache(layers, cache_dir)
+
+    added_ids = []
+    for cache_info in cache_infos:
         existing_data.append(cache_info)
-        added_ids.append(cache_id)
+        added_ids.append(cache_info["id"])
 
     set_layer_caches(existing_data)
     print(f"Successfully added {len(added_ids)} layers to the internal text datablock")

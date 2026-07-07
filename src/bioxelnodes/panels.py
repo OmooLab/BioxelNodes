@@ -1,11 +1,12 @@
 from pathlib import Path
 import bpy
 
+from .asset_library import has_bioxel_asset_library
 from .node import get_layer_nodes, get_main_node_group
 from .utils import load_icon
 from .layer import get_layer_caches
 from .operators.io import ImportAsColor, ImportAsLabel, ImportAsScalar, ImportData
-from .operators.misc import Help, RenderSettingPreset
+from .operators.misc import AddAssetLibrary, Help, RenderSettingPreset
 from .operators.layer import (
     AddLayerNode,
     DeleteLayer,
@@ -54,21 +55,37 @@ class BioxelPanelBase:
     bl_region_type = "UI"
     bl_context = "geometry_node"
     bl_category = "Bioxel Nodes"
+    requires_asset_library = True
     # try to make Bioxel panels order early (may be respected by Blender)
 
     @classmethod
     def poll(cls, context):
         node_group = get_main_node_group(context)
-        return node_group is not None
+        if node_group is None:
+            return False
+
+        if not getattr(cls, "requires_asset_library", True):
+            return True
+
+        return has_bioxel_asset_library()
 
 
 class HeaderPanel(bpy.types.Panel, BioxelPanelBase):
     bl_label = "Bioxel Nodes"
     bl_idname = "BIOXEL_PT_header_panel"
     bl_order = 0
+    requires_asset_library = False
 
     def draw(self, context):
         layout = self.layout
+
+        if not has_bioxel_asset_library():
+            layout.operator(
+                AddAssetLibrary.bl_idname,
+                text="Add Nodes Library",
+                icon="ASSET_MANAGER",
+            )
+            return
 
         layout.operator(
             Help.bl_idname, text="Help", icon=Help.bl_icon  # 复用原操作的图标定义

@@ -1,6 +1,6 @@
 [project]
 name = "bioxelnodes"
-version = "2.0.0"
+version = "2.0.1"
 description = ""
 authors = [{ name = "MaNan", email = "icrdr2010@outlook.com" }]
 requires-python = ">=3.11.0,<3.12.dev0"

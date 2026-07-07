@@ -5,6 +5,7 @@ import bpy
 from pathlib import Path
 import shutil
 
+from ..asset_library import add_bioxel_asset_library
 from ..constants import LATEST_NODE_LIB_PATH
 from ..utils import (
     get_all_layer_objs,
@@ -117,6 +118,27 @@ class Help(bpy.types.Operator):
     def execute(self, context):
         webbrowser.open("https://docs.omoolab.xyz/bioxelnodes/latest/", new=2)
 
+        return {"FINISHED"}
+
+
+class AddAssetLibrary(bpy.types.Operator):
+    bl_idname = "bioxel.add_asset_library"
+    bl_label = "Add Nodes Library"
+    bl_description = "Add the bundled O Bioxel asset library"
+
+    def execute(self, context):
+        try:
+            add_bioxel_asset_library()
+        except FileNotFoundError as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == "NODE_EDITOR":
+                    area.tag_redraw()
+
+        self.report({"INFO"}, "O Bioxel asset library is ready.")
         return {"FINISHED"}
 
 
