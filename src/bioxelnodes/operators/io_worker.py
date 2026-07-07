@@ -3,17 +3,21 @@ import sys
 import traceback
 from pathlib import Path
 
-
-PACKAGE_PARENT = Path(__file__).resolve().parents[2]
-if str(PACKAGE_PARENT) not in sys.path:
-    sys.path.insert(0, str(PACKAGE_PARENT))
-
 import numpy as np
 import transforms3d
 
-from bioxelnodes.bioxel.layer import Layer
-from bioxelnodes.bioxel.parse import parse_volumetric_data
-from bioxelnodes.layer import save_layers_to_cache
+if __package__:
+    from ..bioxel.layer import Layer
+    from ..bioxel.parse import parse_volumetric_data
+    from ..layer import save_layers_to_cache
+else:
+    PACKAGE_PARENT = Path(__file__).resolve().parents[2]
+    if str(PACKAGE_PARENT) not in sys.path:
+        sys.path.insert(0, str(PACKAGE_PARENT))
+
+    from bioxelnodes.bioxel.layer import Layer
+    from bioxelnodes.bioxel.parse import parse_volumetric_data
+    from bioxelnodes.layer import save_layers_to_cache
 
 
 def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
