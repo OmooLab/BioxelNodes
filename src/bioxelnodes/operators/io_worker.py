@@ -2,13 +2,6 @@ import json
 import traceback
 from pathlib import Path
 
-import numpy as np
-import transforms3d
-
-from ..bioxel.layer import Layer
-from ..bioxel.parse import parse_volumetric_data
-from ..layer import save_layers_to_cache
-
 
 def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
     shape = (
@@ -62,6 +55,10 @@ def progress_callback_factory(progress_path: Path, cancel_path: Path, layer_name
 
 
 def read_meta(config, progress_path: Path, cancel_path: Path):
+    import numpy as np
+
+    from ..bioxel.parse import parse_volumetric_data
+
     progress_callback = make_progress_writer(progress_path, cancel_path)
     series_id = config["series_id"] if config["series_id"] != "empty" else ""
     data, meta = parse_volumetric_data(
@@ -84,6 +81,13 @@ def read_meta(config, progress_path: Path, cancel_path: Path):
 
 
 def build_layers(config, progress_path: Path, cancel_path: Path):
+    import numpy as np
+    import transforms3d
+
+    from ..bioxel.layer import Layer
+    from ..bioxel.parse import parse_volumetric_data
+    from ..layer import save_layers_to_cache
+
     write_json(progress_path, {"factor": 0.0, "text": "Parsing Volumetirc Data..."})
     progress_callback = make_progress_writer(progress_path, cancel_path, scale=0.2)
     data, meta = parse_volumetric_data(
@@ -231,6 +235,7 @@ def main(args):
     cancel_path = Path(config["cancel_path"])
 
     try:
+        write_json(progress_path, {"factor": 0.0, "text": "Loading import modules..."})
         if config["command"] == "read_meta":
             result = read_meta(config, progress_path, cancel_path)
         elif config["command"] == "import_layers":

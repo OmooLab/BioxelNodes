@@ -13,7 +13,7 @@ import SimpleITK as sitk
 from ..props import BIOXEL_Series
 from ..utils import get_layer_obj, wrapped_label
 
-from ..bioxel.parse import DICOM_EXTS, SUPPORT_EXTS, get_ext
+from ..bioxel.parse import DICOM_EXTS, SUPPORT_EXTS, get_ext, parse_volumetric_data
 
 from ..utils import get_cache_dir, progress_update, progress_bar
 from ..layer import get_layer_caches, set_layer_caches
@@ -87,7 +87,10 @@ def start_worker_process(owner, command: str, payload: dict):
         "cancel_path": str(cancel_path),
     }
     write_worker_json(config_path, config)
-    write_worker_json(progress_path, {"factor": 0.0, "text": "Starting..."})
+    write_worker_json(
+        progress_path,
+        {"factor": 0.0, "text": "Starting background Blender..."},
+    )
 
     print(f"Starting Bioxel worker with addon module: {addon_name}")
     cmd = [
@@ -198,7 +201,6 @@ class ImportDataBase:
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
-
 class ImportData(bpy.types.Operator, ImportDataBase):
     bl_idname = "bioxel.import_data"
     bl_label = "Import Data"
@@ -301,63 +303,25 @@ class ParseVolumetricData(bpy.types.Operator):
 
     def execute(self, context):
         print("Collecting Meta Data...")
-        self.is_cancelled = False
-        self.has_error = None
-        self.meta = None
-        self.label_count = 0
-        self.dtype = None
+        progress_update(context, 0.0, "Collecting Meta Data...")
 
-        start_worker_process(
-            self,
-            "read_meta",
-            {
-                "filepath": self.filepath,
-                "series_id": self.series_id,
-            },
-        )
+        def progress_callback(factor, text):
+            progress_update(context, factor, text)
 
-        self._timer = context.window_manager.event_timer_add(
-            time_step=0.1, window=context.window
-        )
-        bpy.types.STATUSBAR_HT_header.append(progress_bar)
-        context.window_manager.modal_handler_add(self)
-        return {"RUNNING_MODAL"}
+        try:
+            series_id = self.series_id if self.series_id != "empty" else ""
+            data, meta = parse_volumetric_data(
+                data_file=self.filepath,
+                series_id=series_id,
+                progress_callback=progress_callback,
+            )
+        except Exception as e:
+            raise e
 
-    def modal(self, context, event):
-        if event.type == "ESC":
-            cancel_worker_process(self, context)
-            return {"PASS_THROUGH"}
-
-        if event.type != "TIMER":
-            return {"PASS_THROUGH"}
-
-        bpy.context.workspace.status_text_set_internal(None)
-        update_worker_progress(self, context)
-
-        if self.process.poll() is None:
-            return {"PASS_THROUGH"}
-
-        context.window_manager.event_timer_remove(self._timer)
-        remove_progress_bar_safe()
+        self.meta = meta
+        self.label_count = int(np.max(data))
+        self.dtype = data.dtype
         progress_update(context, 1.0)
-
-        result = read_worker_json(self.result_path)
-        if self.is_cancelled or (result and result.get("cancelled")):
-            self.report({"WARNING"}, "Canncelled by user.")
-            return {"CANCELLED"}
-
-        if not result:
-            self.report({"ERROR"}, f"Import worker failed. See log: {self.log_path}")
-            return {"CANCELLED"}
-
-        if not result.get("ok"):
-            print(result.get("traceback", ""))
-            self.report({"ERROR"}, result.get("error", "Import worker failed."))
-            return {"CANCELLED"}
-
-        self.meta = result["meta"]
-        self.label_count = int(result["label_count"])
-        self.dtype = np.dtype(result["dtype"])
 
         for key, value in self.meta.items():
             print(f"{key}: {value}")
