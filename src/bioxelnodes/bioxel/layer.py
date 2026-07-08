@@ -7,8 +7,7 @@ try:
 except ImportError:
     vdb = None
 
-from . import scipy
-from . import scipy as ndi
+from scipy import ndimage as ndi
 
 # 3rd-party
 import transforms3d
@@ -83,21 +82,17 @@ class Layer():
             for f in range(self.frame_count):
                 mask_frame = mask[f, :, :, :]
                 if smooth > 0:
-                    mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
-                                                     mode="nearest",
-                                                     size=smooth)
-                # mask_frame = scipy.median_filter(
-                #     mask_frame.astype(np.float32), size=2)
+                    mask_frame = ndi.median_filter(mask_frame.astype(np.float32),
+                                                   mode="nearest",
+                                                   size=smooth)
                 mask_frames += (mask_frame,)
         elif mask.ndim == 3:
             for f in range(self.frame_count):
                 mask_frame = mask[:, :, :]
                 if smooth > 0:
-                    mask_frame = scipy.median_filter(mask_frame.astype(np.float32),
-                                                     mode="nearest",
-                                                     size=smooth)
-                # mask_frame = scipy.median_filter(
-                #     mask_frame.astype(np.float32), size=2)
+                    mask_frame = ndi.median_filter(mask_frame.astype(np.float32),
+                                                   mode="nearest",
+                                                   size=smooth)
                 mask_frames += (mask_frame,)
         else:
             raise Exception("Mask shape order should be TXYZ or XYZ")
@@ -127,9 +122,9 @@ class Layer():
 
             frame = data[f, :, :, :, :]
             if smooth > 0:
-                frame = scipy.median_filter(frame.astype(np.float32),
-                                            mode="nearest",
-                                            size=smooth)
+                frame = ndi.median_filter(frame.astype(np.float32),
+                                          mode="nearest",
+                                          size=smooth)
 
             factors = np.divide(self.shape, shape)
             zoom_factors = [1 / f for f in factors]

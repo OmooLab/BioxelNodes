@@ -38,11 +38,6 @@ If you want to cite this work, you can cite it from Zenodo:
 
 [![DOI](https://zenodo.org/badge/786623459.svg)](https://zenodo.org/badge/latestdoi/786623459)
 
-## Known Limitations
-
--   Only one cutter supported in EEVEE render
--   Shader fail to work when convert to mesh.
--   Section surface cannot be generated when convert to mesh (will be supported soon)
 
 ## Roadmap
 

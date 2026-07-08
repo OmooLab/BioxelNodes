@@ -1,7 +1,7 @@
 # Tempary files
 temp
 sandbox.*
-notes/
+/notes/
 
 # Environments
 .env
@@ -22,11 +22,11 @@ secrets/
 SECRETS/
 secrets.bak/
 
-# Claude
+# Claude Code
+.claude/settings.local.json
 .claudian
 
 # Obsidian
-
 .obsidian/*
 !.obsidian/snippets
 !.obsidian/app.json
@@ -390,7 +390,3 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-
-
-# Scipy
-!scipy_ndimage/*/**

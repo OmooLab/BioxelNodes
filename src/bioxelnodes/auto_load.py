@@ -15,6 +15,9 @@ blender_version = bpy.app.version
 
 modules = None
 ordered_classes = None
+SKIP_MODULE_NAMES = {
+    "operators.io_worker",
+}
 
 
 def init():
@@ -57,6 +60,8 @@ def get_all_submodules(directory):
 
 def iter_submodules(path, package_name):
     for name in sorted(iter_submodule_names(path)):
+        if name in SKIP_MODULE_NAMES:
+            continue
         yield importlib.import_module("." + name, package_name)
 
 

@@ -1,44 +1,13 @@
 import bpy
 import bpy.utils.previews as previews
 
-from .constants import NODE_LIB_DIRPATH, PREVIEW_COLLECTIONS
+from .constants import PREVIEW_COLLECTIONS
 from .props import _bioxel_layer_items, _update_layer_gallery, _update_snapshot_z
 
 from . import auto_load
 from . import menus
 
 auto_load.init()
-
-
-def add_asset_library():
-    """Add Bioxel asset library, ensuring only one exists by removing duplicates first."""
-    if not NODE_LIB_DIRPATH.exists():
-        print(f"Node library path does not exist - {NODE_LIB_DIRPATH}")
-        return
-
-    lib_path_str = str(NODE_LIB_DIRPATH)
-    prefs = bpy.context.preferences.filepaths.asset_libraries
-
-    # Add new library
-    new_lib = prefs.new()
-    new_lib.name = "O Bioxel"
-    new_lib.path = lib_path_str
-    new_lib.import_method = "PACK"
-
-    print(f"Add Bioxel Nodes library: {lib_path_str}")
-
-
-def remove_asset_library_if_exists():
-    """Remove the Bioxel asset library entry if it was added (by path or name)."""
-    lib_path_str = str(NODE_LIB_DIRPATH)
-    prefs = bpy.context.preferences.filepaths.asset_libraries
-
-    for lib in list(prefs):
-        try:
-            if "Bioxel" in lib.name or lib.path == lib_path_str:
-                prefs.remove(lib)
-        except Exception:
-            continue
 
 
 def register():
@@ -72,12 +41,9 @@ def register():
 
     auto_load.register()
     menus.add()
-    remove_asset_library_if_exists()
-    add_asset_library()
 
 
 def unregister():
-    remove_asset_library_if_exists()
     menus.remove()
     auto_load.unregister()
 

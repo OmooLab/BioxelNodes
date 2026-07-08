@@ -1,22 +1,22 @@
+import json
 import math
 import shutil
-import threading
+import subprocess
+import tempfile
 from pathlib import Path
 
 import bpy
 import numpy as np
 import SimpleITK as sitk
-import transforms3d
 
 # KeyboardInterrupt replaced with built-in KeyboardInterrupt
 from ..props import BIOXEL_Series
 from ..utils import get_layer_obj, wrapped_label
 
-from ..bioxel.layer import Layer
-from ..bioxel.parse import DICOM_EXTS, SUPPORT_EXTS, get_ext, parse_volumetric_data
+from ..bioxel.parse import DICOM_EXTS, SUPPORT_EXTS, get_ext
 
 from ..utils import get_cache_dir, progress_update, progress_bar
-from ..layer import get_layer_caches, save_layers_to_json
+from ..layer import get_layer_caches, set_layer_caches
 
 
 def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
@@ -42,6 +42,90 @@ def get_layer_size(shape: tuple, bioxel_size: float, scale: float = 1.0):
 
     return size
 
+
+def write_worker_json(path: Path, data):
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def read_worker_json(path: Path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def remove_progress_bar_safe():
+    try:
+        bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+    except Exception:
+        pass
+
+
+def start_worker_process(owner, command: str, payload: dict):
+    job_dir = Path(tempfile.mkdtemp(prefix="bioxel_import_", dir=str(get_cache_dir())))
+    config_path = job_dir / "config.json"
+    progress_path = job_dir / "progress.json"
+    result_path = job_dir / "result.json"
+    cancel_path = job_dir / "cancel"
+    log_path = job_dir / "worker.log"
+
+    config = {
+        **payload,
+        "command": command,
+        "progress_path": str(progress_path),
+        "result_path": str(result_path),
+        "cancel_path": str(cancel_path),
+    }
+    write_worker_json(config_path, config)
+    write_worker_json(progress_path, {"factor": 0.0, "text": "Starting..."})
+
+    worker_path = Path(__file__).with_name("io_worker.py")
+    cmd = [
+        bpy.app.binary_path,
+        "--background",
+        "--factory-startup",
+        "--python",
+        str(worker_path),
+        "--",
+        str(config_path),
+    ]
+
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    log_file = log_path.open("w", encoding="utf-8")
+    try:
+        owner.process = subprocess.Popen(
+            cmd,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            creationflags=creationflags,
+        )
+    finally:
+        log_file.close()
+
+    owner.job_dir = job_dir
+    owner.progress_path = progress_path
+    owner.result_path = result_path
+    owner.cancel_path = cancel_path
+    owner.log_path = log_path
+
+
+def cancel_worker_process(owner, context):
+    owner.is_cancelled = True
+    try:
+        owner.cancel_path.write_text("cancel", encoding="utf-8")
+    except Exception:
+        pass
+    progress_update(context, 0.0, "Canceling...")
+
+
+def update_worker_progress(owner, context):
+    progress = read_worker_json(owner.progress_path)
+    if progress:
+        progress_update(
+            context,
+            float(progress.get("factor", 0.0)),
+            progress.get("text", ""),
+        )
 
 """
 ImportData    -> ParseVolumetricData -> ImportDataDialog
@@ -167,7 +251,12 @@ class ParseVolumetricData(bpy.types.Operator):
     meta = None
     label_count = 0
     dtype = None
-    thread = None
+    process = None
+    job_dir = None
+    progress_path = None
+    result_path = None
+    cancel_path = None
+    log_path = None
     _timer = None
 
     progress: bpy.props.FloatProperty(
@@ -202,97 +291,64 @@ class ParseVolumetricData(bpy.types.Operator):
 
     def execute(self, context):
         print("Collecting Meta Data...")
-
-        def parse_volumetric_data_func(self, context, cancel):
-            def progress_callback(factor, text):
-                if cancel():
-                    raise KeyboardInterrupt("Cancelled by user")
-                progress_update(context, factor, text)
-
-            try:
-                series_id = self.series_id if self.series_id != "empty" else ""
-                data, meta = parse_volumetric_data(
-                    data_file=self.filepath,
-                    series_id=series_id,
-                    progress_callback=progress_callback,
-                )
-            except KeyboardInterrupt:
-                return
-            except Exception as e:
-                self.has_error = e
-                return
-
-            if cancel():
-                return
-
-            self.meta = meta
-            self.label_count = int(np.max(data))
-            self.dtype = data.dtype
-
-        # Init cancel flag
         self.is_cancelled = False
         self.has_error = None
+        self.meta = None
+        self.label_count = 0
+        self.dtype = None
 
-        # Create the thread
-        self.thread = threading.Thread(
-            target=parse_volumetric_data_func,
-            args=(self, context, lambda: self.is_cancelled),
+        start_worker_process(
+            self,
+            "read_meta",
+            {
+                "filepath": self.filepath,
+                "series_id": self.series_id,
+            },
         )
 
-        # Start the thread
-        self.thread.start()
-        # Add a timmer for modal
         self._timer = context.window_manager.event_timer_add(
             time_step=0.1, window=context.window
         )
-        # Append progress bar to status bar
         bpy.types.STATUSBAR_HT_header.append(progress_bar)
-
-        # Start modal handler
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
 
     def modal(self, context, event):
-        # Check if user press 'ESC'
         if event.type == "ESC":
-            self.is_cancelled = True
-            progress_update(context, 0.0, "Canceling...")
+            cancel_worker_process(self, context)
             return {"PASS_THROUGH"}
 
-        # Check if is the timer time
         if event.type != "TIMER":
             return {"PASS_THROUGH"}
 
-        # Force update status bar
         bpy.context.workspace.status_text_set_internal(None)
+        update_worker_progress(self, context)
 
-        # Check if thread is still running
-        if self.thread.is_alive():
+        if self.process.poll() is None:
             return {"PASS_THROUGH"}
 
-        # Release the thread
-        self.thread.join()
-        # Remove the timer
         context.window_manager.event_timer_remove(self._timer)
-        # Remove the progress bar from status bar
-        bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+        remove_progress_bar_safe()
         progress_update(context, 1.0)
 
-        # Check if thread is cancelled by user
-        if self.is_cancelled:
+        result = read_worker_json(self.result_path)
+        if self.is_cancelled or (result and result.get("cancelled")):
             self.report({"WARNING"}, "Canncelled by user.")
             return {"CANCELLED"}
 
-        # Check if thread is cancelled by user
-        if self.has_error:
-            raise self.has_error
-
-        # Check if has return
-        if self.meta is None:
-            self.report({"ERROR"}, "Some thing went wrong.")
+        if not result:
+            self.report({"ERROR"}, f"Import worker failed. See log: {self.log_path}")
             return {"CANCELLED"}
 
-        # If not canncelled...
+        if not result.get("ok"):
+            print(result.get("traceback", ""))
+            self.report({"ERROR"}, result.get("error", "Import worker failed."))
+            return {"CANCELLED"}
+
+        self.meta = result["meta"]
+        self.label_count = int(result["label_count"])
+        self.dtype = np.dtype(result["dtype"])
+
         for key, value in self.meta.items():
             print(f"{key}: {value}")
 
@@ -310,8 +366,6 @@ class ParseVolumetricData(bpy.types.Operator):
 
         min_log10 = math.floor(math.log10(min(*orig_spacing)))
         max_log10 = math.floor(math.log10(max(*orig_spacing)))
-        # min_space = min(*orig_spacing)
-        # max_space = max(*orig_spacing)
 
         if orig_spacing[2] == 1 and min_log10 < -1:
             orig_spacing = (
@@ -493,8 +547,14 @@ class ImportDataDialog(bpy.types.Operator):
     bl_description = "Import Volumetric Data as Layer"
     bl_options = {"UNDO"}
 
-    layers = None
-    thread = None
+    cache_infos = None
+    added_ids = None
+    process = None
+    job_dir = None
+    progress_path = None
+    result_path = None
+    cancel_path = None
+    log_path = None
     _timer = None
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")  # type: ignore
@@ -546,253 +606,31 @@ class ImportDataDialog(bpy.types.Operator):
     )  # type: ignore
 
     def execute(self, context):
-        def import_volumetric_data_func(self, context, cancel):
-            progress_update(context, 0.0, "Parsing Volumetirc Data...")
-
-            def progress_callback(factor, text):
-                if cancel():
-                    raise KeyboardInterrupt("Cancelled by user")
-                progress_update(context, factor * 0.2, text)
-
-            def progress_callback_factory(layer_name, progress, progress_step):
-                def progress_callback(frame, total):
-                    if cancel():
-                        raise KeyboardInterrupt("Cancelled by user")
-                    sub_progress_step = progress_step / total
-                    sub_progress = progress + frame * sub_progress_step
-                    progress_update(
-                        context,
-                        sub_progress,
-                        f"Processing {layer_name} Frame {frame+1}...",
-                    )
-                    print(f"Processing {layer_name} Frame {frame+1}...")
-
-                return progress_callback
-
-            try:
-                data, meta = parse_volumetric_data(
-                    data_file=self.filepath,
-                    series_id=self.series_id,
-                    progress_callback=progress_callback,
-                )
-
-            except KeyboardInterrupt:
-                return
-            except Exception as e:
-                self.has_error = e
-                return
-
-            if cancel():
-                return
-
-            shape = get_layer_shape(
-                self.bioxel_size, self.orig_shape, self.orig_spacing
-            )
-
-            mat_scale = transforms3d.zooms.zfdir2aff(self.bioxel_size)
-            affine = np.dot(meta["affine"], mat_scale)
-            kind = self.read_as.lower()
-
-            if cancel():
-                return
-
-            # change shape as sequence or not
-            if self.frame_source == "-1":
-                data = data[0:1, :, :, :, :]
-            elif self.frame_source == "0":
-                # frame as frame
-                pass
-            elif self.frame_source == "1":
-                # X as frame
-                data = data.transpose(1, 0, 2, 3, 4)
-                shape = (1, shape[1], shape[2])
-            elif self.frame_source == "2":
-                # Y as frame
-                data = data.transpose(2, 1, 0, 3, 4)
-                shape = (shape[0], 1, shape[2])
-            elif self.frame_source == "3":
-                # Z as frame
-                data = data.transpose(3, 1, 2, 0, 4)
-                shape = (shape[0], shape[1], 1)
-            else:
-                # channel as frame
-                data = data.transpose(4, 1, 2, 3, 0)
-
-            layers = []
-            if kind == "label":
-                name = self.layer_name or "Label"
-                data = data.astype(int)
-                label_count = int(np.max(data))
-                progress_step = 0.7 / label_count
-
-                for i in range(label_count):
-                    if cancel():
-                        return
-
-                    name_i = f"{name}_{i+1}"
-                    progress = 0.2 + i * progress_step
-                    progress_update(context, progress, f"Processing {name_i}...")
-
-                    progress_callback = progress_callback_factory(
-                        name_i, progress, progress_step
-                    )
-                    label_data = data == np.full_like(data, i + 1)
-                    # label_data = label_data.astype(np.float32)
-                    try:
-                        layer = Layer(data=label_data, name=name_i, kind=kind)
-
-                        layer.resize(
-                            shape=shape,
-                            smooth=self.smooth,
-                            progress_callback=progress_callback,
-                        )
-
-                        layer.affine = affine
-
-                        layers.append(layer)
-                    except KeyboardInterrupt:
-                        return
-                    except Exception as e:
-                        self.has_error = e
-                        return
-
-            if kind == "color":
-                if np.issubdtype(np.uint8, data.dtype):
-                    data = np.multiply(data, 1.0 / 256, dtype=np.float32)
-                elif data.dtype.kind in ["u", "i"]:
-                    # Convert the normalized array to float dtype
-                    data = data.astype(np.float32)
-
-                    min_val = data.min()
-                    max_val = data.max()
-                    # Avoid division by zero if all values are the same
-                    if max_val != min_val:
-                        # Normalize the array to the range (0,1)
-                        data = (data - min_val) / (max_val - min_val)
-                    else:
-                        # If all values are the same, the normalized array will be all zeros
-                        data = np.zeros_like(data, dtype=np.float32)
-
-                else:
-                    data = data.astype(np.float32)
-
-                # Gamma Correct
-                # data = data ** 2.2
-
-                name = self.layer_name or "Color"
-                if data.shape[4] == 1:
-                    data = np.repeat(data, repeats=3, axis=4)
-                elif data.shape[4] == 2:
-                    d_shape = list(data.shape)
-                    d_shape = d_shape[:4] + [1]
-                    zore = np.zeros(tuple(d_shape), dtype=np.float32)
-                    data = np.concatenate((data, zore), axis=-1)
-                elif data.shape[4] > 3:
-                    data = data[:, :, :, :, :3]
-
-                if cancel():
-                    return
-
-                progress_update(context, 0.2, f"Processing {name}...")
-                progress_callback = progress_callback_factory(name, 0.2, 0.7)
-
-                try:
-                    layer = Layer(data=data, name=name, kind=kind)
-
-                    layer.resize(shape=shape, progress_callback=progress_callback)
-
-                    layer.affine = affine
-
-                    layers.append(layer)
-                except KeyboardInterrupt:
-                    return
-                except Exception as e:
-                    self.has_error = e
-                    return
-
-            elif kind == "scalar":
-                name = self.layer_name or "Scalar"
-
-                if self.remap:
-                    # Convert the normalized array to float dtype
-                    data = data.astype(np.float32)
-
-                    min_val = data.min()
-                    max_val = data.max()
-                    # Avoid division by zero if all values are the same
-                    if max_val != min_val:
-                        # Normalize the array to the range (0,1)
-                        data = (data - min_val) / (max_val - min_val)
-                    else:
-                        # If all values are the same, the normalized array will be all zeros
-                        data = np.zeros_like(data, dtype=np.float32)
-
-                if self.split_channel:
-                    progress_step = 0.7 / self.channel_count
-
-                    for i in range(self.channel_count):
-                        if cancel():
-                            return
-
-                        name_i = f"{name}_{i+1}"
-                        progress = 0.2 + i * progress_step
-                        progress_update(context, progress, f"Processing {name_i}...")
-                        progress_callback = progress_callback_factory(
-                            name_i, progress, progress_step
-                        )
-                        try:
-                            layer = Layer(
-                                data=data[:, :, :, :, i : i + 1], name=name_i, kind=kind
-                            )
-
-                            layer.resize(
-                                shape=shape, progress_callback=progress_callback
-                            )
-
-                            layer.affine = affine
-
-                            layers.append(layer)
-                        except KeyboardInterrupt:
-                            return
-                        except Exception as e:
-                            self.has_error = e
-                            return
-                else:
-                    if cancel():
-                        return
-
-                    progress_update(context, 0.2, f"Processing {name}...")
-                    progress_callback = progress_callback_factory(name, 0.2, 0.7)
-
-                    try:
-                        layer = Layer(data=data, name=name, kind=kind)
-
-                        layer.resize(shape=shape, progress_callback=progress_callback)
-
-                        layer.affine = affine
-
-                        layers.append(layer)
-                    except KeyboardInterrupt:
-                        return
-                    except Exception as e:
-                        self.has_error = e
-                        return
-
-            if cancel():
-                return
-
-            self.layers = layers
-            progress_update(context, 0.9, "Creating Layers...")
-
         self.is_cancelled = False
         self.has_error = None
+        self.cache_infos = None
+        self.added_ids = None
 
-        self.thread = threading.Thread(
-            target=import_volumetric_data_func,
-            args=(self, context, lambda: self.is_cancelled),
+        start_worker_process(
+            self,
+            "import_layers",
+            {
+                "filepath": self.filepath,
+                "series_id": self.series_id,
+                "cache_dir": str(get_cache_dir() / "layers"),
+                "layer_name": self.layer_name,
+                "orig_shape": list(self.orig_shape),
+                "orig_spacing": list(self.orig_spacing),
+                "bioxel_size": self.bioxel_size,
+                "read_as": self.read_as,
+                "frame_source": self.frame_source,
+                "smooth": self.smooth,
+                "remap": self.remap,
+                "split_channel": self.split_channel,
+                "channel_count": self.channel_count,
+            },
         )
 
-        self.thread.start()
         self._timer = context.window_manager.event_timer_add(
             time_step=0.1, window=context.window
         )
@@ -803,41 +641,49 @@ class ImportDataDialog(bpy.types.Operator):
 
     def modal(self, context, event):
         if event.type == "ESC":
-            self.is_cancelled = True
-            progress_update(context, 0.0, "Canceling...")
+            cancel_worker_process(self, context)
             return {"PASS_THROUGH"}
 
         if event.type != "TIMER":
             return {"PASS_THROUGH"}
 
         bpy.context.workspace.status_text_set_internal(None)
-        if self.thread.is_alive():
+        update_worker_progress(self, context)
+
+        if self.process.poll() is None:
             return {"PASS_THROUGH"}
 
-        self.thread.join()
         context.window_manager.event_timer_remove(self._timer)
-        bpy.types.STATUSBAR_HT_header.remove(progress_bar)
+        remove_progress_bar_safe()
         progress_update(context, 1.0)
 
-        if self.is_cancelled:
+        result = read_worker_json(self.result_path)
+        if self.is_cancelled or (result and result.get("cancelled")):
             self.report({"WARNING"}, "Canncelled by user.")
             return {"CANCELLED"}
 
-        # Check if thread is cancelled by user
-        if self.has_error:
-            raise self.has_error
+        if not result:
+            self.report({"ERROR"}, f"Import worker failed. See log: {self.log_path}")
+            return {"CANCELLED"}
 
-        # Check if has return
-        if self.layers is None:
+        if not result.get("ok"):
+            print(result.get("traceback", ""))
+            self.report({"ERROR"}, result.get("error", "Import worker failed."))
+            return {"CANCELLED"}
+
+        self.cache_infos = result.get("cache_infos")
+        self.added_ids = result.get("added_ids")
+        if not self.cache_infos or not self.added_ids:
             self.report({"ERROR"}, "Some thing went wrong.")
             return {"CANCELLED"}
 
         is_first_import = len(get_layer_caches()) == 0
-        ids = save_layers_to_json(self.layers, cache_dir=get_cache_dir() / "layers")
+        existing_data = get_layer_caches()
+        existing_data.extend(self.cache_infos)
+        set_layer_caches(existing_data)
 
-        setattr(context.window_manager, "bioxel_layer_library", ids[-1])
+        setattr(context.window_manager, "bioxel_layer_library", self.added_ids[-1])
 
-        # Change render setting for better result
         if is_first_import:
             bpy.ops.bioxel.render_setting_preset("EXEC_DEFAULT", preset="balance")
 

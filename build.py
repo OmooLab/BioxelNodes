@@ -19,7 +19,8 @@ required_packages = ["SimpleITK==2.5.5",
                      "transforms3d==0.4.2",
                      "tifffile==2024.7.24",
                      "matplotlib==3.10.7",
-                     "pillow==11.2.1"]
+                     "pillow==11.2.1",
+                     "scipy==1.16.3"]
 
 
 platforms = {"windows-x64": Platform(pypi_suffix="win_amd64",
@@ -33,7 +34,8 @@ platforms = {"windows-x64": Platform(pypi_suffix="win_amd64",
 
 packages_to_remove = {
     "imagecodecs",
-    "numpy"
+    "numpy",
+    "packaging"
 }
 
 
@@ -45,7 +47,6 @@ def run_python(args: str):
 def build_extension(platform: Platform, python_version: str) -> None:
     wheel_dirpath = Path("./src/bioxelnodes/wheels")
     toml_filepath = Path("./src/bioxelnodes/blender_manifest.toml")
-    scipy_ndimage_dirpath = Path("./scipy_ndimage", platform.blender_tag)
 
     # download required_packages
     run_python(
@@ -62,10 +63,6 @@ def build_extension(platform: Platform, python_version: str) -> None:
             and "universal2" in f.name
         ):
             f.rename(Path(f.parent, f.name.replace("universal2", "arm64")))
-
-    for ndimage_filepath in scipy_ndimage_dirpath.iterdir():
-        to_filepath = Path("./src/bioxelnodes/bioxel/scipy", ndimage_filepath.name)
-        shutil.copy(ndimage_filepath, to_filepath)
         
     # Load the TOML file
     with toml_filepath.open("r") as file:

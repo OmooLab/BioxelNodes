@@ -49,15 +49,8 @@ Welcome to our [discord server](https://discord.gg/pYkNyq2TjE), if you have any 
 
 ![eevee](https://omoolab.github.io/BioxelNodes/latest/assets/eevee.gif)
 
-👍 EEVEE NEXT is absolutely AWESOME! Bioxel Nodes is fully support EEVEE NEXT now! However, there are some limitations:
+👍 EEVEE NEXT is absolutely AWESOME! Bioxel Nodes is fully support EEVEE NEXT now! 
 
-1. Only one cutter supported.
-2. EEVEE result is not that great as Cycles does.
-
-## Known Limitations
-
--   Only works with Cycles CPU , Cycles GPU (OptiX), EEVEE
--   Section surface cannot be generated when convert to mesh (will be supported soon)
 
 ## Roadmap
 
