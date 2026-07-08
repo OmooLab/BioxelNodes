@@ -9,6 +9,8 @@ from . import menus
 
 auto_load.init()
 
+CLI_COMMAND_NAME = "bioxelnodes_import_worker"
+
 
 def register():
     pcoll = previews.new()
@@ -41,9 +43,11 @@ def register():
 
     auto_load.register()
     menus.add()
+    register_cli_commands()
 
 
 def unregister():
+    unregister_cli_commands()
     menus.remove()
     auto_load.unregister()
 
@@ -56,3 +60,21 @@ def unregister():
     for pcoll in PREVIEW_COLLECTIONS.values():
         previews.remove(pcoll)
     PREVIEW_COLLECTIONS.clear()
+
+
+def import_worker_cli(args):
+    from .operators import io_worker
+
+    return io_worker.main(args)
+
+
+def register_cli_commands():
+    unregister_cli_commands()
+    bpy.utils.register_cli_command(CLI_COMMAND_NAME, import_worker_cli)
+
+
+def unregister_cli_commands():
+    try:
+        bpy.utils.unregister_cli_command(CLI_COMMAND_NAME)
+    except Exception:
+        pass

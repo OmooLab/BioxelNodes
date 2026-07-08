@@ -1,23 +1,6 @@
 import json
-import sys
 import traceback
 from pathlib import Path
-
-import numpy as np
-import transforms3d
-
-if __package__:
-    from ..bioxel.layer import Layer
-    from ..bioxel.parse import parse_volumetric_data
-    from ..layer import save_layers_to_cache
-else:
-    PACKAGE_PARENT = Path(__file__).resolve().parents[2]
-    if str(PACKAGE_PARENT) not in sys.path:
-        sys.path.insert(0, str(PACKAGE_PARENT))
-
-    from bioxelnodes.bioxel.layer import Layer
-    from bioxelnodes.bioxel.parse import parse_volumetric_data
-    from bioxelnodes.layer import save_layers_to_cache
 
 
 def get_layer_shape(bioxel_size: float, orig_shape: tuple, orig_spacing: tuple):
@@ -72,6 +55,10 @@ def progress_callback_factory(progress_path: Path, cancel_path: Path, layer_name
 
 
 def read_meta(config, progress_path: Path, cancel_path: Path):
+    import numpy as np
+
+    from ..bioxel.parse import parse_volumetric_data
+
     progress_callback = make_progress_writer(progress_path, cancel_path)
     series_id = config["series_id"] if config["series_id"] != "empty" else ""
     data, meta = parse_volumetric_data(
@@ -94,6 +81,13 @@ def read_meta(config, progress_path: Path, cancel_path: Path):
 
 
 def build_layers(config, progress_path: Path, cancel_path: Path):
+    import numpy as np
+    import transforms3d
+
+    from ..bioxel.layer import Layer
+    from ..bioxel.parse import parse_volumetric_data
+    from ..layer import save_layers_to_cache
+
     write_json(progress_path, {"factor": 0.0, "text": "Parsing Volumetirc Data..."})
     progress_callback = make_progress_writer(progress_path, cancel_path, scale=0.2)
     data, meta = parse_volumetric_data(
@@ -229,14 +223,19 @@ def build_layers(config, progress_path: Path, cancel_path: Path):
     return {"cache_infos": cache_infos, "added_ids": [item["id"] for item in cache_infos]}
 
 
-def main():
-    config_path = Path(sys.argv[-1])
+def main(args):
+    if not args:
+        print("Usage: blender --command bioxelnodes_import_worker <config_path>")
+        return 2
+
+    config_path = Path(args[0])
     config = json.loads(config_path.read_text(encoding="utf-8"))
     progress_path = Path(config["progress_path"])
     result_path = Path(config["result_path"])
     cancel_path = Path(config["cancel_path"])
 
     try:
+        write_json(progress_path, {"factor": 0.0, "text": "Loading import modules..."})
         if config["command"] == "read_meta":
             result = read_meta(config, progress_path, cancel_path)
         elif config["command"] == "import_layers":
@@ -257,7 +256,4 @@ def main():
                 "traceback": traceback.format_exc(),
             },
         )
-
-
-if __name__ == "__main__":
-    main()
+    return 0
