@@ -61,6 +61,14 @@ def remove_progress_bar_safe():
         pass
 
 
+def get_addon_module_name():
+    package_name = __package__ or "bioxelnodes.operators"
+    suffix = ".operators"
+    if package_name.endswith(suffix):
+        return package_name[: -len(suffix)]
+    return package_name
+
+
 def start_worker_process(owner, command: str, payload: dict):
     job_dir = Path(tempfile.mkdtemp(prefix="bioxel_import_", dir=str(get_cache_dir())))
     config_path = job_dir / "config.json"
@@ -69,9 +77,11 @@ def start_worker_process(owner, command: str, payload: dict):
     cancel_path = job_dir / "cancel"
     log_path = job_dir / "worker.log"
 
+    addon_name = get_addon_module_name()
     config = {
         **payload,
         "command": command,
+        "addon_name": addon_name,
         "progress_path": str(progress_path),
         "result_path": str(result_path),
         "cancel_path": str(cancel_path),
@@ -79,14 +89,14 @@ def start_worker_process(owner, command: str, payload: dict):
     write_worker_json(config_path, config)
     write_worker_json(progress_path, {"factor": 0.0, "text": "Starting..."})
 
-    worker_path = Path(__file__).with_name("io_worker.py")
+    print(f"Starting Bioxel worker with addon module: {addon_name}")
     cmd = [
         bpy.app.binary_path,
         "--background",
-        "--factory-startup",
-        "--python",
-        str(worker_path),
-        "--",
+        "--addons",
+        addon_name,
+        "--command",
+        "bioxelnodes_import_worker",
         str(config_path),
     ]
 
