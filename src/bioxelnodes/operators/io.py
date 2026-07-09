@@ -89,7 +89,7 @@ def start_worker_process(owner, command: str, payload: dict):
     write_worker_json(config_path, config)
     write_worker_json(
         progress_path,
-        {"factor": 0.0, "text": "Starting background Blender..."},
+        {"factor": 0.0, "text": "Starting..."},
     )
 
     print(f"Starting Bioxel worker with addon module: {addon_name}")
