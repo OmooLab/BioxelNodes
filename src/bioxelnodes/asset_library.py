@@ -1,10 +1,20 @@
 import bpy
 from pathlib import Path
 
-from .constants import NODE_LIB_DIRPATH
+from .constants import LATEST_NODE_LIB_PATH, NODE_LIB_DIRPATH, NODE_LIB_FILENAME
 
 
 ASSET_LIBRARY_NAME = "O Bioxel"
+ASSET_LIBRARY_READY = "READY"
+ASSET_LIBRARY_OUTDATED = "OUTDATED"
+ASSET_LIBRARY_MISSING = "MISSING"
+
+STATUS_MESSAGES = {
+    "missing": "O Bioxel asset library is not installed.",
+    "missing_blend": "O Bioxel node library file is missing.",
+    "outdated": "O Bioxel node library needs update.",
+    "ready": "O Bioxel asset library is ready.",
+}
 
 
 def _asset_library_path():
@@ -17,6 +27,26 @@ def _normalized_path(path):
 
 def _asset_libraries():
     return bpy.context.preferences.filepaths.asset_libraries
+
+
+def _find_bioxel_asset_library():
+    lib_path = _normalized_path(_asset_library_path())
+    named_lib = None
+
+    for lib in _asset_libraries():
+        try:
+            if _normalized_path(lib.path) == lib_path:
+                return lib
+            if lib.name == ASSET_LIBRARY_NAME:
+                named_lib = lib
+        except Exception:
+            continue
+
+    return named_lib
+
+
+def _node_lib_path_for_library(lib):
+    return _normalized_path(lib.path) / NODE_LIB_FILENAME
 
 
 def get_bioxel_asset_library():
@@ -32,16 +62,47 @@ def get_bioxel_asset_library():
     return None
 
 
+def get_bioxel_asset_library_status():
+    lib = _find_bioxel_asset_library()
+    lib_path = _normalized_path(_asset_library_path())
+
+    if lib is None:
+        return {"code": ASSET_LIBRARY_MISSING, "reason": "missing",
+                "message": STATUS_MESSAGES["missing"]}
+
+    try:
+        installed_lib_path = _normalized_path(lib.path)
+    except Exception:
+        return {"code": ASSET_LIBRARY_MISSING, "reason": "missing",
+                "message": STATUS_MESSAGES["missing"]}
+
+    if not _node_lib_path_for_library(lib).is_file():
+        return {"code": ASSET_LIBRARY_MISSING, "reason": "missing_blend",
+                "message": STATUS_MESSAGES["missing_blend"]}
+
+    if installed_lib_path != lib_path:
+        return {"code": ASSET_LIBRARY_OUTDATED, "reason": "outdated",
+                "message": STATUS_MESSAGES["outdated"]}
+
+    return {"code": ASSET_LIBRARY_READY, "reason": "ready",
+            "message": STATUS_MESSAGES["ready"]}
+
+
 def has_bioxel_asset_library():
-    return get_bioxel_asset_library() is not None
+    return get_bioxel_asset_library_status()["code"] in {
+        ASSET_LIBRARY_READY,
+        ASSET_LIBRARY_OUTDATED,
+    }
 
 
 def add_bioxel_asset_library():
     if not NODE_LIB_DIRPATH.exists():
         raise FileNotFoundError(f"Node library path does not exist: {NODE_LIB_DIRPATH}")
+    if not LATEST_NODE_LIB_PATH.is_file():
+        raise FileNotFoundError(f"Node library file does not exist: {LATEST_NODE_LIB_PATH}")
 
     prefs = _asset_libraries()
-    lib = get_bioxel_asset_library()
+    lib = _find_bioxel_asset_library()
 
     if lib is None:
         for item in prefs:
