@@ -3,6 +3,7 @@ import shutil
 
 import bpy
 
+from ..asset_library import ASSET_LIBRARY_MISSING, get_bioxel_asset_library_status
 from ..node import add_bioxel_node, get_layer_nodes, get_main_node_group
 from ..utils import refresh_bioxel_panels
 from ..layer import get_layer_caches, set_layer_caches
@@ -91,6 +92,11 @@ class AddLayerNode(bpy.types.Operator):
     cache_id: bpy.props.StringProperty()  # type: ignore # 图层ID
 
     def execute(self, context):
+        status = get_bioxel_asset_library_status()
+        if status["code"] == ASSET_LIBRARY_MISSING:
+            self.report({"ERROR"}, status["message"])
+            return {"CANCELLED"}
+
         # 获取图层数据
         caches = get_layer_caches()
 

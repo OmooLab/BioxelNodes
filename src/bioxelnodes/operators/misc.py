@@ -5,7 +5,12 @@ import bpy
 from pathlib import Path
 import shutil
 
-from ..asset_library import add_bioxel_asset_library
+from ..asset_library import (
+    ASSET_LIBRARY_OUTDATED,
+    ASSET_LIBRARY_READY,
+    add_bioxel_asset_library,
+    get_bioxel_asset_library_status,
+)
 from ..constants import LATEST_NODE_LIB_PATH
 from ..utils import (
     get_all_layer_objs,
@@ -138,8 +143,17 @@ class AddAssetLibrary(bpy.types.Operator):
                 if area.type == "NODE_EDITOR":
                     area.tag_redraw()
 
-        self.report({"INFO"}, "O Bioxel asset library is ready.")
-        return {"FINISHED"}
+        status = get_bioxel_asset_library_status()
+        if status["code"] == ASSET_LIBRARY_READY:
+            self.report({"INFO"}, status["message"])
+            return {"FINISHED"}
+
+        if status["code"] == ASSET_LIBRARY_OUTDATED:
+            self.report({"WARNING"}, status["message"])
+            return {"FINISHED"}
+
+        self.report({"ERROR"}, status["message"])
+        return {"CANCELLED"}
 
 
 # 定义虚无化切换操作

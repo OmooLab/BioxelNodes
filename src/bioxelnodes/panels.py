@@ -1,7 +1,12 @@
 from pathlib import Path
 import bpy
 
-from .asset_library import has_bioxel_asset_library
+from .asset_library import (
+    ASSET_LIBRARY_OUTDATED,
+    ASSET_LIBRARY_READY,
+    get_bioxel_asset_library_status,
+    has_bioxel_asset_library,
+)
 from .node import get_layer_nodes, get_main_node_group
 from .utils import load_icon
 from .layer import get_layer_caches
@@ -78,13 +83,23 @@ class HeaderPanel(bpy.types.Panel, BioxelPanelBase):
 
     def draw(self, context):
         layout = self.layout
+        status = get_bioxel_asset_library_status()
 
-        if not has_bioxel_asset_library():
+        if status["code"] == ASSET_LIBRARY_OUTDATED:
+            layout.operator(
+                AddAssetLibrary.bl_idname,
+                text="Update Nodes Library",
+                icon="ASSET_MANAGER",
+            )
+            layout.label(text=status["message"], icon="INFO")
+
+        elif status["code"] != ASSET_LIBRARY_READY:
             layout.operator(
                 AddAssetLibrary.bl_idname,
                 text="Add Nodes Library",
                 icon="ASSET_MANAGER",
             )
+            layout.label(text=status["message"], icon="INFO")
             return
 
         layout.operator(

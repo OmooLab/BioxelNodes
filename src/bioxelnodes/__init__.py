@@ -2,6 +2,7 @@ import bpy
 import bpy.utils.previews as previews
 
 from .constants import PREVIEW_COLLECTIONS
+from .asset_library import remove_bioxel_asset_library_if_exists
 from .props import _bioxel_layer_items, _update_layer_gallery, _update_snapshot_z
 
 from . import auto_load
@@ -47,6 +48,7 @@ def register():
 
 
 def unregister():
+    remove_bioxel_asset_library_if_exists()
     unregister_cli_commands()
     menus.remove()
     auto_load.unregister()
